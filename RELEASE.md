@@ -23,7 +23,7 @@ Initial Mugen release. Fork of Havoc (last public GPL-3.0 commit, December 2025)
 - Session table query filter - real-time, space-separated, named fields (`type:tg`, `user:root`, `health:live`, `ip:10.0`, ...)
 - Session health countdown - live timer to next expected beacon, color-coded (green / red / yellow / grey)
 - Session Notes & Tags - free-form annotations and comma-separated tags, visible in the session table, SQLite-persisted
-- Loot Manager: Credentials tab (add/delete, full SQLite persistence), inline screenshot viewer with zoom and save
+- Loot Manager: Credentials tab with Add/Edit/Remove buttons in a centered bottom bar (replaces top-right Add button), inline screenshot viewer with zoom and save; credentials now persist correctly across server restarts
 - Console search (Ctrl+F) - match highlighting, forward/backward navigation, match counter
 - Desktop notifications - system tray icon + toast on every new agent check-in
 - Explorer UI (Process List + File Explorer) available for both Demon and Tengu sessions

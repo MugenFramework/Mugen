@@ -25,7 +25,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **ELF BOF loader** - in-process execution of x86_64 `.o` files with full BeaconAPI
 - [x] **Explorer UI for Tengu** - Process List + File Explorer in the Qt client
 - [x] **Agent ID prefixes** - `DN-XXXXXXXX` for Demon, `TU-XXXXXXXX` for Tengu
-- [x] **Loot Manager - Credentials** - credentials tab with SQLite persistence and Python API
+- [x] **Loot Manager - Credentials** - credentials tab with SQLite persistence and Python API; Add/Edit/Remove buttons in a centered bottom bar; persistence fix (credentials reload correctly after server restart)
 - [x] **Loot - Image Viewer** - inline viewer in the loot panel, zoom, fit, save, PNG auto-detect
 - [x] **Session Notes & Tags** - free-form annotations, tags visible as column, SQLite persistence
 - [x] **Python API** - `mugen` module, `RegisterTenguCommand`, `RegisterCommand(agent="Tengu")`, global `Packer`, `import havoc` compat

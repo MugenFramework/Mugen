@@ -268,9 +268,24 @@ LootWidget::LootWidget()
     horizontalSpacer_2 = new QSpacerItem( 40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
     gridLayout->addItem( horizontalSpacer_2, 0, 5, 1, 1 );
 
-    BtnAddCredential = new QPushButton( "+ Add Credential", this );
-    BtnAddCredential->setVisible( false );
-    gridLayout->addWidget( BtnAddCredential, 0, 6, 1, 1 );
+    // Bottom credential action bar (hidden by default, shown only on Credentials tab)
+    CredentialBar = new QWidget( this );
+    auto credBarLayout = new QHBoxLayout( CredentialBar );
+    credBarLayout->setContentsMargins( 4, 4, 4, 4 );
+    credBarLayout->setSpacing( 4 );
+
+    BtnAddCredential    = new QPushButton( "+ Add",    CredentialBar );
+    BtnEditCredential   = new QPushButton( "Edit",     CredentialBar );
+    BtnRemoveCredential = new QPushButton( "Remove",   CredentialBar );
+
+    credBarLayout->addStretch();
+    credBarLayout->addWidget( BtnAddCredential );
+    credBarLayout->addWidget( BtnEditCredential );
+    credBarLayout->addWidget( BtnRemoveCredential );
+    credBarLayout->addStretch();
+
+    CredentialBar->setVisible( false );
+    gridLayout->addWidget( CredentialBar, 2, 0, 1, 6 );
 
     StackWidget->setCurrentIndex( 0 );
 
@@ -295,7 +310,9 @@ LootWidget::LootWidget()
     connect( splitter, &QSplitter::splitterMoved, ScreenshotImage, &ImageLabel::resizeImage );
     connect( ComboAgentID, &QComboBox::currentTextChanged, this, &LootWidget::onAgentChange );
     connect( ComboShow, &QComboBox::currentTextChanged, this, &LootWidget::onShowChange );
-    connect( BtnAddCredential, &QPushButton::clicked, this, &LootWidget::onAddCredential );
+    connect( BtnAddCredential,    &QPushButton::clicked, this, &LootWidget::onAddCredential    );
+    connect( BtnEditCredential,   &QPushButton::clicked, this, &LootWidget::onEditCredential   );
+    connect( BtnRemoveCredential, &QPushButton::clicked, this, &LootWidget::onRemoveCredential );
     connect( CredentialTable, &QTableWidget::customContextMenuRequested, this, &LootWidget::onCredentialTableCtx );
 
     Reload();
@@ -507,17 +524,17 @@ void LootWidget::onShowChange( const QString& text )
     if ( text.compare( "Screenshots" ) == 0 )
     {
         StackWidget->setCurrentIndex( 0 );
-        BtnAddCredential->setVisible( false );
+        CredentialBar->setVisible( false );
     }
     else if ( text.compare( "Downloads" ) == 0 )
     {
         StackWidget->setCurrentIndex( 1 );
-        BtnAddCredential->setVisible( false );
+        CredentialBar->setVisible( false );
     }
     else if ( text.compare( "Credentials" ) == 0 )
     {
         StackWidget->setCurrentIndex( 2 );
-        BtnAddCredential->setVisible( true );
+        CredentialBar->setVisible( true );
     }
 }
 
@@ -689,4 +706,148 @@ void LootWidget::onAddCredential()
 
     dialog->exec();
     delete dialog;
+}
+
+void LootWidget::LoadCredentialsFromDB( MugenNamespace::MugenSpace::DBManager* db )
+{
+    if ( !db ) return;
+
+    LootItems.erase( std::remove_if( LootItems.begin(), LootItems.end(), []( const LootData& d ) {
+        return d.Type == LOOT_CREDENTIAL;
+    } ), LootItems.end() );
+    CredentialTable->setRowCount( 0 );
+
+    for ( auto& e : db->GetCredentials() ) {
+        AddSessionSection( e.AgentID );
+        AddCredential( e.AgentID, e.Type, e.Username, e.Secret, e.Domain, e.Source, e.Timestamp );
+    }
+}
+
+void LootWidget::onEditCredential()
+{
+    int row = CredentialTable->currentRow();
+    if ( row < 0 )
+        return;
+
+    auto getCol = [&]( int col ) -> QString {
+        auto it = CredentialTable->item( row, col );
+        return it ? it->text() : QString();
+    };
+
+    auto oldType  = getCol( 0 );
+    auto oldUser  = getCol( 1 );
+    auto oldSec   = getCol( 2 );
+    auto oldDom   = getCol( 3 );
+    auto oldSrc   = getCol( 4 );
+    auto oldAgent = getCol( 5 );
+    auto oldTs    = getCol( 6 );
+
+    auto dialog   = new QDialog( this );
+    dialog->setWindowTitle( "Edit Credential" );
+    dialog->setMinimumWidth( 420 );
+
+    auto form     = new QFormLayout();
+    auto editType = new QComboBox();
+    auto editUser = new QLineEdit( oldUser );
+    auto editSec  = new QLineEdit( oldSec  );
+    auto editDom  = new QLineEdit( oldDom  );
+    auto editSrc  = new QLineEdit( oldSrc  );
+    auto editAgent= new QComboBox();
+
+    editType->addItems( { "plaintext", "ntlm", "hash", "kerberos", "ssh-key", "api-key", "other" } );
+    editType->setCurrentText( oldType );
+    editSrc->setPlaceholderText( "command, module..." );
+
+    editAgent->addItem( "" );
+    for ( auto& s : MugenX::Teamserver.Sessions )
+        editAgent->addItem( s.Name );
+    editAgent->setCurrentText( oldAgent );
+
+    form->addRow( "Type:",     editType  );
+    form->addRow( "Username:", editUser  );
+    form->addRow( "Secret:",   editSec   );
+    form->addRow( "Domain:",   editDom   );
+    form->addRow( "Source:",   editSrc   );
+    form->addRow( "Agent:",    editAgent );
+
+    auto btnRow    = new QHBoxLayout();
+    auto btnSave   = new QPushButton( "Save" );
+    auto btnCancel = new QPushButton( "Cancel" );
+    btnRow->addStretch();
+    btnRow->addWidget( btnSave );
+    btnRow->addWidget( btnCancel );
+
+    auto vbox = new QVBoxLayout( dialog );
+    vbox->addLayout( form );
+    vbox->addLayout( btnRow );
+
+    connect( btnCancel, &QPushButton::clicked, dialog, &QDialog::reject );
+    connect( btnSave, &QPushButton::clicked, dialog, [=]() {
+        auto typ   = editType->currentText();
+        auto usr   = editUser->text().trimmed();
+        auto sec   = editSec->text().trimmed();
+        auto dom   = editDom->text().trimmed();
+        auto src   = editSrc->text().trimmed();
+        auto agent = editAgent->currentText().trimmed();
+
+        if ( usr.isEmpty() && sec.isEmpty() ) {
+            dialog->reject();
+            return;
+        }
+
+        auto db = MugenX::Teamserver.TabSession ? MugenX::Teamserver.TabSession->dbManager : nullptr;
+
+        // Delete old entry from DB
+        if ( db )
+            db->DeleteCredential( oldAgent, oldUser, oldTs );
+
+        // Remove from in-memory list
+        LootItems.erase( std::remove_if( LootItems.begin(), LootItems.end(), [&]( const LootData& d ) {
+            return d.Type == LOOT_CREDENTIAL
+                && d.AgentID        == oldAgent
+                && d.Cred.Username  == oldUser
+                && d.Cred.Timestamp == oldTs;
+        } ), LootItems.end() );
+
+        // Add updated entry
+        auto now = QDateTime::currentDateTime().toString( "yyyy-MM-dd hh:mm:ss" );
+        if ( db ) {
+            MugenNamespace::MugenSpace::DBManager::CredentialEntry entry{ agent, typ, usr, sec, dom, src, now };
+            db->AddCredential( entry );
+        }
+
+        // Remove the old table row, then re-add via AddCredential (avoids duplicate)
+        CredentialTable->removeRow( row );
+
+        AddSessionSection( agent );
+        AddCredential( agent, typ, usr, sec, dom, src, now );
+
+        dialog->accept();
+    } );
+
+    dialog->exec();
+    delete dialog;
+}
+
+void LootWidget::onRemoveCredential()
+{
+    int row = CredentialTable->currentRow();
+    if ( row < 0 )
+        return;
+
+    auto agentID   = CredentialTable->item( row, 5 ) ? CredentialTable->item( row, 5 )->text() : QString();
+    auto username  = CredentialTable->item( row, 1 ) ? CredentialTable->item( row, 1 )->text() : QString();
+    auto timestamp = CredentialTable->item( row, 6 ) ? CredentialTable->item( row, 6 )->text() : QString();
+
+    if ( MugenX::Teamserver.TabSession && MugenX::Teamserver.TabSession->dbManager )
+        MugenX::Teamserver.TabSession->dbManager->DeleteCredential( agentID, username, timestamp );
+
+    LootItems.erase( std::remove_if( LootItems.begin(), LootItems.end(), [&]( const LootData& d ) {
+        return d.Type == LOOT_CREDENTIAL
+            && d.AgentID        == agentID
+            && d.Cred.Username  == username
+            && d.Cred.Timestamp == timestamp;
+    } ), LootItems.end() );
+
+    CredentialTable->removeRow( row );
 }
