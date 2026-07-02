@@ -598,19 +598,6 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
     } );
 
     QMainWindow::connect( actionLoot, &QAction::triggered, this, [&]() {
-        if ( MugenX::Teamserver.TabSession->LootWidget == nullptr ) {
-            MugenX::Teamserver.TabSession->LootWidget = new LootWidget;
-
-            // Load persisted credentials from DB
-            if ( MugenX::Teamserver.TabSession->dbManager ) {
-                for ( auto& e : MugenX::Teamserver.TabSession->dbManager->GetCredentials() ) {
-                    MugenX::Teamserver.TabSession->LootWidget->AddSessionSection( e.AgentID );
-                    MugenX::Teamserver.TabSession->LootWidget->AddCredential(
-                        e.AgentID, e.Type, e.Username, e.Secret, e.Domain, e.Source, e.Timestamp );
-                }
-            }
-        }
-
         NewBottomTab( MugenX::Teamserver.TabSession->LootWidget, "Loot Collection" );
     } );
 
@@ -683,12 +670,20 @@ void MugenNamespace::UserInterface::MugenUi::NewBottomTab(QWidget* TabWidget, co
 void MugenNamespace::UserInterface::MugenUi::setDBManager(MugenSpace::DBManager* dbManager)
 {
     this->dbManager = dbManager;
+    if ( MugenX::Teamserver.TabSession ) {
+        MugenX::Teamserver.TabSession->dbManager = dbManager;
+        if ( MugenX::Teamserver.TabSession->LootWidget )
+            MugenX::Teamserver.TabSession->LootWidget->LoadCredentialsFromDB( dbManager );
+    }
 }
 
 void UserInterface::MugenUi::NewTeamserverTab(MugenNamespace::Util::ConnectionInfo* Connection )
 {
     Connection->TabSession = new UserInterface::Widgets::TeamserverTabSession;
     Connection->TabSession->setupUi( new QWidget, Connection->Name );
+    Connection->TabSession->dbManager = this->dbManager;
+    if ( Connection->TabSession->LootWidget )
+        Connection->TabSession->LootWidget->LoadCredentialsFromDB( this->dbManager );
 
     int id = TeamserverTabWidget->addTab( Connection->TabSession->PageWidget, Connection->Name );
     TeamserverTabWidget->setCurrentIndex( id );
@@ -699,6 +694,9 @@ void UserInterface::MugenUi::NewTeamserverTab(QString Name )
 {
     MugenX::Teamserver.TabSession = new UserInterface::Widgets::TeamserverTabSession;
     MugenX::Teamserver.TabSession->setupUi( new QWidget, MugenX::Teamserver.Name );
+    MugenX::Teamserver.TabSession->dbManager = this->dbManager;
+    if ( MugenX::Teamserver.TabSession->LootWidget )
+        MugenX::Teamserver.TabSession->LootWidget->LoadCredentialsFromDB( this->dbManager );
 
     int id = TeamserverTabWidget->addTab( MugenX::Teamserver.TabSession->PageWidget, MugenX::Teamserver.Name );
     TeamserverTabWidget->setCurrentIndex( id );

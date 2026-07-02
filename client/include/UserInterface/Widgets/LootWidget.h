@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QScrollArea>
 #include <QPushButton>
+#include <Mugen/DBManager/DBManager.hpp>
 
 class ImageLabel : public QWidget
 {
@@ -104,7 +105,10 @@ public:
     QGridLayout*    gridLayout_4;
     QTableWidget*   CredentialTable;
 
+    QWidget*        CredentialBar;
     QPushButton*    BtnAddCredential;
+    QPushButton*    BtnEditCredential;
+    QPushButton*    BtnRemoveCredential;
     QSpacerItem*    horizontalSpacer_2;
 
     LootWidget();
@@ -123,6 +127,7 @@ public:
     void CredentialTableAdd( const QString& CredType, const QString& Username, const QString& Secret,
                              const QString& Domain, const QString& Source, const QString& AgentID,
                              const QString& Timestamp );
+    void LoadCredentialsFromDB( MugenNamespace::MugenSpace::DBManager* db );
 
 private Q_SLOTS:
     void onAgentChange( const QString& text );
@@ -131,6 +136,8 @@ private Q_SLOTS:
     void onDownloadTableClick( const QModelIndex &index );
     void onScreenshotTableCtx( const QPoint &pos );
     void onAddCredential();
+    void onEditCredential();
+    void onRemoveCredential();
     void onCredentialTableCtx( const QPoint& pos );
 };
 
