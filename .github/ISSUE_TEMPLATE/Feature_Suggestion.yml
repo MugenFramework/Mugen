@@ -1,0 +1,47 @@
+name: Feature Suggestion
+description: Suggest a feature or enhancement for Mugen
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a feature!
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: How can we get in touch with you if we need more info?
+      placeholder: ex. email@example.com
+    validations:
+      required: false
+  - type: textarea
+    id: what-is
+    attributes:
+      label: What is the idea?
+      description: Describe it clearly and list any supporting resources.
+      placeholder: Describe your feature suggestion.
+    validations:
+      required: true
+  - type: dropdown
+    id: already-exists
+    attributes:
+      label: Does this already exist in Mugen?
+      options:
+        - "No (I checked and it doesn't exist)"
+        - "Yes (I didn't check)"
+    validations:
+      required: true
+  - type: textarea
+    id: code-samples
+    attributes:
+      label: Relevant code samples
+      description: Insert any relevant code to help explain or implement the feature. If you have a working implementation, please open a pull request instead.
+      render: shell
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: "Checklist"
+      options:
+        - label: I provided enough information for the Mugen maintainers to understand the feature.
+          required: true

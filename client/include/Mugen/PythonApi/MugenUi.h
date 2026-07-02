@@ -1,0 +1,4 @@
+#ifndef MUGEN_PYTHONAPI_UI_H
+#define MUGEN_PYTHONAPI_UI_H
+
+#endif

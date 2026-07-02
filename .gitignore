@@ -1,0 +1,42 @@
+# ignore .idea
+*/.idea/
+
+# ignore cmake generated stuff
+Client/Build
+**/cmake-build-debug/
+
+# dont commit your loot
+Teamserver/data/loot/
+
+# dont commit your secrets
+Client/Data/database.db
+
+# ignore go stuff
+Teamserver/go.sum
+
+# ignore compiled binaries
+Client/Havoc
+client/Havoc
+client/Mugen
+Teamserver/teamserver
+teamserver/GA-*
+teamserver/*.o
+
+# ignore MUSL C Compiler stuff
+Teamserver/data/x86_64-w64-mingw32-cross/
+teamserver/data/x86_64-w64-mingw32-cross/
+
+# ignore the main binary
+havoc
+mugen
+
+# ignore data directory
+data/
+
+# ignore downloads (agent session files)
+downloads/
+
+# ignore client directories
+client/Build/
+Client/Build/
+client/Modules/

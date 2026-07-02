@@ -1,0 +1,46 @@
+Teamserver {
+    Host = "0.0.0.0"
+    Port = 40056
+}
+
+WebHook {
+    Discord {
+        # required
+        Url = "..." # replace this with your webhook
+
+        # optional
+        AvatarUrl = "" # url to an image to use as an avatar
+
+        # optional
+        User = "Mugen" # User name of the webhook bot
+    }
+}
+
+Operators {
+    user "alice" {
+        Password = "password1234"
+    }
+
+    user "bob" {
+        Password = "password1234"
+    }
+}
+
+# this is optional. if you dont use it you can remove it.
+Service {
+    Endpoint = "service-endpoint"
+    Password = "service-password"
+}
+
+Demon {
+    Sleep = 2
+    Jitter = 30
+
+    TrustXForwardedFor = false
+
+    Injection {
+        Spawn64 = "C:\\Windows\\System32\\notepad.exe"
+        Spawn32 = "C:\\Windows\\SysWOW64\\notepad.exe"
+    }
+}
+

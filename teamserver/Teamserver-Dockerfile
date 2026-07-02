@@ -1,0 +1,43 @@
+# Mugen Teamserver Dockerfile
+# ------------------------------------------------------------------------------
+# Build image:
+#   docker build -t mugen-teamserver -f teamserver/Teamserver-Dockerfile .
+#
+# Create a volume for persistence (optional):
+#   docker volume create mugen-data
+#
+# Run:
+#   docker run -p 40056:40056 -p 443:443 -it -d -v mugen-data:/data mugen-teamserver
+#
+# Override the profile at runtime:
+#   docker run ... mugen-teamserver ./mugen server --profile /data/custom.yaotl
+# ------------------------------------------------------------------------------
+ARG GO_VERSION="1.21"
+FROM golang:${GO_VERSION}
+
+ENV PATH=/root/.local/bin:$PATH
+ENV USER=root
+
+RUN apt update && apt -y install \
+    nasm \
+    mingw-w64 \
+    python3-all-dev \
+    python3-pip \
+    libcap2-bin \
+    upx-ucl \
+    && pip install --upgrade jsonschema
+
+# Option A: clone from GitHub (default)
+RUN git clone https://github.com/MugenFramework/Mugen /Mugen
+RUN cd /Mugen/teamserver && chmod +x ./Install.sh && ./Install.sh
+RUN cd /Mugen && make ts-build
+
+# Option B: build from local source (comment out Option A and uncomment below)
+#COPY . /Mugen/
+#RUN cd /Mugen/teamserver && chmod +x ./Install.sh && ./Install.sh
+#RUN cd /Mugen && make ts-build
+
+WORKDIR /Mugen
+EXPOSE 40056
+
+CMD ["./mugen", "server", "--profile", "./profiles/mugen.yaotl", "-v"]
