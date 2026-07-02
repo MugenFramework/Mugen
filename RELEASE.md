@@ -27,6 +27,7 @@ Initial Mugen release. Fork of Havoc (last public GPL-3.0 commit, December 2025)
 - Console search (Ctrl+F) - match highlighting, forward/backward navigation, match counter
 - Desktop notifications - system tray icon + toast on every new agent check-in
 - Explorer UI (Process List + File Explorer) available for both Demon and Tengu sessions
+- Live privilege escalation detection - `whoami` on Tengu detects euid changes and updates the session table and graph in real-time
 
 **Teamserver**
 

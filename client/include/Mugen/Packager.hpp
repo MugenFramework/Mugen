@@ -79,6 +79,7 @@ namespace MugenNamespace::Util::Packager
         extern const int ReceiveCommand;
         extern const int MarkAs;
         extern const int Remove;
+        extern const int UpdateSession;
     }
 
     namespace Service

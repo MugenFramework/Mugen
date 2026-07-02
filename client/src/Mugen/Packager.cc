@@ -51,6 +51,7 @@ const int Util::Packager::Session::Remove           = 0x2;
 const int Util::Packager::Session::SendCommand      = 0x3;
 const int Util::Packager::Session::ReceiveCommand   = 0x4;
 const int Util::Packager::Session::MarkAs           = 0x5;
+const int Util::Packager::Session::UpdateSession    = 0x6;
 
 const int Util::Packager::Service::Type             = 0x9;
 const int Util::Packager::Service::AgentRegister    = 0x1;
@@ -908,6 +909,51 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
                     }
 
                     break;
+                }
+            }
+
+            break;
+        }
+
+        case Util::Packager::Session::UpdateSession:
+        {
+            auto AgentID  = Package->Body.Info[ "AgentID" ];
+            auto Username = Package->Body.Info[ "Username" ];
+
+            for ( auto& session : MugenX::Teamserver.Sessions )
+            {
+                if ( session.Name.toStdString() == AgentID )
+                {
+                    session.User = Username.c_str();
+                    break;
+                }
+            }
+
+            auto* table = MugenX::Teamserver.TabSession->SessionTableWidget->SessionTableWidget;
+            for ( int i = 0; i < table->rowCount(); i++ )
+            {
+                if ( table->item( i, 0 )->text().compare( QString( AgentID.c_str() ) ) == 0 )
+                {
+                    table->item( i, 3 )->setText( QString( Username.c_str() ) );
+                    break;
+                }
+            }
+
+            MugenX::Teamserver.TabSession->SessionMapWidget->UpdateMap( MugenX::Teamserver.Sessions );
+
+            auto* node = MugenX::Teamserver.TabSession->SessionGraphWidget->GraphNodeGet( QString( AgentID.c_str() ) );
+            if ( node )
+            {
+                for ( auto& session : MugenX::Teamserver.Sessions )
+                {
+                    if ( session.Name.toStdString() == AgentID )
+                    {
+                        node->setLabel( session.Name + " " + session.Process + "\\" + session.PID +
+                                        " [" + session.Computer + "\\" + session.User + "]" );
+                        node->Session   = session;
+                        node->update();
+                        break;
+                    }
                 }
             }
 

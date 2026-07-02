@@ -982,6 +982,22 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 			"Output": output,
 		})
 
+	case TENGU_WHOAMI:
+		var username string
+		if Parser.CanIRead([]parser.ReadType{parser.ReadBytes}) {
+			username = string(Parser.ParseBytes())
+		}
+		a.RequestCompleted(RequestID)
+		if username != "" && username != a.Info.Username {
+			a.Info.Username = username
+			teamserver.AgentUpdate(a)
+			teamserver.EventAgentUpdate(a.DisplayID, username)
+		}
+		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
+			"Type":   "Good",
+			"Output": username,
+		})
+
 	case COMMAND_ERROR:
 		var output string
 		if Parser.CanIRead([]parser.ReadType{parser.ReadBytes}) {

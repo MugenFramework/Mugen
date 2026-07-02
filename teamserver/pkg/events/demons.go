@@ -118,6 +118,21 @@ func (demons) CallBack(DemonID string, callback string) packager.Package {
 	return Package
 }
 
+func (demons) UpdateSession(AgentID, Username string) packager.Package {
+	var Package packager.Package
+
+	Package.Head.Event = packager.Type.Session.Type
+	Package.Head.Time = time.Now().Format("02/01/2006 15:04:05")
+
+	Package.Body.SubEvent = packager.Type.Session.UpdateSession
+	Package.Body.Info = make(map[string]interface{})
+
+	Package.Body.Info["AgentID"]  = AgentID
+	Package.Body.Info["Username"] = Username
+
+	return Package
+}
+
 func (demons) MarkAs(AgentID, Mark string) packager.Package {
 	var Package packager.Package
 
