@@ -46,6 +46,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **djb2 HASH_KEY randomization** - generate a different key per build instead of the fixed value (`Win32.h`)
 - [x] **Module auto-loader** - load all `.py` from `~/.mugen/modules/` at startup
 - [x] **Tengu - Live privilege escalation detection** - `whoami` updates `euid`-based username in session table and graph in real-time; triggers `UpdateSession` event on change
+- [x] **Session graph edge labels** - graph links display `ListenerName [TYPE]` (e.g. `http01 [HTTPS]`) for listener edges and `pivot` for SMB pivot edges; applies to both Demon and Tengu
 - [ ] **Tengu - Sleep obfuscation** - memory encryption during sleep, inspired by eclipse/pendulum (Ekko Linux port); encrypt rwx segments between check-ins
 - [ ] **Artifact strings cleanup** - remove/randomize identifiable strings (`demon.x64.dll`, visible exported function names, etc.)
 - [ ] **Tengu - String obfuscation** - XOR compile-time obfuscation of hardcoded strings in the Tengu binary

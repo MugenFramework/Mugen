@@ -61,7 +61,7 @@ Node* GraphWidget::GraphNodeAdd( SessionItem Session )
         this
     );
 
-    item->NodeEdge = new Edge( MainNode->Node, item, QColor( MugenNamespace::Util::ColorText::Colors::Hex::Green ) );
+    item->NodeEdge = new Edge( MainNode->Node, item, QColor( MugenNamespace::Util::ColorText::Colors::Hex::Green ), Session.Listener );
     item->Parent   = MainNode->Node;
     item->NodeID   = Session.Name;
     item->Session  = Session;
@@ -127,7 +127,7 @@ void GraphWidget::GraphPivotNodeAdd( QString AgentID, SessionItem Session )
             if ( i->NodeID.compare( AgentID ) == 0 )
             {
                 item->NodeID   = Session.Name;
-                item->NodeEdge = new Edge( i, item, QColor( MugenNamespace::Util::ColorText::Colors::Hex::Purple ) );
+                item->NodeEdge = new Edge( i, item, QColor( MugenNamespace::Util::ColorText::Colors::Hex::Purple ), QString( "pivot" ) );
                 item->Parent   = i;
                 
                 i->appendChild( item );
@@ -507,8 +507,8 @@ void GraphWidget::secondWalk(Node* v, double m, double depth)
 // ==================================================
 // =================== Edge Class ===================
 // ==================================================
-Edge::Edge( Node* sourceNode, Node* destNode, QColor Color )
-    : source( sourceNode ), dest( destNode ), color( Color )
+Edge::Edge( Node* sourceNode, Node* destNode, QColor Color, QString Label )
+    : source( sourceNode ), dest( destNode ), color( Color ), label( Label )
 {
     setAcceptedMouseButtons( Qt::NoButton );
 
@@ -916,6 +916,16 @@ void Edge::paint( QPainter* painter, const QStyleOptionGraphicsItem*, QWidget* )
         painter->drawPolygon( QPolygonF() << line.p1() << sourceArrowP1 << sourceArrowP2 );
     else
         painter->drawPolygon( QPolygonF() << line.p2() << destArrowP1 << destArrowP2 );
+
+    if ( !label.isEmpty() )
+    {
+        auto mid  = QPointF( ( sourcePoint.x() + destPoint.x() ) / 2.0,
+                             ( sourcePoint.y() + destPoint.y() ) / 2.0 );
+        auto font = QFont( "Monospace", 7 );
+        painter->setFont( font );
+        painter->setPen( QPen( color.lighter( 160 ) ) );
+        painter->drawText( mid + QPointF( 4, -4 ), label );
+    }
 }
 
 void Edge::Color( QColor color )

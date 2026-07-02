@@ -183,7 +183,11 @@ func (h *HTTP) request(ctx *gin.Context) {
 		}
 	}
 
-	if Response, Success := parseAgentRequest(h.Teamserver, Body, ExternalIP); Success {
+	listenerType := "HTTP"
+	if h.Config.Secure {
+		listenerType = "HTTPS"
+	}
+	if Response, Success := parseAgentRequest(h.Teamserver, Body, ExternalIP, h.Config.Name+" ["+listenerType+"]"); Success {
 		_, err := ctx.Writer.Write(Response.Bytes())
 		if err != nil {
 			logger.Debug("Failed to write to request: " + err.Error())

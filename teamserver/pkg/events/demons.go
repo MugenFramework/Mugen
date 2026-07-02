@@ -42,7 +42,7 @@ func (demons) NewDemon(Agent *agent.Agent) packager.Package {
 		"FirstCallIn": Agent.Info.FirstCallIn,
 		"LastCallIn": Agent.Info.LastCallIn,
 		"Hostname": Agent.Info.Hostname,
-		"Listener": "null", // ?
+		"Listener": Agent.Info.ListenerName,
 		"MagicValue": fmt.Sprintf("%x", Agent.Info.MagicValue),
 		"NameID": Agent.DisplayID,
 		"OSArch": Agent.Info.OSArch,

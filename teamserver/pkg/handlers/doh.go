@@ -143,7 +143,7 @@ func (d *DoH) handleDoH(ctx *gin.Context) {
 		if frame == nil {
 			respPayload = []byte{0x01} // ACK, not last chunk
 		} else {
-			resp, success := parseAgentRequest(d.Teamserver, frame, externalIP)
+			resp, success := parseAgentRequest(d.Teamserver, frame, externalIP, d.Config.Name+" [DOH]")
 			if success && resp.Len() > 0 {
 				d.state.queueResponse(agentID, resp.Bytes())
 			}
