@@ -143,7 +143,7 @@ public:
     Node* source = nullptr;
     Node* dest   = nullptr;
 
-    Edge( Node* sourceNode, Node* destNode, QColor Color );
+    Edge( Node* sourceNode, Node* destNode, QColor Color, QString Label = QString() );
 
     Node* sourceNode() const;
     Node* destNode() const;
@@ -163,6 +163,7 @@ private:
     QPointF sourcePoint = QPointF();
     QPointF destPoint   = QPointF();
     qreal   arrowSize   = 10;
+    QString label       = QString();
 };
 
 #endif

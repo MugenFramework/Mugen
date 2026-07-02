@@ -53,7 +53,7 @@ func tenguEncrypt(key []byte, payload []byte) ([]byte, error) {
 // handleTenguAgent handles HTTP requests from Tengu Linux agents.
 // The protocol uses Big-Endian for agent->server data.
 // The server responses use Little-Endian (via BuildTenguMessage).
-func handleTenguAgent(Teamserver agent.TeamServer, Header agent.Header, ExternalIP string) (bytes.Buffer, bool) {
+func handleTenguAgent(Teamserver agent.TeamServer, Header agent.Header, ExternalIP string, ListenerName string) (bytes.Buffer, bool) {
 	var (
 		Agent    *agent.Agent
 		Response bytes.Buffer
@@ -145,8 +145,9 @@ func handleTenguAgent(Teamserver agent.TeamServer, Header agent.Header, External
 			return Response, false
 		}
 
-		Agent.Info.MagicValue = Header.MagicValue
-		Agent.Info.Listener = nil
+		Agent.Info.MagicValue   = Header.MagicValue
+		Agent.Info.Listener     = nil
+		Agent.Info.ListenerName = ListenerName
 
 		Teamserver.AgentAdd(Agent)
 		Teamserver.AgentSendNotify(Agent)

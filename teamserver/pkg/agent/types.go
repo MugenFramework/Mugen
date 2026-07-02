@@ -179,8 +179,9 @@ type Agent struct {
 
 type AgentInfo struct {
 	// Connection Info
-	Listener    any
-	MagicValue  int
+	Listener     any
+	ListenerName string
+	MagicValue   int
 
 	SleepDelay   int
 	SleepJitter  int

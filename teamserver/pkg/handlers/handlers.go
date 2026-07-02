@@ -20,7 +20,7 @@ import (
 //
 //	Response byte.Buffer
 //	Success	 bool
-func parseAgentRequest(Teamserver agent.TeamServer, Body []byte, ExternalIP string) (bytes.Buffer, bool) {
+func parseAgentRequest(Teamserver agent.TeamServer, Body []byte, ExternalIP string, ListenerName string) (bytes.Buffer, bool) {
 
 	var (
 		Header   agent.Header
@@ -40,12 +40,12 @@ func parseAgentRequest(Teamserver agent.TeamServer, Body []byte, ExternalIP stri
 
 	// handle this demon connection if the magic value matches
 	if Header.MagicValue == agent.DEMON_MAGIC_VALUE {
-		return handleDemonAgent(Teamserver, Header, ExternalIP)
+		return handleDemonAgent(Teamserver, Header, ExternalIP, ListenerName)
 	}
 
 	// handle Tengu Linux agent
 	if Header.MagicValue == agent.TENGU_MAGIC_VALUE {
-		return handleTenguAgent(Teamserver, Header, ExternalIP)
+		return handleTenguAgent(Teamserver, Header, ExternalIP, ListenerName)
 	}
 
 	// If it's not a Demon or Tengu request then try to see if it's a 3rd party agent.
@@ -58,7 +58,7 @@ func parseAgentRequest(Teamserver agent.TeamServer, Body []byte, ExternalIP stri
 //
 //	Response bytes.Buffer
 //	Success  bool
-func handleDemonAgent(Teamserver agent.TeamServer, Header agent.Header, ExternalIP string) (bytes.Buffer, bool) {
+func handleDemonAgent(Teamserver agent.TeamServer, Header agent.Header, ExternalIP string, ListenerName string) (bytes.Buffer, bool) {
 
 	var (
 		Agent     *agent.Agent
@@ -280,8 +280,9 @@ func handleDemonAgent(Teamserver agent.TeamServer, Header agent.Header, External
 				return Response, false
 			}
 
-			Agent.Info.MagicValue = Header.MagicValue
-			Agent.Info.Listener = nil /* TODO: pass here the listener instance/name */
+			Agent.Info.MagicValue   = Header.MagicValue
+			Agent.Info.Listener     = nil
+			Agent.Info.ListenerName = ListenerName
 
 			Teamserver.AgentAdd(Agent)
 			Teamserver.AgentSendNotify(Agent)

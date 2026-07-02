@@ -103,7 +103,7 @@ func (d *DNS) handleQuery(wire []byte, raddr *net.UDPAddr) {
 			respPayload = []byte{0x01}
 		} else {
 			// Full frame assembled - process it.
-			resp, success := parseAgentRequest(d.Teamserver, frame, externalIP)
+			resp, success := parseAgentRequest(d.Teamserver, frame, externalIP, d.Config.Name+" [DNS]")
 			if success && resp.Len() > 0 {
 				d.state.queueResponse(agentID, resp.Bytes())
 			}
