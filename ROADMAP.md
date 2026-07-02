@@ -24,7 +24,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Tengu - `info` + `help`** - local session metadata, tabular help with Python commands
 - [x] **ELF BOF loader** - in-process execution of x86_64 `.o` files with full BeaconAPI
 - [x] **Explorer UI for Tengu** - Process List + File Explorer in the Qt client
-- [x] **Agent ID prefixes** - `dm-XXXXXXXX` for Demon, `tg-XXXXXXXX` for Tengu
+- [x] **Agent ID prefixes** - `DN-XXXXXXXX` for Demon, `TU-XXXXXXXX` for Tengu
 - [x] **Loot Manager - Credentials** - credentials tab with SQLite persistence and Python API
 - [x] **Loot - Image Viewer** - inline viewer in the loot panel, zoom, fit, save, PNG auto-detect
 - [x] **Session Notes & Tags** - free-form annotations, tags visible as column, SQLite persistence

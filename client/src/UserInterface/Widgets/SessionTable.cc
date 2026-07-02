@@ -299,7 +299,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QS
         for ( const auto& s : MugenX::Teamserver.Sessions ) {
             if ( s.Name.toLower() == id ) {
                 listener  = s.Listener.toLower();
-                agentType = s.Name.startsWith("tg-", Qt::CaseInsensitive) ? "tg" : "dm";
+                agentType = s.Name.startsWith("TU-", Qt::CaseInsensitive) ? "tu" : "dn";
                 break;
             }
         }

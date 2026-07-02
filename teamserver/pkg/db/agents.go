@@ -277,9 +277,9 @@ func (db *DB) AgentAll() []*agent.Agent {
 		Agent.Info.MagicValue = int(MagicValue)
 
 		if Agent.Info.MagicValue == agent.TENGU_MAGIC_VALUE {
-			Agent.DisplayID = "tg-" + Agent.NameID
+			Agent.DisplayID = "TU-" + Agent.NameID
 		} else {
-			Agent.DisplayID = "dm-" + Agent.NameID
+			Agent.DisplayID = "DN-" + Agent.NameID
 			if Agent.Info.MagicValue == 0 {
 				Agent.Info.MagicValue = agent.DEMON_MAGIC_VALUE
 			}

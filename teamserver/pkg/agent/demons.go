@@ -2417,7 +2417,7 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 				a.Active = true
 
 				a.NameID = fmt.Sprintf("%08x", DemonID)
-				a.DisplayID = "dm-" + a.NameID
+				a.DisplayID = "DN-" + a.NameID
 				a.Info.FirstCallIn = a.Info.FirstCallIn
 				a.Info.LastCallIn = a.Info.LastCallIn
 				a.Info.Hostname = Hostname

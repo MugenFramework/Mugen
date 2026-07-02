@@ -138,7 +138,7 @@ type SocksServer struct {
 // TODO: maybe change this to type map[string]any instead of struct
 type Agent struct {
 	NameID    string
-	DisplayID string // prefixed display name: "dm-XXXXXXXX" for Demon, "tg-XXXXXXXX" for Tengu
+	DisplayID string // prefixed display name: "DN-XXXXXXXX" for Demon, "TU-XXXXXXXX" for Tengu
 	JobQueue   []Job
 	Tasks      []Job
 	SessionDir string
