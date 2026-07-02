@@ -74,11 +74,12 @@ type (
 		Session struct {
 			Type int
 
-			NewSession int
-			Input      int
-			Output     int
-			Remove     int
-			MarkAsDead int
+			NewSession    int
+			Input         int
+			Output        int
+			Remove        int
+			MarkAsDead    int
+			UpdateSession int
 		}
 
 		Gate struct {
@@ -193,19 +194,21 @@ var Type = Types{
 	},
 
 	Session: struct {
-		Type       int
-		NewSession int
-		Input      int
-		Output     int
-		Remove     int
-		MarkAsDead int
+		Type          int
+		NewSession    int
+		Input         int
+		Output        int
+		Remove        int
+		MarkAsDead    int
+		UpdateSession int
 	}{
-		Type:       0x7,
-		NewSession: 0x1,
-		Remove:     0x2,
-		Input:      0x3,
-		Output:     0x4,
-		MarkAsDead: 0x5,
+		Type:          0x7,
+		NewSession:    0x1,
+		Remove:        0x2,
+		Input:         0x3,
+		Output:        0x4,
+		MarkAsDead:    0x5,
+		UpdateSession: 0x6,
 	},
 
 	Gate: struct {

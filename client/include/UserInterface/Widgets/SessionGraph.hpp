@@ -42,6 +42,8 @@ public:
 public:
     Node( NodeItemType NodeType, QString NodeLabel, GraphWidget* graphWidget );
 
+    void setLabel( const QString& label ) { NodeLabel = label; }
+
     void appendChild( Node* child );
     void removeChild( Node* child );
 

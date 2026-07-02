@@ -58,6 +58,7 @@ type TeamServer interface {
 	EventBroadcast(ExceptClient string, pk packager.Package)
 	EventNewDemon(DemonAgent *Agent) packager.Package
 	EventAgentMark(AgentID, Mark string)
+	EventAgentUpdate(AgentID, Username string)
 	EventListenerError(ListenerName string, Error error)
 
 	ListenerAdd(FromUser string, Type int, Config any) packager.Package

@@ -717,6 +717,12 @@ func (t *Teamserver) EventAgentMark(AgentID, Mark string) {
 	t.EventBroadcast("", pk)
 }
 
+func (t *Teamserver) EventAgentUpdate(AgentID, Username string) {
+	var pk = events.Demons.UpdateSession(AgentID, Username)
+
+	t.EventBroadcast("", pk)
+}
+
 func (t *Teamserver) EventListenerError(ListenerName string, Error error) {
 	var pk = events.Listener.ListenerError("", ListenerName, Error)
 
