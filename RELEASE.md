@@ -14,7 +14,7 @@ Initial Mugen release. Fork of Havoc (last public GPL-3.0 commit, December 2025)
 - Manga-inspired dark theme (sakura pink accent, ink black background)
 - Theme switcher in the navbar - Mugen (default) and Havoc Classic (Dracula), persisted across sessions
 - `make rebuild` target - recompile teamserver + client without wiping cmake cache
-- Agent IDs prefixed by type: `dm-XXXXXXXX` (Demon) and `tg-XXXXXXXX` (Tengu)
+- Agent IDs prefixed by type: `DN-XXXXXXXX` (Demon) and `TU-XXXXXXXX` (Tengu)
 
 **Client**
 

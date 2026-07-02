@@ -459,7 +459,7 @@ func ParseDemonRegisterRequest(AgentID int, Parser *parser.Parser, ExternalIP st
 			Session.Active = true
 
 			Session.NameID    = fmt.Sprintf("%08x", DemonID)
-			Session.DisplayID = "dm-" + Session.NameID
+			Session.DisplayID = "DN-" + Session.NameID
 			Session.Info.MagicValue = MagicValue
 			Session.Info.FirstCallIn = time.Now().Format("02/01/2006 15:04:05")
 			Session.Info.LastCallIn = time.Now().Format("02-01-2006 15:04:05")

@@ -51,7 +51,7 @@ func ParseTenguRegisterRequest(AgentID int, Parser *parser.Parser, ExternalIP st
 	}
 
 	Session.NameID               = fmt.Sprintf("%08x", AgentID)
-	Session.DisplayID            = "tg-" + Session.NameID
+	Session.DisplayID            = "TU-" + Session.NameID
 	Session.Info.MagicValue      = TENGU_MAGIC_VALUE
 	Session.Info.Hostname        = Hostname
 	Session.Info.Username        = Username
