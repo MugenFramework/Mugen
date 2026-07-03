@@ -57,6 +57,23 @@ int http_post(const char* host, int port, const char* uri, int secure,
     if (secure)
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 
+    /* build-time proxy config; if not set, libcurl picks up HTTP_PROXY/HTTPS_PROXY env */
+    if (g_config.proxy_host && *g_config.proxy_host) {
+        char proxy_url[512];
+        const char* scheme = g_config.proxy_type == 1 ? "socks5" : "http";
+        snprintf(proxy_url, sizeof(proxy_url), "%s://%s:%d",
+                 scheme, g_config.proxy_host, g_config.proxy_port);
+        curl_easy_setopt(curl, CURLOPT_PROXY, proxy_url);
+        if (g_config.proxy_user && *g_config.proxy_user) {
+            char creds[512];
+            snprintf(creds, sizeof(creds), "%s:%s",
+                     g_config.proxy_user,
+                     g_config.proxy_pass ? g_config.proxy_pass : "");
+            curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, creds);
+            curl_easy_setopt(curl, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
+        }
+    }
+
     res = curl_easy_perform(curl);
 
     curl_slist_free_all(headers);

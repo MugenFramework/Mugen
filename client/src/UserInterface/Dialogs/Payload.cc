@@ -272,7 +272,7 @@ auto Payload::ReceivedImplantAndSave( QString FileName, QByteArray ImplantArray 
             auto file       = QFile( Filename.toString() );
             auto messageBox = QMessageBox(  );
 
-            if ( file.open( QIODevice::ReadWrite ) ) {
+            if ( file.open( QIODevice::WriteOnly | QIODevice::Truncate ) ) {
                 file.write( ImplantArray );
             } else {
                 auto name = Filename.toString().toStdString();
@@ -658,39 +658,76 @@ auto Payload::TenguDefaultConfig() -> void
     auto ConfigUserAgent    = new QTreeWidgetItem( TreeConfig );
     auto ConfigKillDate     = new QTreeWidgetItem( TreeConfig );
     auto ConfigWorkingHours = new QTreeWidgetItem( TreeConfig );
+    auto ConfigProxyHost    = new QTreeWidgetItem( TreeConfig );
+    auto ConfigProxyPort    = new QTreeWidgetItem( TreeConfig );
+    auto ConfigProxyType    = new QTreeWidgetItem( TreeConfig );
+    auto ConfigProxyUser    = new QTreeWidgetItem( TreeConfig );
+    auto ConfigProxyPass    = new QTreeWidgetItem( TreeConfig );
 
     auto ConfigSleepLineEdit        = new QLineEdit( QString::number( DemonConfig[ "Sleep" ].toInt() ) );
     auto ConfigJitterLineEdit       = new QLineEdit( QString::number( DemonConfig[ "Jitter" ].toInt() ) );
     auto ConfigUserAgentLineEdit    = new QLineEdit( "Mozilla/5.0" );
     auto ConfigKillDateLineEdit     = new QLineEdit( "" );
     auto ConfigWorkingHoursLineEdit = new QLineEdit( "" );
+    auto ConfigProxyHostLineEdit    = new QLineEdit( "" );
+    auto ConfigProxyPortLineEdit    = new QLineEdit( "" );
+    auto ConfigProxyTypeCombo       = new QComboBox();
+    auto ConfigProxyUserLineEdit    = new QLineEdit( "" );
+    auto ConfigProxyPassLineEdit    = new QLineEdit( "" );
 
     ConfigKillDateLineEdit->setPlaceholderText( "YYYY-MM-DD (leave blank to disable)" );
     ConfigWorkingHoursLineEdit->setPlaceholderText( "e.g. 8:00-18:00 (leave blank to disable)" );
+    ConfigProxyHostLineEdit->setPlaceholderText( "e.g. 192.168.1.1 (leave blank = env vars)" );
+    ConfigProxyPortLineEdit->setPlaceholderText( "e.g. 8080" );
+    ConfigProxyUserLineEdit->setPlaceholderText( "username (optional)" );
+    ConfigProxyPassLineEdit->setPlaceholderText( "password (optional)" );
+    ConfigProxyPassLineEdit->setEchoMode( QLineEdit::Password );
+
+    ConfigProxyTypeCombo->addItems( QStringList() << "HTTP" << "SOCKS5" );
 
     ConfigSleep->setFlags( Qt::NoItemFlags );
     ConfigJitter->setFlags( Qt::NoItemFlags );
     ConfigUserAgent->setFlags( Qt::NoItemFlags );
     ConfigKillDate->setFlags( Qt::NoItemFlags );
     ConfigWorkingHours->setFlags( Qt::NoItemFlags );
+    ConfigProxyHost->setFlags( Qt::NoItemFlags );
+    ConfigProxyPort->setFlags( Qt::NoItemFlags );
+    ConfigProxyType->setFlags( Qt::NoItemFlags );
+    ConfigProxyUser->setFlags( Qt::NoItemFlags );
+    ConfigProxyPass->setFlags( Qt::NoItemFlags );
 
     ConfigSleepLineEdit->setObjectName( "ConfigItem" );
     ConfigJitterLineEdit->setObjectName( "ConfigItem" );
     ConfigUserAgentLineEdit->setObjectName( "ConfigItem" );
     ConfigKillDateLineEdit->setObjectName( "ConfigItem" );
     ConfigWorkingHoursLineEdit->setObjectName( "ConfigItem" );
+    ConfigProxyHostLineEdit->setObjectName( "ConfigItem" );
+    ConfigProxyPortLineEdit->setObjectName( "ConfigItem" );
+    ConfigProxyTypeCombo->setObjectName( "ConfigItem" );
+    ConfigProxyUserLineEdit->setObjectName( "ConfigItem" );
+    ConfigProxyPassLineEdit->setObjectName( "ConfigItem" );
 
     ConfigSleep->setText( 0, "Sleep" );
     ConfigJitter->setText( 0, "Jitter" );
     ConfigUserAgent->setText( 0, "UserAgent" );
     ConfigKillDate->setText( 0, "KillDate" );
     ConfigWorkingHours->setText( 0, "WorkingHours" );
+    ConfigProxyHost->setText( 0, "ProxyHost" );
+    ConfigProxyPort->setText( 0, "ProxyPort" );
+    ConfigProxyType->setText( 0, "ProxyType" );
+    ConfigProxyUser->setText( 0, "ProxyUser" );
+    ConfigProxyPass->setText( 0, "ProxyPass" );
 
     TreeConfig->setItemWidget( ConfigSleep,        1, ConfigSleepLineEdit );
     TreeConfig->setItemWidget( ConfigJitter,       1, ConfigJitterLineEdit );
     TreeConfig->setItemWidget( ConfigUserAgent,    1, ConfigUserAgentLineEdit );
     TreeConfig->setItemWidget( ConfigKillDate,     1, ConfigKillDateLineEdit );
     TreeConfig->setItemWidget( ConfigWorkingHours, 1, ConfigWorkingHoursLineEdit );
+    TreeConfig->setItemWidget( ConfigProxyHost,    1, ConfigProxyHostLineEdit );
+    TreeConfig->setItemWidget( ConfigProxyPort,    1, ConfigProxyPortLineEdit );
+    TreeConfig->setItemWidget( ConfigProxyType,    1, ConfigProxyTypeCombo );
+    TreeConfig->setItemWidget( ConfigProxyUser,    1, ConfigProxyUserLineEdit );
+    TreeConfig->setItemWidget( ConfigProxyPass,    1, ConfigProxyPassLineEdit );
 }
 
 auto Payload::GetConfigAsJson() -> QJsonDocument

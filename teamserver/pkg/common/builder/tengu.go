@@ -108,7 +108,6 @@ func (b *TenguBuilder) TenguPatchConfig() ([]byte, error) {
 		cfg.AddInt(3) // transport = TCP
 		cfg.AddString(tcpCfg.Config.PivotHost)
 		cfg.AddInt(tcpCfg.Config.PivotPort)
-		return cfg.Build(), nil
 
 	case handlers.LISTENER_DNS:
 		dnsCfg := b.config.ListenerConfig.(*handlers.DNS)
@@ -116,7 +115,6 @@ func (b *TenguBuilder) TenguPatchConfig() ([]byte, error) {
 		cfg.AddString(dnsCfg.Config.BindHost)
 		cfg.AddInt(dnsCfg.Config.BindPort)
 		cfg.AddString(dnsCfg.Config.Domain)
-		return cfg.Build(), nil
 
 	case handlers.LISTENER_DOH:
 		dohCfg := b.config.ListenerConfig.(*handlers.DoH)
@@ -130,64 +128,89 @@ func (b *TenguBuilder) TenguPatchConfig() ([]byte, error) {
 		cfg.AddInt(port)
 		cfg.AddString("/dns-query")
 		cfg.AddInt(secure)
-		return cfg.Build(), nil
 
 	case handlers.LISTENER_HTTP:
-		// HTTP/HTTPS - handled below.
+		cfg.AddInt(0) // transport = HTTP
+
+		httpCfg := b.config.ListenerConfig.(*handlers.HTTP)
+
+		var (
+			host string
+			port int
+		)
+
+		if len(httpCfg.Config.Hosts) > 0 {
+			parts := strings.Split(httpCfg.Config.Hosts[0], ":")
+			host = common.GetInterfaceIpv4Addr(parts[0])
+			if len(parts) > 1 {
+				port, _ = strconv.Atoi(parts[1])
+			}
+		}
+
+		if port == 0 {
+			if httpCfg.Config.PortConn != "" {
+				port, _ = strconv.Atoi(httpCfg.Config.PortConn)
+			}
+			if port == 0 {
+				port, _ = strconv.Atoi(httpCfg.Config.PortBind)
+			}
+		}
+
+		if host == "" {
+			host = common.GetInterfaceIpv4Addr(httpCfg.Config.HostBind)
+		}
+
+		uri := "/"
+		if len(httpCfg.Config.Uris) > 0 {
+			uri = httpCfg.Config.Uris[0]
+		}
+
+		secure := 0
+		if httpCfg.Config.Secure {
+			secure = 1
+		}
+
+		userAgent := httpCfg.Config.UserAgent
+		if userAgent == "" {
+			userAgent = "Mozilla/5.0"
+		}
+
+		cfg.AddString(host)
+		cfg.AddInt(port)
+		cfg.AddString(uri)
+		cfg.AddInt(secure)
+		cfg.AddString(userAgent)
+
 	default:
 		return nil, errors.New("unsupported listener type for Tengu")
 	}
 
-	cfg.AddInt(0) // transport = HTTP
-
-	httpCfg := b.config.ListenerConfig.(*handlers.HTTP)
-
-	var (
-		host string
-		port int
-	)
-
-	if len(httpCfg.Config.Hosts) > 0 {
-		parts := strings.Split(httpCfg.Config.Hosts[0], ":")
-		host = common.GetInterfaceIpv4Addr(parts[0])
-		if len(parts) > 1 {
-			port, _ = strconv.Atoi(parts[1])
+	/* proxy section - appended for all transport types */
+	proxyHost, _ := b.config.Config["ProxyHost"].(string)
+	if proxyHost != "" {
+		proxyPort, _ := strconv.Atoi(b.config.Config["ProxyPort"].(string))
+		proxyTypeStr, _ := b.config.Config["ProxyType"].(string)
+		proxyType := 0
+		if proxyTypeStr == "SOCKS5" {
+			proxyType = 1
 		}
-	}
+		proxyUser, _ := b.config.Config["ProxyUser"].(string)
+		proxyPass, _ := b.config.Config["ProxyPass"].(string)
 
-	if port == 0 {
-		if httpCfg.Config.PortConn != "" {
-			port, _ = strconv.Atoi(httpCfg.Config.PortConn)
+		cfg.AddInt(1) // has_proxy
+		cfg.AddString(proxyHost)
+		cfg.AddInt(proxyPort)
+		cfg.AddInt(proxyType)
+		if proxyUser != "" {
+			cfg.AddInt(1) // has_auth
+			cfg.AddString(proxyUser)
+			cfg.AddString(proxyPass)
+		} else {
+			cfg.AddInt(0) // no auth
 		}
-		if port == 0 {
-			port, _ = strconv.Atoi(httpCfg.Config.PortBind)
-		}
+	} else {
+		cfg.AddInt(0) // no proxy
 	}
-
-	if host == "" {
-		host = common.GetInterfaceIpv4Addr(httpCfg.Config.HostBind)
-	}
-
-	uri := "/"
-	if len(httpCfg.Config.Uris) > 0 {
-		uri = httpCfg.Config.Uris[0]
-	}
-
-	secure := 0
-	if httpCfg.Config.Secure {
-		secure = 1
-	}
-
-	userAgent := httpCfg.Config.UserAgent
-	if userAgent == "" {
-		userAgent = "Mozilla/5.0"
-	}
-
-	cfg.AddString(host)
-	cfg.AddInt(port)
-	cfg.AddString(uri)
-	cfg.AddInt(secure)
-	cfg.AddString(userAgent)
 
 	return cfg.Build(), nil
 }

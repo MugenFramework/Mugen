@@ -77,6 +77,12 @@ typedef struct {
     // TCP pivot transport
     char*    pivot_host;
     int      pivot_port;
+    // Proxy support (NULL = rely on HTTP_PROXY/HTTPS_PROXY env vars)
+    char*    proxy_host;
+    int      proxy_port;
+    int      proxy_type;   // 0=HTTP 1=SOCKS5
+    char*    proxy_user;   // NULL = no auth
+    char*    proxy_pass;
     // Operational constraints
     int64_t  kill_date;      // Unix timestamp; 0 = disabled
     int32_t  working_hours;  // bit-packed: [22]=enabled [21:17]=StartHour [16:11]=StartMin [10:6]=EndHour [5:0]=EndMin

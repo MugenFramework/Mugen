@@ -66,6 +66,7 @@ void config_parse(const uint8_t* bytes, size_t len) {
     if (off + 4 > len) return;
     g_config.transport = (int)read_le32(bytes, off); off += 4;
 
+    /* proxy config appended after all transport-specific fields */
     if (g_config.transport == 1) {
         g_config.dns_host   = read_str(bytes, len, &off);
         if (off + 4 > len) return;
@@ -93,5 +94,22 @@ void config_parse(const uint8_t* bytes, size_t len) {
         g_config.user_agent = read_str(bytes, len, &off);
         if (!g_config.user_agent)
             g_config.user_agent = "Mozilla/5.0";
+    }
+
+    /* proxy section (all transports) */
+    if (off + 4 <= len) {
+        int has_proxy = (int)read_le32(bytes, off); off += 4;
+        if (has_proxy && off < len) {
+            g_config.proxy_host = read_str(bytes, len, &off);
+            if (off + 4 <= len) { g_config.proxy_port = (int)read_le32(bytes, off); off += 4; }
+            if (off + 4 <= len) { g_config.proxy_type = (int)read_le32(bytes, off); off += 4; }
+            if (off + 4 <= len) {
+                int has_auth = (int)read_le32(bytes, off); off += 4;
+                if (has_auth) {
+                    g_config.proxy_user = read_str(bytes, len, &off);
+                    g_config.proxy_pass = read_str(bytes, len, &off);
+                }
+            }
+        }
     }
 }
