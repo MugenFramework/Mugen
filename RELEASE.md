@@ -37,6 +37,7 @@ Initial Mugen release. Fork of Havoc (last public GPL-3.0 commit, December 2025)
 - `mugen.RegisterTenguCommand()` - register Python commands scoped to Tengu sessions
 - `mugen.RegisterCommand(..., agent="Tengu")` - alternative syntax
 - `mugen.AddCredential()` - log credentials from scripts into the Loot Manager
+- `mugen.Tengu(agent_id)` - Python class for Tengu sessions: `ConsoleWrite` (CONSOLE_INFO / CONSOLE_ERROR / CONSOLE_TASK) and `Command` (BOF dispatch via `TenguCmds`); fixes the crash that occurred when calling `Demon` on a Tengu session (`DemonCommands` is null for Tengu agents)
 
 **Tengu - new Linux C2 agent**
 

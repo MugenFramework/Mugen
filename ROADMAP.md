@@ -29,6 +29,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Loot - Image Viewer** - inline viewer in the loot panel, zoom, fit, save, PNG auto-detect
 - [x] **Session Notes & Tags** - free-form annotations, tags visible as column, SQLite persistence
 - [x] **Python API** - `mugen` module, `RegisterTenguCommand`, `RegisterCommand(agent="Tengu")`, global `Packer`, `import havoc` compat
+- [x] **`mugen.Tengu` class** - Python class for Tengu sessions: `ConsoleWrite` (INFO/ERROR/TASK) and `Command` (BOF dispatch via `TenguCmds`); prerequisite for Python modules targeting Tengu agents
 - [x] **`make rebuild`** - recompile teamserver + client without wiping the cmake cache
 - [x] **Map View** - world map, ip-api.com geolocation, live (pink) / dead (grey) dots
 - [x] **Dashboard** - 4 stat cards (live/dead/total), last 8 credentials, last 8 downloads
