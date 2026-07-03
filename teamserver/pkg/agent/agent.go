@@ -278,15 +278,18 @@ func RegisterInfoToInstance(Header Header, RegisterInfo map[string]any) *Agent {
 		}
 	}
 
-	// Updated OS Version handling
 	if val, ok := RegisterInfo["OS Version"]; ok {
-	    // Assuming val is a string representing the OS version, split it by '.' to get the version parts
-	    versionParts := strings.Split(val.(string), ".")
-	    OsVersion := make([]int, len(versionParts))
-	    for i, part := range versionParts {
-		OsVersion[i], _ = strconv.Atoi(part)
-	    }
-	    agent.Info.OSVersion = getWindowsVersionString(OsVersion)
+		osStr := val.(string)
+		if strings.HasPrefix(osStr, "Linux") || strings.HasPrefix(osStr, "MacOS") {
+			agent.Info.OSVersion = osStr
+		} else {
+			versionParts := strings.Split(osStr, ".")
+			OsVersion := make([]int, len(versionParts))
+			for i, part := range versionParts {
+				OsVersion[i], _ = strconv.Atoi(part)
+			}
+			agent.Info.OSVersion = getWindowsVersionString(OsVersion)
+		}
 	}
 
 	if val, ok := RegisterInfo["OS Build"]; ok {
