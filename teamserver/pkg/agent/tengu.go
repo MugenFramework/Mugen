@@ -485,15 +485,21 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 			Data:        []interface{}{uint32(pid)},
 		}
 
-	case "bof":
+	case "inline-execute", "bof":
 		if len(parts) < 2 {
 			Console(a.NameID, map[string]string{
 				"Type":    "Error",
-				"Message": "Usage: bof <path.o> [str:value] [int:123] [short:5] [bin:hexdata]",
+				"Message": "Usage: " + parts[0] + " <path.o> [str:value] [int:123] [short:5] [bin:hexdata]",
 			})
 			return nil
 		}
-		objData, err := os.ReadFile(parts[1])
+		bofPath := parts[1]
+		if strings.HasPrefix(bofPath, "~/") {
+			if home, err := os.UserHomeDir(); err == nil {
+				bofPath = filepath.Join(home, bofPath[2:])
+			}
+		}
+		objData, err := os.ReadFile(bofPath)
 		if err != nil {
 			Console(a.NameID, map[string]string{"Type": "Error", "Message": "Failed to read BOF: " + err.Error()})
 			return nil
@@ -502,7 +508,7 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 		Console(a.NameID, map[string]string{
 			"Type": "Info",
 			"Message": fmt.Sprintf("Tasked Tengu to execute BOF %s (%d bytes, %d bytes args)",
-				filepath.Base(parts[1]), len(objData), len(argsBuf)),
+				filepath.Base(bofPath), len(objData), len(argsBuf)),
 		})
 		job = &Job{
 			Command:     TENGU_BOF,
