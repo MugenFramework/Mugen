@@ -227,20 +227,41 @@ static void* resolve_sym(const char* name) {
 /* ELF64 loader                                                        */
 /* ------------------------------------------------------------------ */
 
-#define MAX_GOT_ENTRIES 512
+#define MAX_GOT_ENTRIES  512
+#define MAX_TRAMPOLINES  256
+#define GOT_AREA_SIZE    (MAX_GOT_ENTRIES  * sizeof(uint64_t))
+/* mov rax, imm64 (10B) + jmp rax (2B) = 12 bytes per trampoline */
+#define TRAMP_SIZE       12
+#define TRAMP_AREA_SIZE  (MAX_TRAMPOLINES * TRAMP_SIZE)
 
 typedef struct {
-    uint8_t** sec_mem;    /* mmap base per section (NULL = not allocated) */
-    size_t*   sec_alloc;  /* mmap size per section (for munmap) */
+    uint8_t** sec_mem;     /* pointer into the single mapping per section */
     int       nsec;
-    uint64_t  got[MAX_GOT_ENTRIES];
+    uint8_t*  map_base;    /* single contiguous RWX mapping */
+    size_t    map_size;
+    uint64_t* got;         /* GOT area (8-byte slots) */
     int       got_count;
+    uint8_t*  trampolines; /* trampoline stubs for out-of-range calls */
+    int       tramp_count;
 } BofCtx;
 
 static uint64_t* got_slot(BofCtx* ctx, uint64_t sym_addr) {
     if (ctx->got_count >= MAX_GOT_ENTRIES) return NULL;
     ctx->got[ctx->got_count] = sym_addr;
     return &ctx->got[ctx->got_count++];
+}
+
+/* Returns address of a trampoline that does: mov rax, sym_addr; jmp rax */
+static uint8_t* make_trampoline(BofCtx* ctx, uint64_t sym_addr) {
+    if (ctx->tramp_count >= MAX_TRAMPOLINES) return NULL;
+    uint8_t* t = ctx->trampolines + ctx->tramp_count * TRAMP_SIZE;
+    ctx->tramp_count++;
+    /* 48 B8 <imm64>   mov rax, imm64 */
+    t[0] = 0x48; t[1] = 0xB8;
+    memcpy(t + 2, &sym_addr, 8);
+    /* FF E0            jmp rax */
+    t[10] = 0xFF; t[11] = 0xE0;
+    return t;
 }
 
 static int bof_run(const uint8_t* data, size_t len, char* args, int args_len) {
@@ -264,33 +285,54 @@ static int bof_run(const uint8_t* data, size_t len, char* args, int args_len) {
 
     BofCtx ctx;
     memset(&ctx, 0, sizeof(ctx));
-    ctx.nsec      = nsec;
-    ctx.sec_mem   = calloc((size_t)nsec, sizeof(uint8_t*));
-    ctx.sec_alloc = calloc((size_t)nsec, sizeof(size_t));
-    if (!ctx.sec_mem || !ctx.sec_alloc) goto fail;
+    ctx.nsec    = nsec;
+    ctx.sec_mem = calloc((size_t)nsec, sizeof(uint8_t*));
+    if (!ctx.sec_mem) goto fail;
 
-    /* Pass 1: allocate and copy allocatable sections */
+    /* Pass 1: compute total contiguous size for all allocatable sections + GOT */
+    size_t total_sz = 0;
+    size_t* sec_off = calloc((size_t)nsec, sizeof(size_t));
+    if (!sec_off) goto fail;
+
+    for (int i = 0; i < nsec; i++) {
+        const Elf64_Shdr* sh = &shdrs[i];
+        if (!(sh->sh_flags & SHF_ALLOC)) continue;
+        size_t align = sh->sh_addralign > 1 ? sh->sh_addralign : 1;
+        total_sz = (total_sz + align - 1) & ~(align - 1);
+        sec_off[i] = total_sz;
+        total_sz += sh->sh_size ? sh->sh_size : 8;
+    }
+    /* Reserve GOT + trampoline areas at the end, 8-byte aligned */
+    total_sz = (total_sz + 7) & ~(size_t)7;
+    size_t got_offset   = total_sz;
+    total_sz += GOT_AREA_SIZE;
+    size_t tramp_offset = total_sz;
+    total_sz += TRAMP_AREA_SIZE;
+
+    /* Single RWX mapping - all sections + GOT + trampolines in one block.
+     * This guarantees every PC32/PLT32 relocation between sections is in range,
+     * and trampolines can reach any far symbol via 64-bit absolute jump. */
+    ctx.map_base = mmap(NULL, total_sz, PROT_READ | PROT_WRITE | PROT_EXEC,
+                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (ctx.map_base == MAP_FAILED) { ctx.map_base = NULL; free(sec_off); goto fail; }
+    ctx.map_size     = total_sz;
+    ctx.got          = (uint64_t*)(ctx.map_base + got_offset);
+    ctx.trampolines  = ctx.map_base + tramp_offset;
+
+    /* Pass 2: set section pointers and copy content */
     for (int i = 0; i < nsec; i++) {
         const Elf64_Shdr* sh = &shdrs[i];
         if (!(sh->sh_flags & SHF_ALLOC)) continue;
 
-        int prot = PROT_READ | PROT_WRITE;
-        if (sh->sh_flags & SHF_EXECINSTR) prot |= PROT_EXEC;
-
-        size_t alloc_sz = sh->sh_size ? sh->sh_size : 8;
-        uint8_t* mem = mmap(NULL, alloc_sz, prot,
-                            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        if (mem == MAP_FAILED) goto fail;
-
-        ctx.sec_mem[i]   = mem;
-        ctx.sec_alloc[i] = alloc_sz;
+        ctx.sec_mem[i] = ctx.map_base + sec_off[i];
 
         if (sh->sh_type == SHT_PROGBITS) {
             if (sh->sh_offset + sh->sh_size <= len)
-                memcpy(mem, data + sh->sh_offset, sh->sh_size);
+                memcpy(ctx.sec_mem[i], data + sh->sh_offset, sh->sh_size);
         }
-        /* SHT_NOBITS (.bss) stays zero from MAP_ANONYMOUS */
+        /* SHT_NOBITS (.bss) stays zero (MAP_ANONYMOUS zeroes) */
     }
+    free(sec_off);
 
     /* Locate .symtab and its string table */
     const Elf64_Sym* symtab   = NULL;
@@ -352,8 +394,19 @@ static int bof_run(const uint8_t* data, size_t len, char* args, int args_len) {
 
             case R_X86_64_PC32:
             case R_X86_64_PLT32: {
-                int64_t  v = (int64_t)(S + (uint64_t)A - loc);
-                int32_t  v32 = (int32_t)v;
+                uint64_t target = S + (uint64_t)A;
+                int64_t  delta  = (int64_t)(target - loc);
+                if (delta < (int64_t)INT32_MIN || delta > (int64_t)INT32_MAX) {
+                    /* Target is out of 32-bit range (e.g. PIE binary vs mmap).
+                     * Create a trampoline stub inside our mapping that does
+                     * 'mov rax, S; jmp rax' and call that instead. */
+                    uint8_t* tramp = make_trampoline(&ctx, S);
+                    if (tramp) {
+                        target = (uint64_t)(uintptr_t)tramp + (uint64_t)A;
+                        delta  = (int64_t)(target - loc);
+                    }
+                }
+                int32_t v32 = (int32_t)delta;
                 memcpy(P, &v32, 4);
                 break;
             }
@@ -411,12 +464,8 @@ static int bof_run(const uint8_t* data, size_t len, char* args, int args_len) {
     }
 
 fail:
-    for (int i = 0; i < nsec; i++) {
-        if (ctx.sec_mem && ctx.sec_mem[i] && ctx.sec_alloc && ctx.sec_alloc[i])
-            munmap(ctx.sec_mem[i], ctx.sec_alloc[i]);
-    }
+    if (ctx.map_base) munmap(ctx.map_base, ctx.map_size);
     free(ctx.sec_mem);
-    free(ctx.sec_alloc);
     return ret;
 }
 

@@ -49,7 +49,7 @@ Commands:
 - File system: `ls`, `cd`, `cat`, `download`, `upload`, `mkdir`, `rm -r`, `cp`, `chmod`, `pwd`
 - Process: `ps`, `kill`
 - Network recon: `netstat`, `arp`, `route`, `ifconfig` - parsed from `/proc`, no external binary
-- Execution: `shell`, `inline-execute` (ELF BOF), `memfd` (in-memory ELF via `memfd_create`)
+- Execution: `shell`, `inline-execute` / `bof` (ELF BOF, aliased), `memfd` (in-memory ELF via `memfd_create`)
 - Credential access: `harvest` (SSH keys, cloud tokens, git, docker, kube, shadow), `procdump` (scan `/proc/<pid>/mem` without ptrace), `keylog` (raw evdev + X11 fallback)
 - Persistence: `persist cron`, `persist systemd`, `persist bash`
 - Tunneling: `socks5`, `rportfwd`
@@ -57,7 +57,7 @@ Commands:
 - Screenshot: `screenshot` - X11 (scrot), Wayland (grim), ImageMagick (import)
 - Session info: `info` (local, no round-trip), `help`
 
-ELF BOF loader: execute x86_64 ELF relocatable objects in-process with full BeaconAPI (`BeaconPrintf`, `BeaconOutput`, `BeaconDataParse`, `BeaconFormatAlloc`, `BeaconIsAdmin`, ...)
+ELF BOF loader: execute x86_64 ELF relocatable objects in-process with full BeaconAPI (`BeaconPrintf`, `BeaconOutput`, `BeaconDataParse`, `BeaconFormatAlloc`, `BeaconIsAdmin`, ...); trampoline support for PIE binaries - PLT32/PC32 relocations that exceed the 32-bit range are redirected through in-mapping stubs (`mov rax, abs64; jmp rax`), fixing SIGSEGV when BOFs call into the agent or libc symbols placed far in virtual memory
 
 ---
 

@@ -126,7 +126,8 @@ auto TenguCommands::DispatchCommand( bool Send, QString TaskID, const QString& c
         TenguConsole->Console->append( row( "id",             "Command", "show current user identity" ) );
         TenguConsole->Console->append( row( "ifconfig",       "Command", "show network interfaces" ) );
         TenguConsole->Console->append( row( "info",           "Command", "show session info (local, no task)" ) );
-        TenguConsole->Console->append( row( "inline-execute", "Command", "execute ELF BOF in-process" ) );
+        TenguConsole->Console->append( row( "bof",            "Command", "execute ELF BOF in-process (alias: inline-execute)" ) );
+        TenguConsole->Console->append( row( "inline-execute", "Command", "execute ELF BOF in-process (alias: bof)" ) );
         TenguConsole->Console->append( row( "kill",           "Command", "kill process by PID" ) );
         TenguConsole->Console->append( row( "ls",             "Command", "list directory contents" ) );
         TenguConsole->Console->append( row( "mkdir",          "Command", "create directory (recursive)" ) );
@@ -293,7 +294,7 @@ auto TenguCommands::DispatchCommand( bool Send, QString TaskID, const QString& c
     static const QStringList KnownCmds = {
         "info", "shell", "sleep", "exit", "pwd", "ls", "cd", "download", "task",
         "upload", "cat", "mkdir", "rm", "ps", "id", "env", "ifconfig",
-        "chmod", "cp", "kill", "socks5", "inline-execute",
+        "chmod", "cp", "kill", "socks5", "inline-execute", "bof",
         "netstat", "arp", "route", "persist", "screenshot", "whoami", "keylog",
         "harvest", "memfd", "portscan", "privesc", "procdump", "rportfwd", "pivot"
     };
@@ -392,6 +393,12 @@ auto TenguCommands::DispatchCommand( bool Send, QString TaskID, const QString& c
     if ( cmd == "task" && ( parts.size() < 2 || ( parts[1] != "list" && parts[1] != "clear" ) ) )
     {
         ConsoleError( "Usage: task <list|clear>" );
+        return false;
+    }
+
+    if ( ( cmd == "inline-execute" || cmd == "bof" ) && parts.size() < 2 )
+    {
+        ConsoleError( "Usage: " + cmd + " <path.o> [str:value] [int:123] [short:5] [bin:hexdata]" );
         return false;
     }
 
