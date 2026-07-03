@@ -81,6 +81,7 @@ set( MUGEN_INCLUDE
         include/Mugen/PythonApi/Event.h
         include/Mugen/PythonApi/MugenUi.h
         include/Mugen/PythonApi/PyAgentClass.hpp
+        include/Mugen/PythonApi/PyTenguClass.h
         include/Mugen/PythonApi/UI/PyDialogClass.hpp
         include/Mugen/PythonApi/UI/PyLoggerClass.hpp
         include/Mugen/PythonApi/UI/PyTreeClass.hpp
@@ -188,6 +189,7 @@ set( MUGEN_SOURCE
         src/Mugen/PythonApi/UI/PyTreeClass.cc
         src/Mugen/PythonApi/UI/PyWidgetClass.cc
         src/Mugen/PythonApi/PyDemonClass.cc
+        src/Mugen/PythonApi/PyTenguClass.cc
         src/Mugen/PythonApi/Event.cc
         src/Mugen/PythonApi/PyAgentClass.cc
 
