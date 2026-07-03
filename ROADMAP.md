@@ -51,7 +51,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [ ] **Tengu - Sleep obfuscation** - memory encryption during sleep, inspired by eclipse/pendulum (Ekko Linux port); encrypt rwx segments between check-ins
 - [ ] **Artifact strings cleanup** - remove/randomize identifiable strings (`demon.x64.dll`, visible exported function names, etc.)
 - [ ] **Tengu - String obfuscation** - XOR compile-time obfuscation of hardcoded strings in the Tengu binary
-- [ ] **Proxy support** - HTTP_PROXY / HTTPS_PROXY env awareness, NTLM proxy auth (Demon + Tengu)
+- [x] **Proxy support** - HTTP_PROXY / HTTPS_PROXY env awareness, NTLM proxy auth (Demon + Tengu)
 - [ ] **Hardware breakpoint AMSI/ETW bypass as default** - already in Demon, make it the default behavior instead of an opt-in
 - [ ] **Tengu - Privilege escalation recon** - SUID/SGID scan, sudo -l, writable PATH, capabilities
 
@@ -81,8 +81,12 @@ This document tracks planned features, improvements, and long-term goals for the
 - [ ] **Stack spoofing** - synthetic call stack during sleep via fibers or CFG bypass
 - [ ] **ETW provider unhooking** - disable per provider instead of a global patch
 - [ ] **Heap encryption during sleep** - encrypt implant heap alongside stack duplication
+- [ ] **Sleep callback obfuscation** - mask the call stack during sleep via timer callbacks (Foliage/Cronos style) instead of thread suspension; complements heap encryption
 - [ ] **Threadless injection** - overwrite return addresses or APC without `CreateRemoteThread`
 - [ ] **Custom reflective loader** - replace the PE-Sieve-visible Reflective DLL with a custom loader
+- [ ] **PIC shellcode conversion** - full position-independent shellcode format for Demon (no import table, RIP-relative addressing); logical evolution of the custom reflective loader, inspired by Jhin
+- [ ] **ChaCha20 application-layer encryption** - encrypt Demon frames before sending regardless of transport, matching what Tengu already has; key generated at payload build time
+- [ ] **In-memory .NET assembly execution** - `execute-assembly` style, fork-and-run in a sacrificial process, output streamed back via named pipe
 - [ ] **Improved PPID spoofing** - inherit handles and env in addition to parent process
 - [ ] **Token vault improvements** - privilege-based filtering, auto-impersonate at spawn
 
