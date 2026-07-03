@@ -4,7 +4,7 @@
 #   Demon(agent_id) -> InlineExecute, DotnetInlineExecute, ConsoleWrite, Command
 #   RegisterCommand, RegisterModule, RegisterCallback, GetDemons, GetListeners
 from mugen import *
-from mugen import RegisterTenguCommand
+from mugen import RegisterTenguCommand, Tengu
 
 # Packer is used by most HavocFramework modules without an explicit import.
 # It was expected to be globally available after loading Packer/packer.py first.

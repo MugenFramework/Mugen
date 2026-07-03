@@ -10,6 +10,7 @@
 #include <Mugen/PythonApi/PythonApi.h>
 
 #include <Mugen/PythonApi/PyDemonClass.h>
+#include <Mugen/PythonApi/PyTenguClass.h>
 #include <Mugen/PythonApi/PyAgentClass.hpp>
 #include <Mugen/PythonApi/Event.h>
 
@@ -56,6 +57,11 @@ PyMODINIT_FUNC PythonAPI::Mugen::PyInit_Mugen( void )
         spdlog::error( "Couldn't check if DemonClass is ready" );
     else
         PyModule_AddObject( Module, "Demon", (PyObject*) &PyDemonClass_Type );
+
+    if ( PyType_Ready( &PyTenguClass_Type ) < 0 )
+        spdlog::error( "Couldn't check if TenguClass is ready" );
+    else
+        PyModule_AddObject( Module, "Tengu", (PyObject*) &PyTenguClass_Type );
 
     if ( PyType_Ready( &PyAgentClass_Type ) < 0 )
         spdlog::error( "Couldn't check if AgentClass is ready" );
