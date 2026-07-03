@@ -69,20 +69,28 @@ void BeaconDataParse(datap* parser, char* buffer, int size) {
 }
 
 int BeaconDataInt(datap* parser) {
-    if (!parser || parser->length < 4) return 0;
+    if (!parser || parser->length < 10) return 0;
+    parser->buffer += 2; parser->length -= 2;  /* skip type tag */
+    uint32_t len;
+    memcpy(&len, parser->buffer, 4);
+    parser->buffer += 4; parser->length -= 4;  /* skip length field */
+    if ((int)len > parser->length) return 0;
     int32_t v;
     memcpy(&v, parser->buffer, 4);
-    parser->buffer += 4;
-    parser->length -= 4;
+    parser->buffer += (int)len; parser->length -= (int)len;
     return (int)v;
 }
 
 short BeaconDataShort(datap* parser) {
-    if (!parser || parser->length < 2) return 0;
+    if (!parser || parser->length < 8) return 0;
+    parser->buffer += 2; parser->length -= 2;  /* skip type tag */
+    uint32_t len;
+    memcpy(&len, parser->buffer, 4);
+    parser->buffer += 4; parser->length -= 4;  /* skip length field */
+    if ((int)len > parser->length) return 0;
     int16_t v;
     memcpy(&v, parser->buffer, 2);
-    parser->buffer += 2;
-    parser->length -= 2;
+    parser->buffer += (int)len; parser->length -= (int)len;
     return (short)v;
 }
 
@@ -91,11 +99,11 @@ int BeaconDataLength(datap* parser) {
 }
 
 char* BeaconDataExtract(datap* parser, int* size) {
-    if (!parser || parser->length < 4) return NULL;
+    if (!parser || parser->length < 6) return NULL;
+    parser->buffer += 2; parser->length -= 2;  /* skip type tag */
     uint32_t len;
     memcpy(&len, parser->buffer, 4);
-    parser->buffer += 4;
-    parser->length -= 4;
+    parser->buffer += 4; parser->length -= 4;  /* skip length field */
     if ((int)len > parser->length) return NULL;
     char* ptr = parser->buffer;
     parser->buffer += (int)len;
