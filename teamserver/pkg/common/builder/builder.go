@@ -282,6 +282,17 @@ func (b *Builder) Build() bool {
 		b.compilerOptions.Defines = append(b.compilerOptions.Defines, fmt.Sprintf("HASH_KEY=%d", hashKey))
 	}
 
+	// Randomize the DLL export function name (replaces the static "Start" signature).
+	{
+		const alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		const alnum = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		exportName := string(alpha[rand.Intn(len(alpha))])
+		for i := 0; i < 6; i++ {
+			exportName += string(alnum[rand.Intn(len(alnum))])
+		}
+		b.compilerOptions.Defines = append(b.compilerOptions.Defines, "EXPORT_FUNC_NAME="+exportName)
+	}
+
 	// enable sending debug entries over HTTP(S) to the teamserver
 	if b.compilerOptions.Config.SendLogs {
 		b.compilerOptions.Defines = append(b.compilerOptions.Defines, "SEND_LOGS")
