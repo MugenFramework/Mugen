@@ -15,6 +15,7 @@ Initial Mugen release. Fork of Havoc (last public GPL-3.0 commit, December 2025)
 - Theme switcher in the navbar - Mugen (default) and Havoc Classic (Dracula), persisted across sessions
 - `make rebuild` target - recompile teamserver + client without wiping cmake cache
 - Agent IDs prefixed by type: `DN-XXXXXXXX` (Demon) and `TU-XXXXXXXX` (Tengu)
+- Per-build artifact randomization: `DEMON_MAGIC_VALUE`, `HASH_KEY` (djb2), and DLL export function name (`Start` -> random identifier) are all randomized at each build, making static signatures ineffective
 
 **Client**
 
@@ -54,11 +55,15 @@ Commands:
 - Credential access: `harvest` (SSH keys, cloud tokens, git, docker, kube, shadow), `procdump` (scan `/proc/<pid>/mem` without ptrace), `keylog` (raw evdev + X11 fallback)
 - Persistence: `persist cron`, `persist systemd`, `persist bash`
 - Tunneling: `socks5`, `rportfwd`
-- Recon: `portscan` (TCP connect, single IP or CIDR, no binary)
+- Recon: `portscan` (TCP connect, single IP or CIDR, no binary), `privesc` (writable PATH dirs, `sudo -l -n`, SUID/SGID binaries in common dirs, processes with non-zero `CapEff`)
 - Screenshot: `screenshot` - X11 (scrot), Wayland (grim), ImageMagick (import)
 - Session info: `info` (local, no round-trip), `help`
 
 ELF BOF loader: execute x86_64 ELF relocatable objects in-process with full BeaconAPI (`BeaconPrintf`, `BeaconOutput`, `BeaconDataParse`, `BeaconFormatAlloc`, `BeaconIsAdmin`, ...); trampoline support for PIE binaries - PLT32/PC32 relocations that exceed the 32-bit range are redirected through in-mapping stubs (`mov rax, abs64; jmp rax`), fixing SIGSEGV when BOFs call into the agent or libc symbols placed far in virtual memory
+
+Proxy support: HTTP and SOCKS5 proxy configured at payload build time; falls back to `HTTP_PROXY` / `HTTPS_PROXY` env vars when not set; NTLM and Basic auth via libcurl `CURLAUTH_ANY`
+
+Sleep obfuscation: XOR-encrypts the agent's own `r-x` code pages (`PROT_NONE`) during sleep intervals using a 32-byte random key per sleep; a helper thread holds pre-resolved libc pointers (`nanosleep`, `mprotect`, `sem_post`) and decrypts after the interval, making the beacon invisible to in-memory scanners between check-ins; falls back to plain `sleep()` on any setup failure
 
 ---
 

