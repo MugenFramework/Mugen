@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "obfstr.h"
 
 static uint32_t rotl32(uint32_t x, int n) {
     return (x << n) | (x >> (32 - n));
@@ -68,7 +69,7 @@ void chacha20_xcrypt(const uint8_t key[32], const uint8_t nonce[12],
 
 // Fill out with len random bytes from /dev/urandom.
 void tengu_getrandom(uint8_t* out, size_t len) {
-    int fd = open("/dev/urandom", O_RDONLY);
+    int fd = open(SXOR(SXOR_URANDOM), O_RDONLY);
     if (fd < 0) {
         // Fallback: deterministic garbage better than zeros.
         size_t i;

