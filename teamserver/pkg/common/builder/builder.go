@@ -286,9 +286,11 @@ func (b *Builder) Build() bool {
 	{
 		const alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		const alnum = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-		exportName := string(alpha[rand.Intn(len(alpha))])
-		for i := 0; i < 6; i++ {
-			exportName += string(alnum[rand.Intn(len(alnum))])
+		var rb [7]byte
+		rand.Read(rb[:])
+		exportName := string(alpha[int(rb[0])%len(alpha)])
+		for i := 1; i < 7; i++ {
+			exportName += string(alnum[int(rb[i])%len(alnum)])
 		}
 		b.compilerOptions.Defines = append(b.compilerOptions.Defines, "EXPORT_FUNC_NAME="+exportName)
 	}
