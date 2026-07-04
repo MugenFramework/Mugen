@@ -50,9 +50,8 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Session graph edge labels** - graph links display `ListenerName [TYPE]` (e.g. `http01 [HTTPS]`) for listener edges and `pivot` for SMB pivot edges; applies to both Demon and Tengu
 - [x] **Tengu - Sleep obfuscation** - memory encryption during sleep, inspired by eclipse/pendulum (Ekko Linux port); encrypt rwx segments between check-ins
 - [x] **Artifact strings cleanup** - remove/randomize identifiable strings (`demon.x64.dll`, visible exported function names, etc.)
-- [ ] **Tengu - String obfuscation** - XOR compile-time obfuscation of hardcoded strings in the Tengu binary
+- [x] **Tengu - String obfuscation** - XOR compile-time obfuscation of hardcoded strings in the Tengu binary
 - [x] **Proxy support** - HTTP_PROXY / HTTPS_PROXY env awareness, NTLM proxy auth (Demon + Tengu)
-- [ ] **Hardware breakpoint AMSI/ETW bypass as default** - already in Demon, make it the default behavior instead of an opt-in
 - [x] **Tengu - Privilege escalation recon** - SUID/SGID scan, sudo -l, writable PATH, capabilities
 
 ---
