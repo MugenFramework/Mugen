@@ -165,6 +165,6 @@ Mugen release names are titles of romance manga.
 
 | Version | Name | Status |
 |---------|------|--------|
-| v0.1 | *The Fragrant Flower Blooms With Dignity* | In progress |
-| v0.2 | TBD | Planned |
+| v0.1 | *The Fragrant Flower Blooms With Dignity* | Released |
+| v0.2 | TBD | In progress |
 | v0.3 | TBD | Planned |
