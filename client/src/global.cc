@@ -9,8 +9,8 @@ using namespace std;
 using namespace MugenNamespace;
 using namespace MugenNamespace::MugenSpace;
 
-string MugenNamespace::Version  = "0.7";
-string MugenNamespace::CodeName = "Bites The Dust";
+string MugenNamespace::Version  = "0.1";
+string MugenNamespace::CodeName = "The Fragrant Flower Blooms With Dignity";
 
 // Global Variables in the Mugen Namespace
 MugenSpace::Mugen* MugenNamespace::MugenApplication;

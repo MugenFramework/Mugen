@@ -658,7 +658,11 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
     } );
 
     QMainWindow::connect( actionOpen_Help_Documentation, &QAction::triggered, this, []() {
-        QDesktopServices::openUrl( QUrl( "https://github.com/MugenFramework/Mugen/wiki" ) );
+        QDesktopServices::openUrl( QUrl( "https://mugenframework.github.io/getting-started/installation/" ) );
+    } );
+
+    QMainWindow::connect( actionOpen_API_Reference, &QAction::triggered, this, []() {
+        QDesktopServices::openUrl( QUrl( "https://mugenframework.github.io/python-api/overview/" ) );
     } );
 }
 
