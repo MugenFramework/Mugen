@@ -115,6 +115,7 @@ About::About( QDialog* dialog )
     // --- Description ---
     auto* descLabel = new QLabel(
         "Open-source post-exploitation C2 framework.<br>"
+        "Maintained by <a href=\"https://github.com/0xbbuddha\" style=\"color:#ff6b9d; text-decoration:none;\">@0xbbuddha</a>.<br>"
         "Forked from Havoc by "
         "<a href=\"https://twitter.com/C5pider\" style=\"color:#ff6b9d; text-decoration:none;\">C5pider</a>."
         " &nbsp;GPL-3.0.",
