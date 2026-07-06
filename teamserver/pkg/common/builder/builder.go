@@ -3,7 +3,7 @@ package builder
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/binary"
+	//"encoding/binary"
 	//"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -268,19 +268,9 @@ func (b *Builder) Build() bool {
 
 	b.compilerOptions.Defines = append(b.compilerOptions.Defines, "CONFIG_BYTES="+array)
 
-	// randomize DEMON_MAGIC_VALUE (per server run) and HASH_KEY (per build)
 	b.compilerOptions.Defines = append(b.compilerOptions.Defines, fmt.Sprintf("DEMON_MAGIC_VALUE=0x%x", uint32(agent.DEMON_MAGIC_VALUE)))
-	{
-		var rb [4]byte
-		hashKey := uint32(5381)
-		if _, err := rand.Read(rb[:]); err == nil {
-			v := binary.LittleEndian.Uint32(rb[:])
-			if v != 0 {
-				hashKey = v
-			}
-		}
-		b.compilerOptions.Defines = append(b.compilerOptions.Defines, fmt.Sprintf("HASH_KEY=%d", hashKey))
-	}
+
+	b.compilerOptions.Defines = append(b.compilerOptions.Defines, "HASH_KEY=5381")
 
 	// Randomize the DLL export function name (replaces the static "Start" signature).
 	{
