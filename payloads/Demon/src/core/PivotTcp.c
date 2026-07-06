@@ -1,12 +1,9 @@
 #include <Demon.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 
 #include <common/Macros.h>
 #include <core/MiniStd.h>
 #include <core/Command.h>
 #include <core/Package.h>
-#include <core/Socket.h>
 
 PTCP_PIVOT_DATA TcpPivotGet( DWORD AgentId )
 {
