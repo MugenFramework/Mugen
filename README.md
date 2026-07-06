@@ -4,7 +4,7 @@
   <p><i>Open-source post-exploitation C2 framework. Forked from Havoc GPL-3.0.</i></p>
   <br/>
   <a href="https://github.com/MugenFramework/Mugen/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-red" /></a>
-  <a href="https://github.com/MugenFramework/Mugen/releases"><img src="https://img.shields.io/badge/version-v0.1--dev-orange" /></a>
+  <a href="https://github.com/MugenFramework/Mugen/releases"><img src="https://img.shields.io/github/v/release/MugenFramework/Mugen?color=orange" /></a>
   <img src="https://img.shields.io/badge/platform-Linux-blue" />
 </div>
 
