@@ -24,6 +24,8 @@ Mugen is a community-driven fork of [Havoc](https://github.com/HavocFramework/Ha
 
 Includes **Demon** (Windows, C/ASM) and **Tengu** (Linux, C) agents, a Go teamserver, and a Qt5 client.
 
+Maintained by [@0xbbuddha](https://github.com/0xbbuddha).
+
 > Original copyright belongs to [@C5pider](https://twitter.com/C5pider) and Havoc contributors. See [CREDITS.md](CREDITS.md).
 
 ---
