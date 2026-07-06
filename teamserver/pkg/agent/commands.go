@@ -1,20 +1,6 @@
 package agent
 
-import (
-	"crypto/rand"
-	"encoding/binary"
-)
-
-var DEMON_MAGIC_VALUE int
-
-func init() {
-	var b [4]byte
-	if _, err := rand.Read(b[:]); err != nil {
-		DEMON_MAGIC_VALUE = 0xDEADBEEF
-		return
-	}
-	DEMON_MAGIC_VALUE = int(int32(binary.BigEndian.Uint32(b[:])))
-}
+const DEMON_MAGIC_VALUE = 0xDEADBEEF
 
 const (
 	/*
