@@ -3,7 +3,7 @@ package builder
 import (
 	"bytes"
 	"crypto/rand"
-	//"encoding/binary"
+	"encoding/binary"
 	//"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -270,7 +270,36 @@ func (b *Builder) Build() bool {
 
 	b.compilerOptions.Defines = append(b.compilerOptions.Defines, fmt.Sprintf("DEMON_MAGIC_VALUE=0x%x", uint32(agent.DEMON_MAGIC_VALUE)))
 
-	b.compilerOptions.Defines = append(b.compilerOptions.Defines, "HASH_KEY=5381")
+	// Randomize HASH_KEY per build and regenerate Defines.h so every hash constant matches.
+	{
+		var rb [4]byte
+		hashKey := uint32(5381)
+		if _, err := rand.Read(rb[:]); err == nil {
+			if v := binary.LittleEndian.Uint32(rb[:]); v != 0 {
+				hashKey = v
+			}
+		}
+		b.compilerOptions.Defines = append(b.compilerOptions.Defines, fmt.Sprintf("HASH_KEY=%d", hashKey))
+
+		originalDefines := b.sourcePath + "/include/common/Defines.h"
+		newContent, err := recomputeDefinesH(originalDefines, hashKey)
+		if err != nil {
+			b.SendConsoleMessage("Error", "failed to recompute Defines.h: "+err.Error())
+			return false
+		}
+		overrideDir := b.CompileDir + "include/common/"
+		if err := os.MkdirAll(overrideDir, 0755); err != nil {
+			b.SendConsoleMessage("Error", "failed to create override dir: "+err.Error())
+			return false
+		}
+		overridePath := overrideDir + "Defines.h"
+		if err := os.WriteFile(overridePath, []byte(newContent), 0644); err != nil {
+			b.SendConsoleMessage("Error", "failed to write override Defines.h: "+err.Error())
+			return false
+		}
+		b.FilesCreated = append(b.FilesCreated, overridePath)
+		b.compilerOptions.IncludeDirs = append([]string{b.CompileDir + "include"}, b.compilerOptions.IncludeDirs...)
+	}
 
 	// Randomize the DLL export function name (replaces the static "Start" signature).
 	{

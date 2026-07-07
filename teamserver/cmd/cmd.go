@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	VersionNumber = "0.7"
-	VersionName   = "Bites The Dust"
+	VersionNumber = "0.2"
+	VersionName   = "My Dress-Up Darling"
 	DatabasePath  = "data/teamserver.db"
 
 	MugenCli = &cobra.Command{
