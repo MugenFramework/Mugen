@@ -161,11 +161,6 @@ func (b *TenguBuilder) TenguPatchConfig() ([]byte, error) {
 			host = common.GetInterfaceIpv4Addr(httpCfg.Config.HostBind)
 		}
 
-		uri := "/"
-		if len(httpCfg.Config.Uris) > 0 {
-			uri = httpCfg.Config.Uris[0]
-		}
-
 		secure := 0
 		if httpCfg.Config.Secure {
 			secure = 1
@@ -176,11 +171,23 @@ func (b *TenguBuilder) TenguPatchConfig() ([]byte, error) {
 			userAgent = "Mozilla/5.0"
 		}
 
+		uris := httpCfg.Config.Uris
+		if len(uris) == 0 {
+			uris = []string{"/"}
+		}
+
 		cfg.AddString(host)
 		cfg.AddInt(port)
-		cfg.AddString(uri)
+		cfg.AddInt(len(uris))
+		for _, u := range uris {
+			cfg.AddString(u)
+		}
 		cfg.AddInt(secure)
 		cfg.AddString(userAgent)
+		cfg.AddInt(len(httpCfg.Config.Headers))
+		for _, h := range httpCfg.Config.Headers {
+			cfg.AddString(h)
+		}
 
 	default:
 		return nil, errors.New("unsupported listener type for Tengu")

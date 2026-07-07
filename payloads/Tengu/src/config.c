@@ -44,7 +44,7 @@ static char* read_str(const uint8_t* buf, size_t len, size_t* off) {
 
 // Parse CONFIG_BYTES embedded at compile time.
 // Layout (LE): [sleep:4][jitter:4][transport:4][transport-specific fields...]
-// transport 0 (HTTP):  [host:str][port:4][uri:str][secure:4][user_agent:str]
+// transport 0 (HTTP):  [host:str][port:4][uri_count:4][uri_0:str]...[uri_N:str][secure:4][user_agent:str][header_count:4][header_0:str]...[header_N:str]
 // transport 1 (DNS):   [dns_host:str][dns_port:4][dns_domain:str]
 // transport 2 (DoH):   [doh_host:str][doh_port:4][doh_path:str][doh_secure:4]
 void config_parse(const uint8_t* bytes, size_t len) {
@@ -88,12 +88,31 @@ void config_parse(const uint8_t* bytes, size_t len) {
         g_config.host = read_str(bytes, len, &off);
         if (off + 4 > len) return;
         g_config.port = (int)read_le32(bytes, off); off += 4;
-        g_config.uri  = read_str(bytes, len, &off);
+
+        // URI list
+        if (off + 4 > len) return;
+        g_config.uri_count = (int)read_le32(bytes, off); off += 4;
+        if (g_config.uri_count > 0) {
+            g_config.uris = malloc(g_config.uri_count * sizeof(char*));
+            for (int i = 0; i < g_config.uri_count; i++)
+                g_config.uris[i] = read_str(bytes, len, &off);
+        }
+
         if (off + 4 > len) return;
         g_config.secure = (int)read_le32(bytes, off); off += 4;
         g_config.user_agent = read_str(bytes, len, &off);
         if (!g_config.user_agent)
             g_config.user_agent = "Mozilla/5.0";
+
+        // Custom headers
+        if (off + 4 <= len) {
+            g_config.http_header_count = (int)read_le32(bytes, off); off += 4;
+            if (g_config.http_header_count > 0) {
+                g_config.http_headers = malloc(g_config.http_header_count * sizeof(char*));
+                for (int i = 0; i < g_config.http_header_count; i++)
+                    g_config.http_headers[i] = read_str(bytes, len, &off);
+            }
+        }
     }
 
     /* proxy section (all transports) */

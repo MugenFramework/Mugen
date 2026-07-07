@@ -65,9 +65,12 @@ typedef struct {
     // HTTP transport
     char*    host;
     int      port;
-    char*    uri;
+    char**   uris;
+    int      uri_count;
     int      secure;
     char*    user_agent;
+    char**   http_headers;
+    int      http_header_count;
     // DNS / DoH transport
     char*    dns_host;
     int      dns_port;
