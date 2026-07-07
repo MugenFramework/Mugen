@@ -5392,8 +5392,9 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 
 									if first_iter {
 										first_iter = false
-										// if the message is not a reconnect, decrypt the buffer
-										AgentHdr.Data.DecryptBuffer(PivotAgent.Encryption.AESKey, PivotAgent.Encryption.AESIv)
+										if len(PivotAgent.Encryption.AESKey) > 0 {
+											AgentHdr.Data.DecryptBuffer(PivotAgent.Encryption.AESKey, PivotAgent.Encryption.AESIv)
+										}
 									}
 
 									/* The agent is sending us the result of a task */
@@ -5520,6 +5521,13 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 										teamserver.AgentUpdate(a)
 
 									} else {
+										/* Consume Command and RequestID - same as the HTTP handler does */
+										if AgentHdr.Data.CanIRead([]parser.ReadType{parser.ReadInt32}) {
+											AgentHdr.Data.ParseInt32()
+										}
+										if AgentHdr.Data.CanIRead([]parser.ReadType{parser.ReadInt32}) {
+											AgentHdr.Data.ParseInt32()
+										}
 										PivotAgent = ParseTenguRegisterRequest(AgentHdr.AgentID, AgentHdr.Data, "")
 										if PivotAgent == nil {
 											Message["Type"] = "Error"
