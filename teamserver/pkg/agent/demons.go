@@ -5619,7 +5619,9 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 
 									if first_iter {
 										first_iter = false
-										AgentHdr.Data.DecryptBuffer(PivotAgent.Encryption.AESKey, PivotAgent.Encryption.AESIv)
+										if len(PivotAgent.Encryption.AESKey) > 0 {
+											AgentHdr.Data.DecryptBuffer(PivotAgent.Encryption.AESKey, PivotAgent.Encryption.AESIv)
+										}
 									}
 
 									if Command != COMMAND_GET_JOB {

@@ -1,12 +1,13 @@
 package agent
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	mathrand "math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 
 	"Mugen/pkg/common/parser"
 	"Mugen/pkg/logger"
+	"golang.org/x/crypto/chacha20"
 )
 
 // ParseTenguRegisterRequest parses the Tengu INIT packet and returns an Agent instance.
@@ -157,7 +159,7 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 	if parsed, err := strconv.ParseInt(TaskIDStr, 16, 64); err == nil {
 		reqID = uint32(parsed)
 	} else {
-		reqID = rand.Uint32()
+		reqID = mathrand.Uint32()
 	}
 
 	var job *Job
@@ -1177,46 +1179,67 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 // TenguHandlePivotFrame processes a Tengu frame received through a TCP pivot parent.
 // It handles INIT registration and COMMAND_GET_JOB polling.
 // Returns the raw response bytes to send back to the agent (via the parent).
+// TenguDecrypt decrypts a ChaCha20-encrypted Tengu frame in place.
+// Expected layout of p.Buffer(): [Nonce:12][Ciphertext].
+func TenguDecrypt(key []byte, p *parser.Parser) (*parser.Parser, bool) {
+	raw := p.Buffer()
+	if len(raw) < 12 {
+		return nil, false
+	}
+	nonce      := raw[:12]
+	ciphertext := make([]byte, len(raw)-12)
+	copy(ciphertext, raw[12:])
+
+	stream, err := chacha20.NewUnauthenticatedCipher(key, nonce)
+	if err != nil {
+		return nil, false
+	}
+	stream.XORKeyStream(ciphertext, ciphertext)
+	return parser.NewParser(ciphertext), true
+}
+
+// TenguEncrypt encrypts payload with the agent's ChaCha20 key.
+// Returns [Nonce:12][Ciphertext].
+func TenguEncrypt(key []byte, payload []byte) ([]byte, error) {
+	nonce := make([]byte, 12)
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, err
+	}
+	stream, err := chacha20.NewUnauthenticatedCipher(key, nonce)
+	if err != nil {
+		return nil, err
+	}
+	ct := make([]byte, len(payload))
+	stream.XORKeyStream(ct, payload)
+	return append(nonce, ct...), nil
+}
+
 func TenguHandlePivotFrame(teamserver TeamServer, Header Header) []byte {
-	if !Header.Data.CanIRead([]parser.ReadType{parser.ReadInt32}) {
+	if !teamserver.AgentExist(Header.AgentID) {
 		return nil
 	}
 
-	Command := uint32(Header.Data.ParseInt32())
-
-	/* Skip RequestID */
-	if Header.Data.CanIRead([]parser.ReadType{parser.ReadInt32}) {
-		Header.Data.ParseInt32()
-	}
-
-	if !teamserver.AgentExist(Header.AgentID) {
-		/* First contact - registration */
-		if Command != DEMON_INIT {
-			return nil
-		}
-
-		Agent := ParseTenguRegisterRequest(Header.AgentID, Header.Data, "")
-		if Agent == nil {
-			return nil
-		}
-		Agent.Info.MagicValue = Header.MagicValue
-
-		teamserver.AgentAdd(Agent)
-		teamserver.AgentSendNotify(Agent)
-
-		/* Respond with confirmed agent ID (4B LE) */
-		rawID := make([]byte, 4)
-		rawID[0] = byte(Header.AgentID)
-		rawID[1] = byte(Header.AgentID >> 8)
-		rawID[2] = byte(Header.AgentID >> 16)
-		rawID[3] = byte(Header.AgentID >> 24)
-		return rawID
-	}
-
-	/* Agent already registered */
 	Agent := teamserver.AgentInstance(Header.AgentID)
 	Agent.UpdateLastCallback(teamserver)
 
+	/* Decrypt the incoming frame if the session has a ChaCha20 key. */
+	if len(Agent.Encryption.ChaCha20Key) == 32 {
+		decrypted, ok := TenguDecrypt(Agent.Encryption.ChaCha20Key, Header.Data)
+		if !ok {
+			logger.Error(fmt.Sprintf("TenguHandlePivotFrame: failed to decrypt frame from %x", Header.AgentID))
+			return nil
+		}
+		Header.Data = decrypted
+	}
+
+	if !Header.Data.CanIRead([]parser.ReadType{parser.ReadInt32, parser.ReadInt32}) {
+		return nil
+	}
+
+	Command   := uint32(Header.Data.ParseInt32())
+	RequestID := uint32(Header.Data.ParseInt32())
+
+	var payload []byte
 	if Command == COMMAND_GET_JOB {
 		var jobs []Job
 		if len(Agent.JobQueue) == 0 {
@@ -1224,16 +1247,26 @@ func TenguHandlePivotFrame(teamserver TeamServer, Header Header) []byte {
 		} else {
 			jobs = Agent.GetQueuedJobs()
 		}
-		return BuildTenguMessage(jobs)
-	}
-
-	/* Task result */
-	if Header.Data.CanIRead([]parser.ReadType{parser.ReadBytes}) {
-		resultData := Header.Data.ParseBytes()
-		Agent.TenguTaskDispatch(0, Command, parser.NewParser(resultData), teamserver)
+		payload = BuildTenguMessage(jobs)
 	} else {
-		Agent.TenguTaskDispatch(0, Command, parser.NewParser([]byte{}), teamserver)
+		/* Task result - no response body needed. */
+		if Header.Data.CanIRead([]parser.ReadType{parser.ReadBytes}) {
+			resultData := Header.Data.ParseBytes()
+			Agent.TenguTaskDispatch(RequestID, Command, parser.NewParser(resultData), teamserver)
+		} else {
+			Agent.TenguTaskDispatch(RequestID, Command, parser.NewParser([]byte{}), teamserver)
+		}
+		return nil
 	}
 
-	return nil
+	/* Encrypt the response if the session has a ChaCha20 key. */
+	if len(Agent.Encryption.ChaCha20Key) == 32 {
+		enc, err := TenguEncrypt(Agent.Encryption.ChaCha20Key, payload)
+		if err != nil {
+			logger.Error(fmt.Sprintf("TenguHandlePivotFrame: failed to encrypt response for %x", Header.AgentID))
+			return nil
+		}
+		return enc
+	}
+	return payload
 }
