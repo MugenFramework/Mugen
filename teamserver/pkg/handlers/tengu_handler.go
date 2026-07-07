@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 
@@ -10,45 +9,7 @@ import (
 	"Mugen/pkg/common/packer"
 	"Mugen/pkg/common/parser"
 	"Mugen/pkg/logger"
-
-	"golang.org/x/crypto/chacha20"
 )
-
-// tenguDecrypt decrypts Header.Data in place for a registered Tengu agent.
-// Expected format: [Nonce:12][ChaCha20(body)]
-// Returns false if the data is too short to contain a nonce.
-func tenguDecrypt(key []byte, p *parser.Parser) (*parser.Parser, bool) {
-	raw := p.Buffer()
-	if len(raw) < 12 {
-		return nil, false
-	}
-	nonce      := raw[:12]
-	ciphertext := make([]byte, len(raw)-12)
-	copy(ciphertext, raw[12:])
-
-	stream, err := chacha20.NewUnauthenticatedCipher(key, nonce)
-	if err != nil {
-		return nil, false
-	}
-	stream.XORKeyStream(ciphertext, ciphertext)
-	return parser.NewParser(ciphertext), true
-}
-
-// tenguEncrypt encrypts payload with the agent's ChaCha20 key.
-// Returns [Nonce:12][ChaCha20(payload)].
-func tenguEncrypt(key []byte, payload []byte) ([]byte, error) {
-	nonce := make([]byte, 12)
-	if _, err := rand.Read(nonce); err != nil {
-		return nil, err
-	}
-	stream, err := chacha20.NewUnauthenticatedCipher(key, nonce)
-	if err != nil {
-		return nil, err
-	}
-	ct := make([]byte, len(payload))
-	stream.XORKeyStream(ct, payload)
-	return append(nonce, ct...), nil
-}
 
 // handleTenguAgent handles HTTP requests from Tengu Linux agents.
 // The protocol uses Big-Endian for agent->server data.
@@ -66,7 +27,7 @@ func handleTenguAgent(Teamserver agent.TeamServer, Header agent.Header, External
 
 		// Decrypt incoming body if the agent has a ChaCha20 key.
 		if len(Agent.Encryption.ChaCha20Key) == 32 {
-			decrypted, ok := tenguDecrypt(Agent.Encryption.ChaCha20Key, Header.Data)
+			decrypted, ok := agent.TenguDecrypt(Agent.Encryption.ChaCha20Key, Header.Data)
 			if !ok {
 				logger.Error("Tengu: failed to decrypt incoming packet")
 				return Response, false
@@ -94,7 +55,7 @@ func handleTenguAgent(Teamserver agent.TeamServer, Header agent.Header, External
 
 			// Encrypt response if the agent session is encrypted.
 			if len(Agent.Encryption.ChaCha20Key) == 32 {
-				enc, encErr := tenguEncrypt(Agent.Encryption.ChaCha20Key, payload)
+				enc, encErr := agent.TenguEncrypt(Agent.Encryption.ChaCha20Key, payload)
 				if encErr != nil {
 					logger.Error("Tengu: failed to encrypt response: " + encErr.Error())
 					return Response, false
