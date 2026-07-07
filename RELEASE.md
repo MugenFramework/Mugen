@@ -2,6 +2,48 @@
 
 ## Mugen
 
+### v0.1.4 | *The Fragrant Flower Blooms With Dignity*
+
+Stability patch. Reintroduces proper per-build `HASH_KEY` randomization and fixes the full Tengu TCP pivot stack.
+
+---
+
+**Demon**
+
+- Reintroduced per-build `HASH_KEY` randomization with a correct implementation: the builder now rewrites all `H_MODULE_*` and `H_FUNC_*` constants in `Defines.h` using the UTF-16LE djb2 algorithm that the agent actually uses at runtime. The v0.1.3 revert (fixed seed 5381) is superseded.
+
+**Tengu**
+
+- Fixed TCP pivot connect/disconnect loop: the child socket is non-blocking, but `ioctlsocket(FIONREAD)` can report the 4-byte length prefix available before the body has arrived. `TcpRecvAll` on the body then returned `WSAEWOULDBLOCK`, misinterpreted as a dead connection. Fix: use `MSG_PEEK` to read the length prefix without consuming it, re-check `FIONREAD >= 4 + FrameLen`, and only then consume and read the full frame.
+
+**Teamserver**
+
+- Fixed "Failed to parse Tengu registration" on TCP pivot: the `DEMON_PIVOT_TCP_CONNECT` handler was passing `AgentHdr.Data` directly to `ParseTenguRegisterRequest` without first consuming `Command` (4 bytes) and `RequestID` (4 bytes), unlike the HTTP path.
+- Fixed `crypto/aes: invalid key size 0` on TCP and SMB pivot paths: `DecryptBuffer` was called unconditionally. A Tengu child has no AES key; both call sites now guard with `len(AESKey) > 0`.
+- Fixed agent freezing after commands on TCP pivot: `TenguHandlePivotFrame` returned `nil` for task results. Tengu's `tcp_c2_post` always blocks on `recv()` after sending; with no response the agent stalled for 120 s (SO_RCVTIMEO). The handler now always returns a `COMMAND_NOJOB` frame so the agent unblocks immediately.
+
+---
+
+### v0.1.3 | *The Fragrant Flower Blooms With Dignity*
+
+Stability patch.
+
+---
+
+**Demon**
+
+- Fixed `HASH_KEY` randomization: the builder was generating a random seed per build but `Defines.h` hash constants were pre-computed with the fixed seed 5381. Every `Instance->Win32.*` pointer resolved to NULL, causing an immediate crash on any Win32 call. Reverted to fixed seed 5381 - proper per-build randomization re-introduced in v0.1.4.
+- Fixed `DEMON_MAGIC_VALUE` per-run randomization: the teamserver regenerated a random magic value on every startup, making any previously-built agent unable to reconnect after a server restart. Replaced with the stable constant `0xDEADBEEF`.
+- Fixed copy-paste bug in `Obf.c` line 215 (FoliageObf sleep obfuscation): the NtTestAlert return address was written to `RopBegin->Rsp` instead of `RopExitThd->Rsp`, corrupting the first APC frame and leaving the exit frame without a valid return address. FoliageObf was non-functional as a result.
+
+---
+
+### v0.1.2 | *The Fragrant Flower Blooms With Dignity*
+
+- Fixed compilation failure in Demon: removed conflicting winsock headers (`winsock2.h`, `ws2tcpip.h`) from `PivotTcp.c`.
+
+---
+
 ### v0.1 | *The Fragrant Flower Blooms With Dignity*
 
 Initial Mugen release. Fork of Havoc (last public GPL-3.0 commit, December 2025).
