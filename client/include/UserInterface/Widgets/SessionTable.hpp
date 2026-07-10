@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QMenu>
+#include <QSettings>
 
 class MugenNamespace::UserInterface::Widgets::SessionTable : public QWidget
 {
@@ -39,6 +40,10 @@ public:
     void SetSessionTags( const QString& AgentID, const QString& Tags );
     void updateRow();
     void applyFilter( const QString& query );
+
+private:
+    void saveColumnLayout();
+    void restoreColumnLayout();
 };
 
 #endif
