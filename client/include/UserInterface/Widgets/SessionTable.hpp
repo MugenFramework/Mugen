@@ -5,6 +5,8 @@
 #include <QTableWidget>
 #include <QLineEdit>
 #include <QVBoxLayout>
+#include <QPushButton>
+#include <QMenu>
 
 class MugenNamespace::UserInterface::Widgets::SessionTable : public QWidget
 {
@@ -28,6 +30,7 @@ private:
 public:
     QTableWidget*   SessionTableWidget = nullptr;
     QLineEdit*      FilterInput        = nullptr;
+    QPushButton*    ActionsButton      = nullptr;
 
     void setupUi( QWidget* widget, QString TeamserverName );
     void NewSessionItem( Util::SessionItem item ) const;
