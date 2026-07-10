@@ -12,6 +12,7 @@
 
 class DashboardWidget;
 #include <UserInterface/Widgets/Store.hpp>
+#include <UserInterface/Widgets/SplitConsoleWidget.hpp>
 
 #include <UserInterface/Dialogs/Payload.hpp>
 

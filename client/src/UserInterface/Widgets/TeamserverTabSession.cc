@@ -140,6 +140,10 @@ void MugenNamespace::UserInterface::Widgets::TeamserverTabSession::setupUi( QWid
         if ( index == -1 )
             return;
 
+        // if closing a split view tab, unregister mirrors before removing
+        if ( auto* split = dynamic_cast<UserInterface::Widgets::SplitConsoleWidget*>( tabWidget->widget( index ) ) )
+            split->cleanup();
+
         tabWidget->removeTab( index );
 
         if ( tabWidget->count() == 0 )
@@ -230,6 +234,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
     auto TenguExplorer      = QMenu( "Explorer" );
     auto ExitMenu           = QMenu( "Exit" );
     auto ColorMenu          = QMenu( "Color" );
+    auto SplitMenu          = QMenu( "Split with..." );
 
     ColorMenu.addAction( "Reset" );
     ColorMenu.addAction( "Red" );
@@ -254,7 +259,17 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
     ExitMenu.addAction( "Process" );
     ExitMenu.setStyleSheet( MenuStyle );
 
+    // populate "Split with..." with all other live sessions
+    for ( const auto& s : MugenX::Teamserver.Sessions )
+    {
+        if ( s.Name != SessionID && s.Marked != "Dead" )
+            SplitMenu.addAction( "[" + s.Name + "] " + s.User + "/" + s.Computer );
+    }
+    SplitMenu.setStyleSheet( MenuStyle );
+    SplitMenu.setEnabled( ! SplitMenu.isEmpty() );
+
     SessionMenu.addAction( "Interact" );
+    SessionMenu.addAction( SplitMenu.menuAction() );
     SessionMenu.addAction( separator );
 
     if ( Agent.MagicValue == DemonMagicValue )
@@ -321,6 +336,37 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
 
                     MugenX::Teamserver.TabSession->NewBottomTab( Session.InteractedWidget->DemonInteractedWidget, tabName.toStdString() );
                     Session.InteractedWidget->lineEdit->setFocus();
+                }
+                else if ( action->text().startsWith( "[" ) && SplitMenu.actions().contains( action ) )
+                {
+                    // find the second session from the action text "[ID] user/host"
+                    auto secondID = action->text().section( ']', 0, 0 ).mid( 1 ).trimmed();
+                    Util::SessionItem* secondSession = nullptr;
+                    for ( auto& s : MugenX::Teamserver.Sessions )
+                    {
+                        if ( s.Name == secondID )
+                        {
+                            if ( s.InteractedWidget == nullptr )
+                            {
+                                s.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
+                                s.InteractedWidget->SessionInfo    = s;
+                                s.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
+                                s.InteractedWidget->setupUi( new QWidget );
+                            }
+                            secondSession = &s;
+                            break;
+                        }
+                    }
+
+                    if ( secondSession )
+                    {
+                        auto* splitWidget = new UserInterface::Widgets::SplitConsoleWidget;
+                        splitWidget->setupUi( Session, *secondSession, MugenX::Teamserver.Name );
+
+                        auto splitTabName = QString( "Split [%1] [%2]" ).arg( Session.Name ).arg( secondSession->Name );
+                        MugenX::Teamserver.TabSession->NewBottomTab( splitWidget, splitTabName.toStdString() );
+                        splitWidget->leftConsole->lineEdit->setFocus();
+                    }
                 }
                 else if ( action->text().compare( "Red" ) == 0 || action->text().compare( "Blue" ) == 0 || action->text().compare( "Pink" ) == 0 || action->text().compare( "Yellow" ) == 0 || action->text().compare( "Green" ) == 0 || action->text().compare( "Purple" ) == 0 || action->text().compare( "Orange" ) == 0 || action->text().compare( "Reset" ) == 0 ){
 

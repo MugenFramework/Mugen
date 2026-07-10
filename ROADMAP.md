@@ -62,7 +62,7 @@ This document tracks planned features, improvements, and long-term goals for the
 
 ### Network evasion (high priority)
 
-- [ ] **Malleable C2 profile for Tengu** - configurable HTTP headers, URIs, user-agent per profile (like Demon)
+- [x] **Malleable C2 profile for Tengu** - configurable HTTP headers, URIs, user-agent per profile (like Demon)
 - [ ] **JA3/JA3S fingerprint randomization** - rotate TLS client hello parameters to avoid static signatures
 - [ ] **Domain fronting** - `Host:` header override per profile, for Demon and Tengu
 
@@ -107,7 +107,7 @@ This document tracks planned features, improvements, and long-term goals for the
 
 ### Client UI
 
-- [ ] **Split console view** - two agent consoles side by side
+- [x] **Split console view** - two agent consoles side by side
 - [ ] **Session table column customization** - hide/reorder columns, persist layout
 - [ ] **Payload builder UX** - live config preview, one-liner copy-paste generator
 - [ ] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
