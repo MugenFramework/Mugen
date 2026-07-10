@@ -70,15 +70,92 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
 
     connect( SessionTableWidget, &QTableWidget::itemSelectionChanged, this, &MugenNamespace::UserInterface::Widgets::SessionTable::updateRow );
 
-    // Filter bar
-    FilterInput = new QLineEdit( this );
+    // Filter bar + Actions button
+    auto* filterRow = new QWidget( this );
+    auto* filterLayout = new QHBoxLayout( filterRow );
+    filterLayout->setContentsMargins( 0, 0, 0, 0 );
+    filterLayout->setSpacing( 4 );
+
+    FilterInput = new QLineEdit( filterRow );
     FilterInput->setPlaceholderText( "Filter: type:tg  health:healthy  user:root  listener:C2  ip:10.0  (space = AND)" );
     FilterInput->setObjectName( "FilterInput" );
     FilterInput->setMaximumHeight( 24 );
     FilterInput->setStyleSheet( "QLineEdit { background: #12121f; color: #f8f8f2; border: 1px solid #2a2d4a; border-radius: 3px; padding: 0 6px; font-size: 11px; }" );
     connect( FilterInput, &QLineEdit::textChanged, this, &MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter );
 
-    gridLayout->addWidget( FilterInput,         0, 0, 1, 1 );
+    ActionsButton = new QPushButton( "Actions  ▾", filterRow );
+    ActionsButton->setFixedSize( 90, 24 );
+    ActionsButton->setStyleSheet(
+        "QPushButton {"
+        "    background:#1a1a27; color:#f0f0ee; border:1px solid #2a2a3f;"
+        "    border-radius:3px; font-size:11px; padding:0 6px;"
+        "}"
+        "QPushButton:hover { background:#2a2a3f; border-color:#ff6b9d; color:#ff6b9d; }"
+        "QPushButton:pressed { background:#ff6b9d22; }"
+    );
+
+    filterLayout->addWidget( FilterInput );
+    filterLayout->addWidget( ActionsButton );
+
+    auto menuStyle = QString(
+        "QMenu { background:#111118; color:#f0f0ee; border:1px solid #2a2a3f; }"
+        "QMenu::separator { background:#2a2a3f; }"
+        "QMenu::item:selected { background:#2a2a3f; }"
+        "QMenu::item:disabled { color:#44475a; }"
+    );
+
+    connect( ActionsButton, &QPushButton::clicked, this, [this, menuStyle]() {
+        auto* menu = new QMenu( ActionsButton );
+        menu->setStyleSheet( menuStyle );
+
+        // ── Beacon Builder ────────────────────────────────────────────────
+        auto* builderAct = menu->addAction( "Beacon Builder" );
+        connect( builderAct, &QAction::triggered, this, []() {
+            if ( MugenX::Teamserver.TabSession )
+                MugenX::Teamserver.TabSession->OpenPayloadBuilder();
+        } );
+
+        menu->addSeparator();
+
+        // ── Process List submenu ──────────────────────────────────────────
+        auto* procMenu = menu->addMenu( "Process List" );
+        procMenu->setStyleSheet( menuStyle );
+        bool anyLive = false;
+        for ( auto& s : MugenX::Teamserver.Sessions ) {
+            if ( s.Marked == "Dead" ) continue;
+            anyLive = true;
+            auto label = QString( "[%1]  %2 @ %3" ).arg( s.Name ).arg( s.User ).arg( s.Computer );
+            auto* act = procMenu->addAction( label );
+            QString sid = s.Name;
+            connect( act, &QAction::triggered, this, [sid]() {
+                if ( MugenX::Teamserver.TabSession )
+                    MugenX::Teamserver.TabSession->OpenProcessList( sid );
+            } );
+        }
+        if ( ! anyLive ) procMenu->setEnabled( false );
+
+        // ── File Explorer submenu ─────────────────────────────────────────
+        auto* fileMenu = menu->addMenu( "File Explorer" );
+        fileMenu->setStyleSheet( menuStyle );
+        anyLive = false;
+        for ( auto& s : MugenX::Teamserver.Sessions ) {
+            if ( s.Marked == "Dead" ) continue;
+            anyLive = true;
+            auto label = QString( "[%1]  %2 @ %3" ).arg( s.Name ).arg( s.User ).arg( s.Computer );
+            auto* act = fileMenu->addAction( label );
+            QString sid = s.Name;
+            connect( act, &QAction::triggered, this, [sid]() {
+                if ( MugenX::Teamserver.TabSession )
+                    MugenX::Teamserver.TabSession->OpenFileBrowser( sid );
+            } );
+        }
+        if ( ! anyLive ) fileMenu->setEnabled( false );
+
+        menu->exec( ActionsButton->mapToGlobal( QPoint( 0, ActionsButton->height() ) ) );
+        menu->deleteLater();
+    } );
+
+    gridLayout->addWidget( filterRow,           0, 0, 1, 1 );
     gridLayout->addWidget( SessionTableWidget,  1, 0, 1, 1 );
     gridLayout->setRowStretch( 1, 1 );
 

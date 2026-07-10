@@ -682,6 +682,88 @@ void UserInterface::Widgets::TeamserverTabSession::NewWidgetTab( QWidget *TabWid
     );
 }
 
+void UserInterface::Widgets::TeamserverTabSession::OpenProcessList( const QString& sessionID )
+{
+    for ( auto& Session : MugenX::Teamserver.Sessions )
+    {
+        if ( Session.Name != sessionID ) continue;
+
+        if ( Session.InteractedWidget == nullptr ) {
+            Session.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
+            Session.InteractedWidget->SessionInfo    = Session;
+            Session.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
+            Session.InteractedWidget->setupUi( new QWidget );
+        }
+
+        auto tabName = QString( "[%1] Process List" ).arg( sessionID );
+
+        if ( Session.ProcessList == nullptr ) {
+            Session.ProcessList = new UserInterface::Widgets::ProcessList;
+            Session.ProcessList->setupUi( new QWidget );
+            Session.ProcessList->Session   = Session;
+            Session.ProcessList->Teamserver = MugenX::Teamserver.Name;
+            NewBottomTab( Session.ProcessList->ProcessListWidget, tabName.toStdString() );
+
+            if ( Session.MagicValue == DemonMagicValue ) {
+                Session.InteractedWidget->DemonCommands->Execute.ProcList( Util::gen_random( 8 ).c_str(), true );
+            } else if ( Session.MagicValue == TenguMagicValue ) {
+                auto taskID = QString( Util::gen_random( 8 ).c_str() );
+                if ( Session.InteractedWidget->TenguCmds )
+                    Session.InteractedWidget->TenguCmds->SendTask( taskID, "ps;ui" );
+            }
+        } else {
+            NewBottomTab( Session.ProcessList->ProcessListWidget, tabName.toStdString() );
+        }
+        break;
+    }
+}
+
+void UserInterface::Widgets::TeamserverTabSession::OpenFileBrowser( const QString& sessionID )
+{
+    for ( auto& Session : MugenX::Teamserver.Sessions )
+    {
+        if ( Session.Name != sessionID ) continue;
+
+        if ( Session.InteractedWidget == nullptr ) {
+            Session.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
+            Session.InteractedWidget->SessionInfo    = Session;
+            Session.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
+            Session.InteractedWidget->setupUi( new QWidget );
+        }
+
+        auto tabName = QString( "[%1] File Explorer" ).arg( sessionID );
+
+        if ( Session.FileBrowser == nullptr ) {
+            Session.FileBrowser = new FileBrowser;
+            Session.FileBrowser->setupUi( new QWidget );
+            Session.FileBrowser->SessionID = Session.Name;
+            Session.FileBrowser->IsTengu   = ( Session.MagicValue == TenguMagicValue );
+            NewBottomTab( Session.FileBrowser->FileBrowserWidget, tabName.toStdString(), "" );
+
+            if ( Session.MagicValue == DemonMagicValue ) {
+                Session.InteractedWidget->DemonCommands->Execute.FS( Util::gen_random( 8 ).c_str(), "dir;ui", "." );
+            } else if ( Session.MagicValue == TenguMagicValue ) {
+                auto taskID = QString( Util::gen_random( 8 ).c_str() );
+                if ( Session.InteractedWidget->TenguCmds )
+                    Session.InteractedWidget->TenguCmds->SendTask( taskID, "ls;ui ." );
+            }
+        } else {
+            NewBottomTab( Session.FileBrowser->FileBrowserWidget, tabName.toStdString(), "" );
+        }
+        break;
+    }
+}
+
+void UserInterface::Widgets::TeamserverTabSession::OpenPayloadBuilder()
+{
+    if ( PayloadDialog == nullptr ) {
+        PayloadDialog = new Payload;
+        PayloadDialog->setupUi( new QDialog( PageWidget->window() ) );
+        PayloadDialog->TeamserverName = MugenX::Teamserver.Name;
+    }
+    PayloadDialog->Start();
+}
+
 void UserInterface::Widgets::TeamserverTabSession::removeTabSmall( int index ) const
 {
     if ( index == -1 ) {

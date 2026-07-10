@@ -59,6 +59,10 @@ public:
     void NewBottomTab( QWidget* TabWidget, const std::string& TitleName, QString IconPath = "" ) const;
     void NewWidgetTab( QWidget* TabWidget, const std::string& TitleName ) const;
 
+    void OpenProcessList( const QString& sessionID );
+    void OpenFileBrowser( const QString& sessionID );
+    void OpenPayloadBuilder();
+
 protected slots:
     void handleDemonContextMenu( const QPoint& pos );
     void removeTabSmall( int ) const;
