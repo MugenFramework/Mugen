@@ -454,6 +454,89 @@ func (t *Teamserver) Start() {
 
 			break
 
+		case handlers.AGENT_PIVOT_TCP:
+
+			var (
+				Data        = make(map[string]any)
+				HandlerData = handlers.TCPConfig{
+					Name: listener["Name"],
+				}
+			)
+
+			err := json.Unmarshal([]byte(listener["Config"]), &Data)
+			if err != nil {
+				logger.Debug("Failed to unmarshal json bytes to map: " + err.Error())
+				continue
+			}
+
+			HandlerData.PivotHost = Data["PivotHost"].(string)
+			port, _ := strconv.Atoi(Data["PivotPort"].(string))
+			HandlerData.PivotPort = port
+
+			if err := t.ListenerStart(handlers.LISTENER_PIVOT_TCP, HandlerData); err != nil && err.Error() != "listener already exists" {
+				logger.SetStdOut(os.Stderr)
+				logger.Error("Failed to start listener from db: " + err.Error())
+				return
+			}
+
+			break
+
+		case handlers.AGENT_DNS:
+
+			var (
+				Data        = make(map[string]any)
+				HandlerData = handlers.DNSConfig{
+					Name: listener["Name"],
+				}
+			)
+
+			err := json.Unmarshal([]byte(listener["Config"]), &Data)
+			if err != nil {
+				logger.Debug("Failed to unmarshal json bytes to map: " + err.Error())
+				continue
+			}
+
+			HandlerData.BindHost = Data["BindHost"].(string)
+			HandlerData.Domain = Data["Domain"].(string)
+			port, _ := strconv.Atoi(Data["BindPort"].(string))
+			HandlerData.BindPort = port
+
+			if err := t.ListenerStart(handlers.LISTENER_DNS, HandlerData); err != nil && err.Error() != "listener already exists" {
+				logger.SetStdOut(os.Stderr)
+				logger.Error("Failed to start listener from db: " + err.Error())
+				return
+			}
+
+			break
+
+		case handlers.AGENT_DOH:
+
+			var (
+				Data        = make(map[string]any)
+				HandlerData = handlers.DoHConfig{
+					Name: listener["Name"],
+				}
+			)
+
+			err := json.Unmarshal([]byte(listener["Config"]), &Data)
+			if err != nil {
+				logger.Debug("Failed to unmarshal json bytes to map: " + err.Error())
+				continue
+			}
+
+			HandlerData.BindHost = Data["BindHost"].(string)
+			HandlerData.PortBind = Data["PortBind"].(string)
+			HandlerData.Domain = Data["Domain"].(string)
+			HandlerData.Secure = Data["Secure"].(string) == "true"
+
+			if err := t.ListenerStart(handlers.LISTENER_DOH, HandlerData); err != nil && err.Error() != "listener already exists" {
+				logger.SetStdOut(os.Stderr)
+				logger.Error("Failed to start listener from db: " + err.Error())
+				return
+			}
+
+			break
+
 		}
 
 	}
