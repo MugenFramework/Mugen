@@ -289,6 +289,7 @@ namespace MugenNamespace
             QJsonDocument DemonConfig;
             QStringList   IpAddresses;
             std::string   LoadingScript;
+            QString       TLSFingerprint;
 
             UserInterface::Widgets::TeamserverTabSession* TabSession;
         } ConnectionInfo;
