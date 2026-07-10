@@ -17,6 +17,11 @@
 #include <QVariant>
 #include <QFile>
 #include <QTreeWidget>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QHBoxLayout>
+#include <QClipboard>
+#include <QApplication>
 
 class Payload : public QDialog
 {
@@ -46,6 +51,8 @@ public:
     QLabel*         LabelAgentType;
 
     QPushButton*    ButtonGenerate;
+    QLineEdit*      OnelineEdit  = nullptr;
+    QPushButton*    CopyButton   = nullptr;
 
     QSpacerItem*    horizontalSpacer;
     QSpacerItem*    horizontalSpacer_2;
@@ -69,6 +76,10 @@ public:
     auto TenguDefaultConfig() -> void;
 
     auto GetConfigAsJson() -> QJsonDocument;
+
+private:
+    auto buildOneliner() -> QString;
+    auto updateOneliner() -> void;
 
 public slots:
     auto buttonGenerate() -> void;
