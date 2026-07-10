@@ -4,12 +4,17 @@
 
 ### v0.2 | *My Dress-Up Darling* (in progress)
 
+**Teamserver**
+
+- Fixed TCP, DNS, and DoH listeners not surviving a server restart. TCP config was saved to the database but the restore loop had no case for it. DNS and DoH were neither saved nor restored. All three now persist correctly across restarts.
+
 **Client**
 
 - Split console view: open two agent consoles side by side in a single tab, output mirrored in real time.
 - Actions button: quick-action menu next to the session table filter bar. Opens Beacon Builder (floating dialog), Process List, or File Explorer for any live agent via a hover submenu.
 - Session table column customization: right-click any column header to hide/show columns; drag headers to reorder; layout persists across restarts via QSettings.
 - Beacon Builder one-liner: live command generator in the payload dialog, updates on every combo change, one-click copy to clipboard (Demon Exe/Dll/Shellcode + Tengu ELF).
+- TLS fingerprint: SHA-256 digest of the teamserver certificate is logged to the Event Viewer on connect and stored in memory for reference.
 
 ---
 

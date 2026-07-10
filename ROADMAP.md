@@ -105,13 +105,19 @@ This document tracks planned features, improvements, and long-term goals for the
 - [ ] **Multi-profile listeners** - multiple HTTP/HTTPS listeners with different C2 profiles running simultaneously
 - [ ] **Let's Encrypt integration** - automatic TLS certificate provisioning
 
+### Resource Manager
+
+- [ ] **Server-side file storage** - upload executables, BOFs, and scripts to the teamserver once (`data/resources/`), list/delete from the client, reference by name in commands (`execute-assembly Rubeus`) instead of sending bytes inline every time
+
 ### Client UI
 
 - [x] **Split console view** - two agent consoles side by side
 - [x] **Actions button** - quick-action menu next to the session table filter (Beacon Builder, Process List, File Explorer)
 - [x] **Session table column customization** - hide/reorder columns, persist layout
 - [x] **Payload builder UX** - live config preview, one-liner copy-paste generator
-- [ ] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
+- [x] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
+- [ ] **Multi-select sessions + bulk actions** - select multiple agents and send a command to all (shell, sleep, kill)
+- [ ] **Persistent console history** - console output survives restart/reconnect, stored in SQLite like session notes
 
 ---
 
