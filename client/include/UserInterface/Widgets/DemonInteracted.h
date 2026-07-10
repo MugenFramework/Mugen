@@ -48,6 +48,11 @@ namespace MugenNamespace::UserInterface::Widgets
         };
         DemonInput* lineEdit;
 
+        // secondary consoles that mirror this console's output (split view)
+        QList<QTextEdit*> MirrorConsoles;
+        void AddMirror( QTextEdit* c );
+        void RemoveMirror( QTextEdit* c );
+
         // search bar (Ctrl+F)
         QWidget*    SearchBar    = nullptr;
         QLineEdit*  SearchInput  = nullptr;

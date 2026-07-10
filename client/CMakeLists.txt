@@ -106,6 +106,7 @@ set( MUGEN_INCLUDE
         include/UserInterface/Widgets/SessionTable.hpp
         include/UserInterface/Widgets/SessionGraph.hpp
         include/UserInterface/Widgets/TeamserverTabSession.h
+        include/UserInterface/Widgets/SplitConsoleWidget.hpp
         include/UserInterface/Widgets/ScriptManager.h
         include/UserInterface/Widgets/LootWidget.h
         include/Mugen/DBManager/DBManager.hpp
@@ -138,6 +139,7 @@ set(
         src/UserInterface/Widgets/ListenersTable.cc
         src/UserInterface/Widgets/DemonInteracted.cc
         src/UserInterface/Widgets/TeamserverTabSession.cc
+        src/UserInterface/Widgets/SplitConsoleWidget.cc
         src/UserInterface/Widgets/PythonScript.cc
         src/UserInterface/Widgets/ScriptManager.cc
         src/UserInterface/Widgets/LootWidget.cc
