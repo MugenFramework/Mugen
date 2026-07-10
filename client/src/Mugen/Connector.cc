@@ -1,5 +1,7 @@
 #include <Mugen/Connector.hpp>
 #include <Mugen/Mugen.hpp>
+#include <UserInterface/Widgets/TeamserverTabSession.h>
+#include <UserInterface/SmallWidgets/EventViewer.hpp>
 #include <QCryptographicHash>
 #include <QMap>
 #include <QBuffer>
@@ -11,10 +13,23 @@ Connector::Connector( Util::ConnectionInfo* ConnectionInfo )
     auto Server  = "wss://" + Teamserver->Host + ":" + this->Teamserver->Port + "/mugen/";
     auto SslConf = Socket->sslConfiguration();
 
-    /* ignore annoying SSL errors */
-    SslConf.setPeerVerifyMode( QSslSocket::VerifyNone );
     Socket->setSslConfiguration( SslConf );
-    Socket->ignoreSslErrors();
+
+    QObject::connect( Socket, QOverload<const QList<QSslError>&>::of( &QWebSocket::sslErrors ),
+                      this, [&]( const QList<QSslError>& errors ) {
+        for ( auto& err : errors ) {
+            auto cert = err.certificate();
+            if ( !cert.isNull() ) {
+                auto raw = cert.digest( QCryptographicHash::Sha256 );
+                QStringList parts;
+                for ( auto b : raw )
+                    parts << QString( "%1" ).arg( static_cast<quint8>( b ), 2, 16, QChar( '0' ) ).toUpper();
+                MugenX::Teamserver.TLSFingerprint = parts.join( ":" );
+                break;
+            }
+        }
+        Socket->ignoreSslErrors();
+    } );
 
     QObject::connect( Socket, &QWebSocket::binaryMessageReceived, this, [&]( const QByteArray& Message )
     {
@@ -35,6 +50,17 @@ Connector::Connector( Util::ConnectionInfo* ConnectionInfo )
 
     QObject::connect( Socket, &QWebSocket::connected, this, [&]()
     {
+        if ( MugenX::Teamserver.TLSFingerprint.isEmpty() ) {
+            auto cert = Socket->sslConfiguration().peerCertificate();
+            if ( !cert.isNull() ) {
+                auto raw = cert.digest( QCryptographicHash::Sha256 );
+                QStringList parts;
+                for ( auto b : raw )
+                    parts << QString( "%1" ).arg( static_cast<quint8>( b ), 2, 16, QChar( '0' ) ).toUpper();
+                MugenX::Teamserver.TLSFingerprint = parts.join( ":" );
+            }
+        }
+
         this->Packager = new MugenSpace::Packager;
         this->Packager->setTeamserver( this->Teamserver->Name );
 
