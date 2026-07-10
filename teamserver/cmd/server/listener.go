@@ -369,6 +369,48 @@ func (t *Teamserver) ListenerAdd(FromUser string, Type int, Config any) packager
 
 		break
 
+	case handlers.LISTENER_DNS:
+
+		cfg := Config.(*handlers.DNS).Config
+
+		Info := map[string]interface{}{
+			"BindHost": cfg.BindHost,
+			"BindPort": fmt.Sprintf("%d", cfg.BindPort),
+			"Domain":   cfg.Domain,
+			"Status":   "Online",
+		}
+
+		Protocol = handlers.AGENT_DNS
+		Name = cfg.Name
+
+		ConfigJson, _ = json.Marshal(Info)
+
+		break
+
+	case handlers.LISTENER_DOH:
+
+		cfg := Config.(*handlers.DoH).Config
+
+		secure := "false"
+		if cfg.Secure {
+			secure = "true"
+		}
+
+		Info := map[string]interface{}{
+			"BindHost": cfg.BindHost,
+			"PortBind": cfg.PortBind,
+			"Domain":   cfg.Domain,
+			"Secure":   secure,
+			"Status":   "Online",
+		}
+
+		Protocol = handlers.AGENT_DOH
+		Name = cfg.Name
+
+		ConfigJson, _ = json.Marshal(Info)
+
+		break
+
 	}
 
 	// just add the listener to the sqlite db if we got any config provided
