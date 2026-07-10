@@ -8,6 +8,8 @@
 
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QWidgetAction>
+#include <QCheckBox>
 #include <Util/ColorText.h>
 
 using namespace MugenNamespace::UserInterface::Widgets;
@@ -67,6 +69,42 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
     SessionTableWidget->setAlternatingRowColors( true );
 
     SessionTableWidget->horizontalHeaderItem( 0 )->setSizeHint( QSize( 0, 0 ) );
+
+    SessionTableWidget->horizontalHeader()->setSectionsMovable( true );
+    SessionTableWidget->horizontalHeader()->setContextMenuPolicy( Qt::CustomContextMenu );
+
+    restoreColumnLayout();
+
+    auto colMenuStyle = QString(
+        "QMenu { background:#111118; color:#f0f0ee; border:1px solid #2a2a3f; padding:2px; }"
+        "QCheckBox { color:#f0f0ee; background:transparent; padding:3px 8px; spacing:6px; }"
+        "QCheckBox:hover { color:#ff6b9d; }"
+        "QCheckBox::indicator { width:13px; height:13px; border-radius:2px; }"
+        "QCheckBox::indicator:checked { background:#ff6b9d; border:1px solid #ff6b9d; }"
+        "QCheckBox::indicator:unchecked { background:#1a1a27; border:1px solid #44475a; }"
+    );
+
+    connect( SessionTableWidget->horizontalHeader(), &QHeaderView::customContextMenuRequested,
+             this, [this, colMenuStyle]( const QPoint& pos ) {
+        auto* menu = new QMenu( SessionTableWidget );
+        menu->setStyleSheet( colMenuStyle );
+        for ( int i = 0; i < SessionTableWidget->columnCount(); i++ ) {
+            auto* wa = new QWidgetAction( menu );
+            auto* cb = new QCheckBox( SessionTableWidget->horizontalHeaderItem( i )->text(), menu );
+            cb->setChecked( !SessionTableWidget->isColumnHidden( i ) );
+            wa->setDefaultWidget( cb );
+            menu->addAction( wa );
+            connect( cb, &QCheckBox::toggled, this, [this, i]( bool checked ) {
+                SessionTableWidget->setColumnHidden( i, !checked );
+                saveColumnLayout();
+            } );
+        }
+        menu->exec( SessionTableWidget->horizontalHeader()->mapToGlobal( pos ) );
+        menu->deleteLater();
+    } );
+
+    connect( SessionTableWidget->horizontalHeader(), &QHeaderView::sectionMoved,
+             this, [this]( int, int, int ) { saveColumnLayout(); } );
 
     connect( SessionTableWidget, &QTableWidget::itemSelectionChanged, this, &MugenNamespace::UserInterface::Widgets::SessionTable::updateRow );
 
@@ -417,4 +455,18 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QS
 
         SessionTableWidget->setRowHidden( row, !visible );
     }
+}
+
+void MugenNamespace::UserInterface::Widgets::SessionTable::saveColumnLayout()
+{
+    QSettings s( "MugenFramework", "Mugen" );
+    s.setValue( "SessionTable/headerState", SessionTableWidget->horizontalHeader()->saveState() );
+}
+
+void MugenNamespace::UserInterface::Widgets::SessionTable::restoreColumnLayout()
+{
+    QSettings s( "MugenFramework", "Mugen" );
+    auto state = s.value( "SessionTable/headerState" ).toByteArray();
+    if ( !state.isEmpty() )
+        SessionTableWidget->horizontalHeader()->restoreState( state );
 }
