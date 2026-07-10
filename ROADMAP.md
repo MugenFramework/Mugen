@@ -108,7 +108,8 @@ This document tracks planned features, improvements, and long-term goals for the
 ### Client UI
 
 - [x] **Split console view** - two agent consoles side by side
-- [ ] **Session table column customization** - hide/reorder columns, persist layout
+- [x] **Actions button** - quick-action menu next to the session table filter (Beacon Builder, Process List, File Explorer)
+- [x] **Session table column customization** - hide/reorder columns, persist layout
 - [ ] **Payload builder UX** - live config preview, one-liner copy-paste generator
 - [ ] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
 

@@ -2,6 +2,16 @@
 
 ## Mugen
 
+### v0.2 | *My Dress-Up Darling* (in progress)
+
+**Client**
+
+- Split console view: open two agent consoles side by side in a single tab, output mirrored in real time.
+- Actions button: quick-action menu next to the session table filter bar. Opens Beacon Builder (floating dialog), Process List, or File Explorer for any live agent via a hover submenu.
+- Session table column customization: right-click any column header to hide/show columns; drag headers to reorder; layout persists across restarts via QSettings.
+
+---
+
 ### v0.1.4 | *The Fragrant Flower Blooms With Dignity*
 
 Stability patch. Reintroduces proper per-build `HASH_KEY` randomization and fixes the full Tengu TCP pivot stack.
