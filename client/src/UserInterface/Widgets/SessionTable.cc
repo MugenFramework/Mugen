@@ -579,3 +579,4 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::restoreColumnLayout()
     if ( !state.isEmpty() )
         SessionTableWidget->horizontalHeader()->restoreState( state );
 }
+

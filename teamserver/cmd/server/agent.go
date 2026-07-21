@@ -117,6 +117,17 @@ func (t *Teamserver) AgentAdd(Agent *agent.Agent) []*agent.Agent {
 		logger.Error("Could not add agent to database: " + err.Error())
 	}
 
+	Agent.TunnelSave = func(tunnelType string, bindPort int, remoteHost string, remotePort int) {
+		if err := t.DB.TunnelSave(Agent.NameID, tunnelType, bindPort, remoteHost, remotePort); err != nil {
+			logger.Error("TunnelSave: " + err.Error())
+		}
+	}
+	Agent.TunnelRemove = func(tunnelType string, bindPort int) {
+		if err := t.DB.TunnelRemove(Agent.NameID, tunnelType, bindPort); err != nil {
+			logger.Error("TunnelRemove: " + err.Error())
+		}
+	}
+
 	return t.Agents.AgentsAppend(Agent)
 }
 

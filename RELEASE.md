@@ -6,6 +6,7 @@
 
 **Teamserver**
 
+- Networking tunnel persistence: active SOCKS5 proxies and port forward rules are saved to the SQLite database and automatically restored on server restart. Agents reconnecting after a restart will resume tunneling without manual intervention.
 - Fixed TCP, DNS, and DoH listeners not surviving a server restart. TCP config was saved to the database but the restore loop had no case for it. DNS and DoH were neither saved nor restored. All three now persist correctly across restarts.
 
 **Client**
@@ -16,6 +17,8 @@
 - Beacon Builder one-liner: live command generator in the payload dialog, updates on every combo change, one-click copy to clipboard (Demon Exe/Dll/Shellcode + Tengu ELF).
 - TLS fingerprint: SHA-256 digest of the teamserver certificate is logged to the Event Viewer on connect and stored in memory for reference.
 - Multi-select and bulk actions: Ctrl+Click or Shift+Click to select multiple agents in the session table, then right-click for a bulk menu (Shell, Sleep, Kill). The Actions menu also has a Bulk Dispatch entry that opens a dialog listing all live agents with checkboxes, a free-form command input, and an Execute button.
+- Networking right-click menu: right-click any live agent to open Networking -> SOCKS5 (Start.../Stop) or Networking -> Port Forward (Add.../Remove...). SOCKS5 starts a local proxy on the teamserver; port forward binds a local port and relays through the agent.
+- SOCKS Manager and Port Forward Manager: Actions -> SOCKS Manager / Port Forward Manager open global views of all active tunnels across all agents, each with a Stop/Remove button per entry.
 
 ---
 

@@ -173,6 +173,10 @@ type Agent struct {
 	TenguSocks5   *TenguSocks5
 	TenguRportfwd *TenguRportfwd
 
+	// Set by the teamserver to persist tunnel state across restarts.
+	TunnelSave   func(tunnelType string, bindPort int, remoteHost string, remotePort int)
+	TunnelRemove func(tunnelType string, bindPort int)
+
 	/* general value. leave it... */
 	BackgroundCheck bool
 }

@@ -9,6 +9,7 @@
 #include <UserInterface/Widgets/SessionGraph.hpp>
 #include <UserInterface/Widgets/SessionMap.hpp>
 #include <UserInterface/Widgets/Teamserver.hpp>
+#include <UserInterface/Widgets/NetworkingWidget.hpp>
 
 class DashboardWidget;
 #include <UserInterface/Widgets/Store.hpp>
@@ -44,6 +45,7 @@ public:
     SessionMap*                       SessionMapWidget    = {};
     DashboardWidget*                  Dashboard           = {};
     Widgets::ListenersTable*          ListenerTableWidget = {};
+    Widgets::NetworkingWidget*        NetworkingView      = {};
     Widgets::PythonScriptInterpreter* PythonScriptWidget  = {};
     Widgets::ScriptManager*           ScriptManagerWidget = {};
     Payload*                          PayloadDialog       = {};

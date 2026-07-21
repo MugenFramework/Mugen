@@ -68,12 +68,19 @@ func (db *DB) init() error {
 		return err
 	}
 
+	_, err = db.db.Exec(`CREATE TABLE "TS_Tunnels" ("AgentID" text, "Type" text, "BindPort" int, "RemoteHost" text, "RemotePort" int);`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (db *DB) migrate() {
 	// add MagicValue column to existing DBs that don't have it
 	db.db.Exec(`ALTER TABLE TS_Agents ADD COLUMN "MagicValue" int DEFAULT 0`)
+	// add TS_Tunnels table if this is an existing DB without it
+	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_Tunnels" ("AgentID" text, "Type" text, "BindPort" int, "RemoteHost" text, "RemotePort" int)`)
 }
 
 func (db *DB) Existed() bool {

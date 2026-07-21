@@ -20,6 +20,7 @@ type TenguSocks5 struct {
 	nextID   uint32
 	agent    *Agent
 	console  func(msgType, msg string)
+	Port     int
 }
 
 type socks5Client struct {
@@ -41,6 +42,7 @@ func (s *TenguSocks5) Start(port int) error {
 		return err
 	}
 	s.listener = l
+	s.Port = port
 	go s.acceptLoop()
 	return nil
 }
