@@ -319,6 +319,9 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
     auto ExitMenu           = QMenu( "Exit" );
     auto ColorMenu          = QMenu( "Color" );
     auto SplitMenu          = QMenu( "Split with..." );
+    auto NetworkingMenu     = QMenu( "Networking" );
+    auto Socks5Menu         = QMenu( "SOCKS5" );
+    auto PortFwdMenu        = QMenu( "Port Forward" );
 
     ColorMenu.addAction( "Reset" );
     ColorMenu.addAction( "Red" );
@@ -343,6 +346,18 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
     ExitMenu.addAction( "Process" );
     ExitMenu.setStyleSheet( MenuStyle );
 
+    Socks5Menu.addAction( "Start..." );
+    Socks5Menu.addAction( "Stop" );
+    Socks5Menu.setStyleSheet( MenuStyle );
+
+    PortFwdMenu.addAction( "Add..." );
+    PortFwdMenu.addAction( "Remove..." );
+    PortFwdMenu.setStyleSheet( MenuStyle );
+
+    NetworkingMenu.addMenu( &Socks5Menu );
+    NetworkingMenu.addMenu( &PortFwdMenu );
+    NetworkingMenu.setStyleSheet( MenuStyle );
+
     // populate "Split with..." with all other live sessions
     for ( const auto& s : MugenX::Teamserver.Sessions )
     {
@@ -359,11 +374,13 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
     if ( Agent.MagicValue == DemonMagicValue )
     {
         SessionMenu.addAction( SessionExplorer.menuAction() );
+        SessionMenu.addAction( NetworkingMenu.menuAction() );
         SessionMenu.addAction( separator2 );
     }
     else if ( Agent.MagicValue == TenguMagicValue )
     {
         SessionMenu.addAction( TenguExplorer.menuAction() );
+        SessionMenu.addAction( NetworkingMenu.menuAction() );
         SessionMenu.addAction( separator2 );
     }
 
@@ -711,6 +728,70 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                         else
                         {
                             MugenX::Teamserver.TabSession->NewBottomTab( Session.FileBrowser->FileBrowserWidget, TabName.toStdString(), "" );
+                        }
+                    }
+                }
+
+                // ── Networking ─────────────────────────────────────────────
+                if ( action->text().compare( "Start..." ) == 0 && Socks5Menu.actions().contains( action ) )
+                {
+                    bool ok = false;
+                    auto portStr = QInputDialog::getText(
+                        this, "SOCKS5 Start", "Listen port:", QLineEdit::Normal, "1080", &ok );
+                    if ( ok && !portStr.isEmpty() )
+                    {
+                        Session.InteractedWidget->AppendText( "socks5 start " + portStr );
+                        int port = portStr.toInt();
+                        if ( SessionTableWidget )
+                        {
+                            for ( int i = SessionTableWidget->Socks5Tunnels.size() - 1; i >= 0; --i )
+                                if ( SessionTableWidget->Socks5Tunnels[i].agentID == SessionID )
+                                    SessionTableWidget->Socks5Tunnels.removeAt( i );
+                            SessionTableWidget->Socks5Tunnels.append( { SessionID, port } );
+                        }
+                    }
+                }
+                else if ( action->text().compare( "Stop" ) == 0 && Socks5Menu.actions().contains( action ) )
+                {
+                    Session.InteractedWidget->AppendText( "socks5 stop" );
+                    if ( SessionTableWidget )
+                        for ( int i = SessionTableWidget->Socks5Tunnels.size() - 1; i >= 0; --i )
+                            if ( SessionTableWidget->Socks5Tunnels[i].agentID == SessionID )
+                                SessionTableWidget->Socks5Tunnels.removeAt( i );
+                }
+                else if ( action->text().compare( "Add..." ) == 0 && PortFwdMenu.actions().contains( action ) )
+                {
+                    bool ok1 = false, ok2 = false, ok3 = false;
+                    auto bindPortStr = QInputDialog::getText(
+                        this, "Port Forward Add", "Bind port (on teamserver):", QLineEdit::Normal, "8080", &ok1 );
+                    if ( !ok1 || bindPortStr.isEmpty() ) return;
+                    auto remoteHost = QInputDialog::getText(
+                        this, "Port Forward Add", "Remote host:", QLineEdit::Normal, "192.168.1.1", &ok2 );
+                    if ( !ok2 || remoteHost.isEmpty() ) return;
+                    auto remotePortStr = QInputDialog::getText(
+                        this, "Port Forward Add", "Remote port:", QLineEdit::Normal, "80", &ok3 );
+                    if ( !ok3 || remotePortStr.isEmpty() ) return;
+                    Session.InteractedWidget->AppendText(
+                        "rportfwd add " + bindPortStr + " " + remoteHost + " " + remotePortStr );
+                    if ( SessionTableWidget )
+                        SessionTableWidget->PortForwards.append(
+                            { SessionID, bindPortStr.toInt(), remoteHost, remotePortStr.toInt() } );
+                }
+                else if ( action->text().compare( "Remove..." ) == 0 && PortFwdMenu.actions().contains( action ) )
+                {
+                    bool ok = false;
+                    auto bindPortStr = QInputDialog::getText(
+                        this, "Port Forward Remove", "Bind port to remove:", QLineEdit::Normal, "", &ok );
+                    if ( ok && !bindPortStr.isEmpty() )
+                    {
+                        Session.InteractedWidget->AppendText( "rportfwd rm " + bindPortStr );
+                        if ( SessionTableWidget )
+                        {
+                            int bp = bindPortStr.toInt();
+                            for ( int i = SessionTableWidget->PortForwards.size() - 1; i >= 0; --i )
+                                if ( SessionTableWidget->PortForwards[i].agentID == SessionID &&
+                                     SessionTableWidget->PortForwards[i].bindPort == bp )
+                                    SessionTableWidget->PortForwards.removeAt( i );
                         }
                     }
                 }

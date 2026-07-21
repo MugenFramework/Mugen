@@ -1,7 +1,11 @@
 #include <global.hpp>
 #include <UserInterface/Widgets/DemonInteracted.h>
+#include <UserInterface/Widgets/SessionTable.hpp>
+#include <UserInterface/Widgets/NetworkingWidget.hpp>
+#include <UserInterface/Widgets/TeamserverTabSession.h>
 #include <Mugen/Service.hpp>
 #include <Util/ColorText.h>
+#include <QTimer>
 
 #include <QDate>
 #include <QTime>
@@ -350,6 +354,60 @@ void DemonInteracted::AppendText( const QString& text )
             {
                 AppendRaw();
                 AppendRaw( DemonCommands->Prompt );
+            }
+        }
+
+        // Update networking lists when socks5/rportfwd commands are sent
+        {
+            auto parts   = text.split( " ", Qt::SkipEmptyParts );
+            auto* tabSess = MugenX::Teamserver.TabSession;
+            if ( parts.size() >= 2 && tabSess && tabSess->SessionTableWidget )
+            {
+                auto& socks = tabSess->SessionTableWidget->Socks5Tunnels;
+                auto& fwds  = tabSess->SessionTableWidget->PortForwards;
+                QString aid = SessionInfo.Name;
+
+                if ( parts[0] == "socks5" && parts[1] == "start" && parts.size() >= 3 )
+                {
+                    int port = parts[2].toInt();
+                    if ( port > 0 )
+                    {
+                        for ( int j = socks.size() - 1; j >= 0; --j )
+                            if ( socks[j].agentID == aid ) socks.removeAt( j );
+                        socks.append( { aid, port } );
+                    }
+                }
+                else if ( parts[0] == "socks5" && parts[1] == "stop" )
+                {
+                    for ( int j = socks.size() - 1; j >= 0; --j )
+                        if ( socks[j].agentID == aid ) socks.removeAt( j );
+                }
+                else if ( parts[0] == "rportfwd" && parts[1] == "add" && parts.size() >= 5 )
+                {
+                    int     bindPort = parts[2].toInt();
+                    QString rhost    = parts[3];
+                    int     rport    = parts[4].toInt();
+                    if ( bindPort > 0 && rport > 0 )
+                    {
+                        for ( int j = fwds.size() - 1; j >= 0; --j )
+                            if ( fwds[j].agentID == aid && fwds[j].bindPort == bindPort )
+                                fwds.removeAt( j );
+                        fwds.append( { aid, bindPort, rhost, rport } );
+                    }
+                }
+                else if ( parts[0] == "rportfwd" && parts[1] == "rm" && parts.size() >= 3 )
+                {
+                    int bindPort = parts[2].toInt();
+                    for ( int j = fwds.size() - 1; j >= 0; --j )
+                        if ( fwds[j].agentID == aid && fwds[j].bindPort == bindPort )
+                            fwds.removeAt( j );
+                }
+
+                if ( tabSess->NetworkingView )
+                {
+                    auto* nv = tabSess->NetworkingView;
+                    QTimer::singleShot( 0, nv, [nv]() { nv->Refresh(); } );
+                }
             }
         }
 

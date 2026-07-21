@@ -132,6 +132,7 @@ namespace MugenNamespace
             class ProcessList;
             class PythonScriptInterpreter;
             class ScriptManager;
+            class NetworkingWidget;
         }
 
         namespace SmallWidgets {

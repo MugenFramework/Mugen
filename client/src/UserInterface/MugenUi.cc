@@ -87,6 +87,9 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
     actionListeners = new QAction( MugenWindow );
     actionListeners->setObjectName( QString::fromUtf8( "actionListeners" ) );
 
+    actionNetworking = new QAction( MugenWindow );
+    actionNetworking->setObjectName( QString::fromUtf8( "actionNetworking" ) );
+
     actionSessionsTable = new QAction( MugenWindow );
     actionSessionsTable->setObjectName( QString::fromUtf8( "actionSessionsTable" ) );
 
@@ -205,6 +208,7 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
     MenuSession->addAction( actionSessionsMap );
 
     menuView->addAction( actionListeners );
+    menuView->addAction( actionNetworking );
     menuView->addSeparator();
     menuView->addAction( MenuSession->menuAction() );
     menuView->addAction( actionDashboard );
@@ -455,6 +459,7 @@ void MugenNamespace::UserInterface::MugenUi::retranslateUi(QMainWindow* Window )
     actionOpen_API_Reference->setText( "Open API Reference" );
     actionGithub_Repository->setText( "Github Repository" );
     actionListeners->setText( "Listeners" );
+    actionNetworking->setText( "Networking" );
     actionSessionsTable->setText( "Table" );
     actionSessionsGraph->setText( "Graph" );
     actionSessionsMap->setText( "Map" );
@@ -534,6 +539,31 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
             Teamserver->ListenerTableWidget->ListenerWidget,
             "Listeners"
         );
+    } );
+
+    QMainWindow::connect( actionNetworking, &QAction::triggered, this, [&](){
+        auto tab = MugenX::Teamserver.TabSession;
+        if ( !tab ) return;
+
+        if ( tab->NetworkingView == nullptr ) {
+            tab->NetworkingView = new Widgets::NetworkingWidget;
+            tab->NetworkingView->TeamserverName = MugenX::Teamserver.Name;
+            tab->NetworkingView->setupUi( new QWidget );
+        }
+
+        // if already open as a tab, focus it; otherwise open a new tab
+        for ( int i = 0; i < tab->tabWidget->count(); i++ )
+        {
+            if ( tab->tabWidget->tabText( i ) == "Networking" )
+            {
+                tab->tabWidget->setCurrentIndex( i );
+                tab->NetworkingView->Refresh();
+                return;
+            }
+        }
+
+        tab->NetworkingView->Refresh();
+        NewBottomTab( tab->NetworkingView->NetworkingView, "Networking" );
     } );
 
     QMainWindow::connect( actionTeamserver, &QAction::triggered, this, [&](){

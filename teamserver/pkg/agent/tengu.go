@@ -762,6 +762,9 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 			var bindPort int
 			fmt.Sscanf(parts[2], "%d", &bindPort)
 			if a.TenguRportfwd.RemoveRule(bindPort) {
+				if a.TunnelRemove != nil {
+					a.TunnelRemove("rportfwd", bindPort)
+				}
 				Console(a.NameID, map[string]string{"Type": "Good", "Message": fmt.Sprintf("rportfwd rule for port %d removed", bindPort)})
 			} else {
 				Console(a.NameID, map[string]string{"Type": "Error", "Message": fmt.Sprintf("No rule for port %d", bindPort)})
@@ -778,6 +781,9 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 			if err := a.TenguRportfwd.AddRule(bindPort, internalHost, internalPort); err != nil {
 				Console(a.NameID, map[string]string{"Type": "Error", "Message": "Failed to add rportfwd rule: " + err.Error()})
 			} else {
+				if a.TunnelSave != nil {
+					a.TunnelSave("rportfwd", bindPort, internalHost, internalPort)
+				}
 				Console(a.NameID, map[string]string{
 					"Type":    "Good",
 					"Message": fmt.Sprintf("rportfwd listening on 0.0.0.0:%d -> %s:%d", bindPort, internalHost, internalPort),
@@ -839,6 +845,9 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 		}
 		if parts[1] == "stop" {
 			if a.TenguSocks5 != nil {
+				if a.TunnelRemove != nil {
+					a.TunnelRemove("socks5", a.TenguSocks5.Port)
+				}
 				a.TenguSocks5.Stop()
 				a.TenguSocks5 = nil
 			}
@@ -861,6 +870,9 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 			Console(a.NameID, map[string]string{"Type": "Error", "Message": "Failed to start SOCKS5: " + err.Error()})
 			a.TenguSocks5 = nil
 		} else {
+			if a.TunnelSave != nil {
+				a.TunnelSave("socks5", port, "", 0)
+			}
 			Console(a.NameID, map[string]string{
 				"Type":    "Good",
 				"Message": fmt.Sprintf("SOCKS5 proxy listening on 127.0.0.1:%d (use proxychains or similar)", port),

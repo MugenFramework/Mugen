@@ -9,6 +9,18 @@
 #include <QMenu>
 #include <QSettings>
 
+struct Socks5TunnelEntry {
+    QString agentID;
+    int     port;
+};
+
+struct RportfwdEntry {
+    QString agentID;
+    int     bindPort;
+    QString remoteHost;
+    int     remotePort;
+};
+
 class MugenNamespace::UserInterface::Widgets::SessionTable : public QWidget
 {
 private:
@@ -32,6 +44,9 @@ public:
     QTableWidget*   SessionTableWidget = nullptr;
     QLineEdit*      FilterInput        = nullptr;
     QPushButton*    ActionsButton      = nullptr;
+
+    QList<Socks5TunnelEntry> Socks5Tunnels;
+    QList<RportfwdEntry>     PortForwards;
 
     void setupUi( QWidget* widget, QString TeamserverName );
     void NewSessionItem( Util::SessionItem item ) const;

@@ -569,6 +569,49 @@ func (t *Teamserver) Start() {
 		logger.Info(fmt.Sprintf("Restored %v agents from last session", colors.Green(len(Agents))))
 	}
 
+	// Restore networking tunnels (SOCKS5 and rportfwd) from last session.
+	tunnels := t.DB.TunnelAll()
+	for _, tunnel := range tunnels {
+		agentID64, err := strconv.ParseInt(tunnel["AgentID"], 16, 64)
+		if err != nil {
+			continue
+		}
+		a := t.AgentInstance(int(agentID64))
+		if a == nil {
+			continue
+		}
+		bindPort, _ := strconv.Atoi(tunnel["BindPort"])
+		remotePort, _ := strconv.Atoi(tunnel["RemotePort"])
+		consoleLog := func(msgType, msg string) {
+			logger.Info(fmt.Sprintf("[%s] tunnel restore (%s): %s", tunnel["AgentID"], msgType, msg))
+		}
+		switch tunnel["Type"] {
+		case "socks5":
+			if a.TenguSocks5 != nil {
+				a.TenguSocks5.Stop()
+			}
+			a.TenguSocks5 = agent.NewTenguSocks5(a, consoleLog)
+			if err := a.TenguSocks5.Start(bindPort); err != nil {
+				logger.Error(fmt.Sprintf("Failed to restore SOCKS5 for agent %s on port %d: %s", tunnel["AgentID"], bindPort, err.Error()))
+				a.TenguSocks5 = nil
+			} else {
+				logger.Info(fmt.Sprintf("Restored SOCKS5 for agent %s on 127.0.0.1:%d", colors.Green(tunnel["AgentID"]), bindPort))
+			}
+		case "rportfwd":
+			if a.TenguRportfwd == nil {
+				a.TenguRportfwd = agent.NewTenguRportfwd(a, consoleLog)
+			}
+			if err := a.TenguRportfwd.AddRule(bindPort, tunnel["RemoteHost"], remotePort); err != nil {
+				logger.Error(fmt.Sprintf("Failed to restore rportfwd for agent %s: %s", tunnel["AgentID"], err.Error()))
+			} else {
+				logger.Info(fmt.Sprintf("Restored rportfwd for agent %s: 0.0.0.0:%d -> %s:%d", colors.Green(tunnel["AgentID"]), bindPort, tunnel["RemoteHost"], remotePort))
+			}
+		}
+	}
+	if len(tunnels) > 0 {
+		logger.Info(fmt.Sprintf("Restored %v networking tunnels from last session", colors.Green(len(tunnels))))
+	}
+
 	t.EventAppend(events.SendProfile(t.Profile))
 
 	// This should hold the Teamserver as long as the WebSocket Server is running
