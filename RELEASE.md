@@ -15,6 +15,7 @@
 - Session table column customization: right-click any column header to hide/show columns; drag headers to reorder; layout persists across restarts via QSettings.
 - Beacon Builder one-liner: live command generator in the payload dialog, updates on every combo change, one-click copy to clipboard (Demon Exe/Dll/Shellcode + Tengu ELF).
 - TLS fingerprint: SHA-256 digest of the teamserver certificate is logged to the Event Viewer on connect and stored in memory for reference.
+- Multi-select and bulk actions: Ctrl+Click or Shift+Click to select multiple agents in the session table, then right-click for a bulk menu (Shell, Sleep, Kill). The Actions menu also has a Bulk Dispatch entry that opens a dialog listing all live agents with checkboxes, a free-form command input, and an Execute button.
 
 ---
 

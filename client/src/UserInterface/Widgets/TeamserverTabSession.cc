@@ -32,6 +32,7 @@
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QPushButton>
+#include <QInputDialog>
 #include <Mugen/DBManager/DBManager.hpp>
 
 using namespace UserInterface::Widgets;
@@ -189,7 +190,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         return;
     }
 
-    auto MenuStyle  = QString(
+    auto MenuStyle = QString(
         "QMenu {"
         "    background-color: #111118;"
         "    color: #f0f0ee;"
@@ -201,11 +202,94 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         "QMenu::item:selected {"
         "    background: #2a2a3f;"
         "}"
-        "QAction {"
-        "    background-color: #111118;"
-        "    color: #f0f0ee;"
-        "}"
     );
+
+    // ── Multi-select bulk actions ─────────────────────────────────────────────
+    auto selectedRows = SessionTableWidget->SessionTableWidget->selectionModel()->selectedRows();
+    if ( selectedRows.size() > 1 )
+    {
+        // Collect selected agent IDs and their corresponding sessions
+        QVector<QString> selectedIDs;
+        for ( const auto& idx : selectedRows ) {
+            auto* cell = SessionTableWidget->SessionTableWidget->item( idx.row(), 0 );
+            if ( cell ) selectedIDs << cell->text();
+        }
+
+        auto bulkMenu = QMenu();
+        bulkMenu.setStyleSheet( MenuStyle );
+
+        auto title = bulkMenu.addAction( QString( "Bulk Actions (%1 agents)" ).arg( selectedIDs.size() ) );
+        title->setEnabled( false );
+        bulkMenu.addSeparator();
+        bulkMenu.addAction( "Shell" );
+        bulkMenu.addAction( "Sleep" );
+        bulkMenu.addSeparator();
+        bulkMenu.addAction( "Kill" );
+
+        auto* action = bulkMenu.exec(
+            SessionTableWidget->SessionTableWidget->horizontalHeader()->viewport()->mapToGlobal( pos )
+        );
+
+        if ( !action ) return;
+
+        auto ensureWidget = [&]( Util::SessionItem& s ) {
+            if ( s.InteractedWidget == nullptr ) {
+                s.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
+                s.InteractedWidget->SessionInfo    = s;
+                s.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
+                s.InteractedWidget->setupUi( new QWidget );
+            }
+        };
+
+        if ( action->text() == "Shell" )
+        {
+            bool ok = false;
+            auto cmd = QInputDialog::getText(
+                this, "Bulk Shell",
+                QString( "Command to run on %1 agents:" ).arg( selectedIDs.size() ),
+                QLineEdit::Normal, QString(), &ok
+            );
+            if ( !ok || cmd.trimmed().isEmpty() ) return;
+
+            for ( auto& s : MugenX::Teamserver.Sessions ) {
+                if ( selectedIDs.contains( s.Name ) ) {
+                    ensureWidget( s );
+                    s.InteractedWidget->AppendText( "shell " + cmd.trimmed() );
+                }
+            }
+        }
+        else if ( action->text() == "Sleep" )
+        {
+            bool ok = false;
+            auto val = QInputDialog::getText(
+                this, "Bulk Sleep",
+                QString( "Sleep interval for %1 agents (seconds):" ).arg( selectedIDs.size() ),
+                QLineEdit::Normal, "60", &ok
+            );
+            if ( !ok || val.trimmed().isEmpty() ) return;
+
+            for ( auto& s : MugenX::Teamserver.Sessions ) {
+                if ( selectedIDs.contains( s.Name ) ) {
+                    ensureWidget( s );
+                    s.InteractedWidget->AppendText( "sleep " + val.trimmed() );
+                }
+            }
+        }
+        else if ( action->text() == "Kill" )
+        {
+            for ( auto& s : MugenX::Teamserver.Sessions ) {
+                if ( selectedIDs.contains( s.Name ) ) {
+                    ensureWidget( s );
+                    if ( s.MagicValue == DemonMagicValue )
+                        s.InteractedWidget->AppendText( "exit process" );
+                    else
+                        s.InteractedWidget->AppendText( "exit" );
+                }
+            }
+        }
+
+        return;
+    }
 
     auto SessionID = SessionTableWidget->SessionTableWidget->item( SessionTableWidget->SessionTableWidget->currentRow(), 0 )->text();
     auto Agent     = Util::SessionItem{};

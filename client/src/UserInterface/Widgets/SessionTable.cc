@@ -10,6 +10,11 @@
 #include <QItemSelectionModel>
 #include <QWidgetAction>
 #include <QCheckBox>
+#include <QDialog>
+#include <QScrollArea>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QInputDialog>
 #include <Util/ColorText.h>
 
 using namespace MugenNamespace::UserInterface::Widgets;
@@ -60,6 +65,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
     SessionTableWidget->setCornerButtonEnabled( true );
     SessionTableWidget->horizontalHeader()->setVisible( true );
     SessionTableWidget->setSelectionBehavior( QAbstractItemView::SelectRows );
+    SessionTableWidget->setSelectionMode( QAbstractItemView::ExtendedSelection );
     SessionTableWidget->setContextMenuPolicy( Qt::CustomContextMenu );
     SessionTableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::ResizeMode::Stretch );
     SessionTableWidget->horizontalHeader()->setStretchLastSection( true );
@@ -151,6 +157,109 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
         connect( builderAct, &QAction::triggered, this, []() {
             if ( MugenX::Teamserver.TabSession )
                 MugenX::Teamserver.TabSession->OpenPayloadBuilder();
+        } );
+
+        // ── Bulk Dispatch ─────────────────────────────────────────────────
+        auto* bulkAct = menu->addAction( "Bulk Dispatch" );
+        connect( bulkAct, &QAction::triggered, this, [this]() {
+            QVector<Util::SessionItem> liveSessions;
+            for ( const auto& s : MugenX::Teamserver.Sessions ) {
+                if ( s.Marked != "Dead" ) liveSessions << s;
+            }
+            if ( liveSessions.isEmpty() ) return;
+
+            auto dlgStyle = QString(
+                "QDialog { background:#0a0a0f; color:#f0f0ee; }"
+                "QLabel { color:#f0f0ee; font-size:11px; }"
+                "QCheckBox { color:#f0f0ee; font-size:11px; spacing:6px; }"
+                "QCheckBox::indicator { width:13px; height:13px; border-radius:2px; }"
+                "QCheckBox::indicator:checked { background:#ff6b9d; border:1px solid #ff6b9d; }"
+                "QCheckBox::indicator:unchecked { background:#1a1a27; border:1px solid #44475a; }"
+                "QLineEdit { background:#12121f; color:#f8f8f2; border:1px solid #2a2d4a; border-radius:3px; padding:2px 6px; font-size:11px; }"
+                "QPushButton { background:#1a1a27; color:#f0f0ee; border:1px solid #2a2a3f; border-radius:3px; font-size:11px; padding:3px 14px; }"
+                "QPushButton:hover { background:#2a2a3f; border-color:#ff6b9d; color:#ff6b9d; }"
+                "QPushButton#execBtn { background:#ff6b9d22; border-color:#ff6b9d; color:#ff6b9d; }"
+                "QPushButton#execBtn:hover { background:#ff6b9d44; }"
+            );
+
+            auto* dlg = new QDialog( this->window() );
+            dlg->setWindowTitle( "Bulk Dispatch" );
+            dlg->setMinimumWidth( 420 );
+            dlg->setStyleSheet( dlgStyle );
+
+            auto* layout = new QVBoxLayout( dlg );
+            layout->setSpacing( 8 );
+            layout->setContentsMargins( 14, 14, 14, 14 );
+
+            auto* headerRow = new QHBoxLayout();
+            auto* selectAll = new QCheckBox( "Select all", dlg );
+            selectAll->setChecked( true );
+            headerRow->addWidget( selectAll );
+            headerRow->addStretch();
+            layout->addLayout( headerRow );
+
+            auto* scroll     = new QScrollArea( dlg );
+            auto* listWgt    = new QWidget();
+            auto* listLayout = new QVBoxLayout( listWgt );
+            listLayout->setSpacing( 2 );
+            listLayout->setContentsMargins( 0, 0, 0, 0 );
+            scroll->setWidget( listWgt );
+            scroll->setWidgetResizable( true );
+            scroll->setMaximumHeight( 180 );
+            scroll->setStyleSheet( "QScrollArea { border:1px solid #2a2a3f; background:#0d0d14; }" );
+
+            QVector<QCheckBox*> boxes;
+            for ( const auto& s : liveSessions ) {
+                auto label = QString( "[%1]  %2 @ %3" ).arg( s.Name ).arg( s.User ).arg( s.Computer );
+                auto* cb   = new QCheckBox( label, listWgt );
+                cb->setChecked( true );
+                listLayout->addWidget( cb );
+                boxes << cb;
+            }
+            layout->addWidget( scroll );
+
+            connect( selectAll, &QCheckBox::toggled, dlg, [&boxes]( bool checked ) {
+                for ( auto* cb : boxes ) cb->setChecked( checked );
+            } );
+
+            layout->addWidget( new QLabel( "Command:", dlg ) );
+            auto* cmdInput = new QLineEdit( dlg );
+            cmdInput->setPlaceholderText( "shell whoami" );
+            layout->addWidget( cmdInput );
+
+            auto* btnRow    = new QHBoxLayout();
+            auto* execBtn   = new QPushButton( "Execute", dlg );
+            auto* cancelBtn = new QPushButton( "Cancel", dlg );
+            execBtn->setObjectName( "execBtn" );
+            btnRow->addStretch();
+            btnRow->addWidget( cancelBtn );
+            btnRow->addWidget( execBtn );
+            layout->addLayout( btnRow );
+
+            connect( cancelBtn, &QPushButton::clicked, dlg, &QDialog::reject );
+            connect( execBtn, &QPushButton::clicked, dlg, [&]() {
+                auto cmd = cmdInput->text().trimmed();
+                if ( cmd.isEmpty() ) return;
+                for ( int i = 0; i < boxes.size(); i++ ) {
+                    if ( !boxes[i]->isChecked() ) continue;
+                    auto sid = liveSessions[i].Name;
+                    for ( auto& s : MugenX::Teamserver.Sessions ) {
+                        if ( s.Name != sid ) continue;
+                        if ( s.InteractedWidget == nullptr ) {
+                            s.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
+                            s.InteractedWidget->SessionInfo    = s;
+                            s.InteractedWidget->TeamserverName = this->TeamserverName;
+                            s.InteractedWidget->setupUi( new QWidget );
+                        }
+                        s.InteractedWidget->AppendText( cmd );
+                        break;
+                    }
+                }
+                dlg->accept();
+            } );
+
+            dlg->exec();
+            delete dlg;
         } );
 
         menu->addSeparator();
