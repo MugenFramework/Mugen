@@ -116,8 +116,15 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Session table column customization** - hide/reorder columns, persist layout
 - [x] **Payload builder UX** - live config preview, one-liner copy-paste generator
 - [x] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
-- [ ] **Multi-select sessions + bulk actions** - select multiple agents and send a command to all (shell, sleep, kill)
+- [x] **Multi-select sessions + bulk actions** - select multiple agents and send a command to all (shell, sleep, kill)
 - [ ] **Persistent console history** - console output survives restart/reconnect, stored in SQLite like session notes
+
+### Networking (agent right-click)
+
+- [ ] **SOCKS5 proxy** - right-click an agent -> Networking -> SOCKS5, start/stop a local SOCKS5 listener that tunnels traffic through the agent; displayed in a dedicated Networking tab alongside File Explorer and Process List
+- [ ] **Port forwarding** - right-click -> Networking -> Port Forward, bind a local port and forward connections to a remote host:port through the agent (both local and reverse port forward)
+- [ ] **SOCKS manager window** - global view of all active SOCKS5 tunnels across all agents (agent ID, local port, status), with a Stop button per entry to tear down individual tunnels
+- [ ] **Port forward manager window** - global view of all active port forwards across all agents (agent ID, local port, remote host:port, direction, status), with a Stop button per entry
 
 ---
 
