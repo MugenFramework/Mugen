@@ -8,6 +8,7 @@
 
 - Networking tunnel persistence: active SOCKS5 proxies and port forward rules are saved to the SQLite database and automatically restored on server restart. Agents reconnecting after a restart will resume tunneling without manual intervention.
 - Fixed TCP, DNS, and DoH listeners not surviving a server restart. TCP config was saved to the database but the restore loop had no case for it. DNS and DoH were neither saved nor restored. All three now persist correctly across restarts.
+- Fixed `json.Marshal` panic in `ToMap()`: `TunnelSave` and `TunnelRemove` are function-type fields that `structs.Map()` includes in the serialization map. Functions are not JSON-serializable; they are now removed from the map before any marshal call, consistent with the other non-serializable fields (`Connection`, `SessionDir`, `JobQueue`, `Parent`).
 
 **Client**
 
