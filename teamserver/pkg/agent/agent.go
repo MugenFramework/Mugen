@@ -1206,6 +1206,8 @@ func (a *Agent) ToMap() map[string]interface{} {
 	delete(Info, "SessionDir")
 	delete(Info, "JobQueue")
 	delete(Info, "Parent")
+	delete(Info, "TunnelSave")
+	delete(Info, "TunnelRemove")
 
 	MagicValue = fmt.Sprintf("%08x", a.Info.MagicValue)
 
