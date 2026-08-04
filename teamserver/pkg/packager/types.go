@@ -116,6 +116,14 @@ type (
 			Log     int
 			Profile int
 		}
+
+		Resource struct {
+			Type     int
+			List     int
+			Add      int
+			Remove   int
+			Download int
+		}
 	}
 )
 
@@ -258,4 +266,12 @@ var Type = Types{
 		Log     int
 		Profile int
 	}{Type: 0x10, Log: 0x1, Profile: 0x2},
+
+	Resource: struct {
+		Type     int
+		List     int
+		Add      int
+		Remove   int
+		Download int
+	}{Type: 0xA, List: 0x1, Add: 0x2, Remove: 0x3, Download: 0x4},
 }

@@ -4,6 +4,14 @@
 
 ### v0.2 | *My Dress-Up Darling* (in progress)
 
+**Resource Manager**
+
+- Server-side file storage (`data/resources/`): upload executables, BOFs, and scripts to the teamserver once. Files persist across restarts and are sent to every operator on connect. The `View > Resources` tab lists all stored files (name, kind, size, date). Supported kinds: `exe`, `bof`, `script`, `other` (auto-detected from file extension).
+- Upload / Delete / Download buttons: Upload opens a file dialog and sends the file to the teamserver; Delete removes it from disk and DB; Download retrieves the file from the server and saves it locally via a save dialog. Only the operator who requested the download receives the file.
+- Overwrite protection: uploading a file whose name already exists in the resource list prompts for confirmation before replacing it.
+- Search bar: filter the resource list in real time by name, kind, or date - useful when many files are stored.
+- Reference by name in commands: `bof`, `inline-execute`, and `memfd` accept a bare filename (e.g. `bof who.x64.o`) - the teamserver resolves it to the full path automatically, for both Tengu and Demon sessions.
+
 **Teamserver**
 
 - Networking tunnel persistence: active SOCKS5 proxies and port forward rules are saved to the SQLite database and automatically restored on server restart. Agents reconnecting after a restart will resume tunneling without manual intervention.

@@ -12,6 +12,7 @@
 #include <UserInterface/Widgets/PythonScript.hpp>
 #include <UserInterface/Widgets/ScriptManager.h>
 #include <UserInterface/Widgets/LootWidget.h>
+#include <UserInterface/Widgets/ResourceManagerWidget.hpp>
 #include <UserInterface/Widgets/DashboardWidget.hpp>
 
 #include <Util/ColorText.h>
@@ -89,6 +90,9 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
 
     actionNetworking = new QAction( MugenWindow );
     actionNetworking->setObjectName( QString::fromUtf8( "actionNetworking" ) );
+
+    actionResources = new QAction( MugenWindow );
+    actionResources->setObjectName( QString::fromUtf8( "actionResources" ) );
 
     actionSessionsTable = new QAction( MugenWindow );
     actionSessionsTable->setObjectName( QString::fromUtf8( "actionSessionsTable" ) );
@@ -209,6 +213,7 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
 
     menuView->addAction( actionListeners );
     menuView->addAction( actionNetworking );
+    menuView->addAction( actionResources );
     menuView->addSeparator();
     menuView->addAction( MenuSession->menuAction() );
     menuView->addAction( actionDashboard );
@@ -460,6 +465,7 @@ void MugenNamespace::UserInterface::MugenUi::retranslateUi(QMainWindow* Window )
     actionGithub_Repository->setText( "Github Repository" );
     actionListeners->setText( "Listeners" );
     actionNetworking->setText( "Networking" );
+    actionResources->setText( "Resources" );
     actionSessionsTable->setText( "Table" );
     actionSessionsGraph->setText( "Graph" );
     actionSessionsMap->setText( "Map" );
@@ -564,6 +570,29 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
 
         tab->NetworkingView->Refresh();
         NewBottomTab( tab->NetworkingView->NetworkingView, "Networking" );
+    } );
+
+    QMainWindow::connect( actionResources, &QAction::triggered, this, [&](){
+        auto tab = MugenX::Teamserver.TabSession;
+        if ( !tab ) return;
+
+        if ( tab->ResourceManager == nullptr ) {
+            tab->ResourceManager = new Widgets::ResourceManagerWidget;
+            tab->ResourceManager->TeamserverName = MugenX::Teamserver.Name;
+            tab->ResourceManager->Username       = MugenX::Teamserver.User;
+            tab->ResourceManager->setupUi( new QWidget );
+        }
+
+        for ( int i = 0; i < tab->tabWidget->count(); i++ )
+        {
+            if ( tab->tabWidget->tabText( i ) == "Resources" )
+            {
+                tab->tabWidget->setCurrentIndex( i );
+                return;
+            }
+        }
+
+        NewBottomTab( tab->ResourceManager->ResourceView, "Resources" );
     } );
 
     QMainWindow::connect( actionTeamserver, &QAction::triggered, this, [&](){

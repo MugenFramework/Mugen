@@ -21,6 +21,8 @@
 #include <QByteArray>
 #include <QJsonArray>
 #include <QDir>
+#include <QFile>
+#include <QFileDialog>
 
 const int Util::Packager::InitConnection::Type      = 0x1;
 const int Util::Packager::InitConnection::Success   = 0x1;
@@ -60,6 +62,12 @@ const int Util::Packager::Service::ListenerRegister = 0x2;
 const int Util::Packager::Teamserver::Type          = 0x10;
 const int Util::Packager::Teamserver::Logger        = 0x1;
 const int Util::Packager::Teamserver::Profile       = 0x2;
+
+const int Util::Packager::Resource::Type            = 0xA;
+const int Util::Packager::Resource::List            = 0x1;
+const int Util::Packager::Resource::Add             = 0x2;
+const int Util::Packager::Resource::Remove          = 0x3;
+const int Util::Packager::Resource::Download        = 0x4;
 
 using MugenNamespace::UserInterface::Widgets::ScriptManager;
 
@@ -159,6 +167,9 @@ auto Packager::DispatchPackage( Util::Packager::PPackage Package ) -> bool
 
         case Util::Packager::Teamserver::Type:
             return DispatchTeamserver( Package );
+
+        case Util::Packager::Resource::Type:
+            return DispatchResource( Package );
 
         default:
             spdlog::info( "[PACKAGE] Event Id not found" );
@@ -1100,4 +1111,57 @@ bool Packager::DispatchTeamserver( Util::Packager::PPackage Package )
 void Packager::setTeamserver( QString Name )
 {
     this->TeamserverName = Name;
+}
+
+bool Packager::DispatchResource( Util::Packager::PPackage Package )
+{
+    switch ( Package->Body.SubEvent )
+    {
+        case Util::Packager::Resource::List:
+        {
+            auto TeamserverTab = MugenX::Teamserver.TabSession;
+            if ( !TeamserverTab ) return false;
+            if ( !TeamserverTab->ResourceManager ) return false;
+
+            auto resourcesJson = QString( Package->Body.Info[ "Resources" ].c_str() );
+            TeamserverTab->ResourceManager->Refresh( resourcesJson );
+            break;
+        }
+
+        case Util::Packager::Resource::Download:
+        {
+            // seul le client qui a demandé le download traite la réponse
+            auto requestUser = QString( Package->Body.Info[ "RequestUser" ].c_str() );
+            if ( requestUser != MugenX::Teamserver.User ) break;
+
+            auto name    = QString( Package->Body.Info[ "Name"    ].c_str() );
+            auto content = QString( Package->Body.Info[ "Content" ].c_str() );
+
+            auto savePath = QFileDialog::getSaveFileName(
+                nullptr, "Save Resource", QDir::homePath() + "/" + name
+            );
+            if ( savePath.isEmpty() ) break;
+
+            auto data = QByteArray::fromBase64( content.toUtf8() );
+            QFile f( savePath );
+            if ( f.open( QIODevice::WriteOnly ) )
+            {
+                f.write( data );
+                f.close();
+            }
+            break;
+        }
+    }
+    return true;
+}
+
+auto NewPackageResource( const QString& TeamserverName, Util::Packager::Body_t Body ) -> void
+{
+    auto Package    = new Util::Packager::Package;
+    auto Head       = Util::Packager::Head_t {
+        .Event = Util::Packager::Resource::Type,
+    };
+    Package->Head   = Head;
+    Package->Body   = Body;
+    MugenX::Connector->SendPackage( Package );
 }

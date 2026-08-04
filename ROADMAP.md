@@ -107,7 +107,7 @@ This document tracks planned features, improvements, and long-term goals for the
 
 ### Resource Manager
 
-- [ ] **Server-side file storage** - upload executables, BOFs, and scripts to the teamserver once (`data/resources/`), list/delete from the client, reference by name in commands (`execute-assembly Rubeus`) instead of sending bytes inline every time
+- [x] **Server-side file storage** - upload executables, BOFs, and scripts to the teamserver once (`data/resources/`), list/delete from the client, reference by name in commands (`execute-assembly Rubeus`) instead of sending bytes inline every time
 
 ### Client UI
 

@@ -1,9 +1,12 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -126,6 +129,11 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 								logr.LogrInstance.AddAgentInput("Demon", pk.Body.Info["DemonID"].(string), pk.Head.User, pk.Body.Info["TaskID"].(string), pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
 
 								var Command = pk.Body.Info["Command"].(string)
+
+								// résolution des ressources : "bof Rubeus.o ..." -> "bof /data/resources/Rubeus.o ..."
+								Command = t.resolveResourceRef(Command)
+								pk.Body.Info["Command"] = Command
+								pk.Body.Info["CommandLine"] = Command
 
 								if pk.Head.OneTime == "true" {
 									return
@@ -264,6 +272,8 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 						if tid, ok := pk.Body.Info["TaskID"].(string); ok {
 							taskID = tid
 						}
+
+						Command = t.resolveResourceRef(Command)
 
 						logr.LogrInstance.AddAgentInput("Tengu", DemonID, pk.Head.User, taskID, Command, time.Now().UTC().Format("02/01/2006 15:04:05"))
 
@@ -1092,6 +1102,99 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 				}
 
 			}
+		}
+
+	case packager.Type.Resource.Type:
+
+		switch pk.Body.SubEvent {
+
+		case packager.Type.Resource.Add:
+			name, nameOk := pk.Body.Info["Name"].(string)
+			content, contentOk := pk.Body.Info["Content"].(string)
+			kind, _ := pk.Body.Info["Kind"].(string)
+			if !nameOk || !contentOk || name == "" {
+				return
+			}
+			if kind == "" {
+				kind = "other"
+			}
+
+			data, err := base64.StdEncoding.DecodeString(content)
+			if err != nil {
+				logger.Error("Resource.Add: base64 decode error: " + err.Error())
+				return
+			}
+
+			resDir := filepath.Join(t.ResourcesDir, "resources")
+			if err := os.MkdirAll(resDir, 0o755); err != nil {
+				logger.Error("Resource.Add: mkdir error: " + err.Error())
+				return
+			}
+
+			path := filepath.Join(resDir, name)
+			if err := os.WriteFile(path, data, 0o644); err != nil {
+				logger.Error("Resource.Add: write error: " + err.Error())
+				return
+			}
+
+			addedAt := time.Now().Format("02/01/2006 15:04:05")
+			if err := t.DB.ResourceAdd(name, path, kind, int64(len(data)), addedAt); err != nil {
+				logger.Error("Resource.Add: db error: " + err.Error())
+				return
+			}
+
+			t.EventBroadcast("", events.Resources.List(t.DB.ResourceList()))
+
+		case packager.Type.Resource.Remove:
+			name, nameOk := pk.Body.Info["Name"].(string)
+			if !nameOk || name == "" {
+				return
+			}
+
+			if path, ok := t.DB.ResourceGet(name); ok {
+				os.Remove(path)
+			}
+
+			if err := t.DB.ResourceRemove(name); err != nil {
+				logger.Error("Resource.Remove: db error: " + err.Error())
+				return
+			}
+
+			t.EventBroadcast("", events.Resources.List(t.DB.ResourceList()))
+
+		case packager.Type.Resource.List:
+			// broadcast la liste à tous les clients connectés
+			t.EventBroadcast("", events.Resources.List(t.DB.ResourceList()))
+
+		case packager.Type.Resource.Download:
+			name, nameOk := pk.Body.Info["Name"].(string)
+			requestUser, _ := pk.Body.Info["RequestUser"].(string)
+			if !nameOk || name == "" {
+				return
+			}
+
+			path, ok := t.DB.ResourceGet(name)
+			if !ok {
+				return
+			}
+
+			data, err := os.ReadFile(path)
+			if err != nil {
+				logger.Error("Resource.Download: read error: " + err.Error())
+				return
+			}
+
+			t.EventBroadcast("", packager.Package{
+				Head: packager.Head{Event: packager.Type.Resource.Type},
+				Body: packager.Body{
+					SubEvent: packager.Type.Resource.Download,
+					Info: map[string]any{
+						"Name":        name,
+						"Content":     base64.StdEncoding.EncodeToString(data),
+						"RequestUser": requestUser,
+					},
+				},
+			})
 		}
 	}
 }
