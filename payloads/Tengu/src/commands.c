@@ -260,11 +260,25 @@ void cmd_ls_json(uint32_t req_id, const char* path) {
         char tbuf[32];
         strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M:%S", tm_info);
 
+        /* permissions string: e.g. drwxr-xr-x */
+        char perms[11];
+        perms[0]  = S_ISDIR(st.st_mode)  ? 'd' : (S_ISLNK(st.st_mode) ? 'l' : '-');
+        perms[1]  = (st.st_mode & S_IRUSR) ? 'r' : '-';
+        perms[2]  = (st.st_mode & S_IWUSR) ? 'w' : '-';
+        perms[3]  = (st.st_mode & S_IXUSR) ? 'x' : '-';
+        perms[4]  = (st.st_mode & S_IRGRP) ? 'r' : '-';
+        perms[5]  = (st.st_mode & S_IWGRP) ? 'w' : '-';
+        perms[6]  = (st.st_mode & S_IXGRP) ? 'x' : '-';
+        perms[7]  = (st.st_mode & S_IROTH) ? 'r' : '-';
+        perms[8]  = (st.st_mode & S_IWOTH) ? 'w' : '-';
+        perms[9]  = (st.st_mode & S_IXOTH) ? 'x' : '-';
+        perms[10] = '\0';
+
         char* ename = json_escape(entry->d_name);
         char entry_buf[768];
         int elen = snprintf(entry_buf, sizeof(entry_buf),
-            "%s{\"Type\":\"%s\",\"Name\":\"%s\",\"Size\":\"%lld\",\"Modified\":\"%s\"}",
-            first ? "" : ",", type, ename ? ename : entry->d_name, size, tbuf);
+            "%s{\"Type\":\"%s\",\"Name\":\"%s\",\"Size\":\"%lld\",\"Modified\":\"%s\",\"Permissions\":\"%s\"}",
+            first ? "" : ",", type, ename ? ename : entry->d_name, size, tbuf, perms);
         free(ename);
         if (first) first = 0;
 

@@ -34,6 +34,7 @@ typedef struct _DIR_OR_FILE
     SYSTEMTIME SystemTime;
     BOOL       IsDir;
     UINT64     Size;
+    DWORD      Attributes;
 
     struct _DIR_OR_FILE* Next;
 } DIR_OR_FILE, *PDIR_OR_FILE;

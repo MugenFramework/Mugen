@@ -853,6 +853,13 @@ void DemonInteracted::replayHistory( const QJsonArray& tasks )
         + "color: " + Util::ColorText::Colors::Hex::Foreground + ";"
     );
 
+    // Restaurer le message d'initialisation de session (effacé par clear())
+    if ( !ConsoleInitialMessage.isEmpty() )
+    {
+        Console->moveCursor( QTextCursor::End );
+        Console->insertHtml( ConsoleInitialMessage );
+    }
+
     for ( const auto& val : tasks )
     {
         if ( !val.isObject() ) continue;
