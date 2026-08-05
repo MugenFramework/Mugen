@@ -6,11 +6,14 @@
 
 **Resource Manager**
 
-- Server-side file storage (`data/resources/`): upload executables, BOFs, and scripts to the teamserver once. Files persist across restarts and are sent to every operator on connect. The `View > Resources` tab lists all stored files (name, kind, size, date). Supported kinds: `exe`, `bof`, `script`, `other` (auto-detected from file extension).
-- Upload / Delete / Download buttons: Upload opens a file dialog and sends the file to the teamserver; Delete removes it from disk and DB; Download retrieves the file from the server and saves it locally via a save dialog. Only the operator who requested the download receives the file.
-- Overwrite protection: uploading a file whose name already exists in the resource list prompts for confirmation before replacing it.
-- Search bar: filter the resource list in real time by name, kind, or date - useful when many files are stored.
-- Reference by name in commands: `bof`, `inline-execute`, and `memfd` accept a bare filename (e.g. `bof who.x64.o`) - the teamserver resolves it to the full path automatically, for both Tengu and Demon sessions.
+- Server-side file storage (`data/resources/`): upload executables, BOFs, and scripts to the teamserver once. Files persist across restarts and are broadcast to every operator on connect. The `View > Resources` tab lists all stored files with Upload, Delete, and Download buttons. Supported kinds: `exe`, `bof`, `script`, `other` (auto-detected from extension).
+- Download: retrieve any stored file from the teamserver to local disk via a save dialog; only the requesting operator receives the transfer.
+- Overwrite protection: uploading a file whose name already exists prompts for confirmation before replacing it.
+- Search bar: real-time filter on name, kind, or date.
+- Reference by name: `bof`, `inline-execute`, `memfd`, and `execute-assembly` accept a bare filename (e.g. `bof who.x64.o`) - the teamserver resolves it to the full path automatically for both Tengu and Demon sessions.
+- Uploader column: the resource table shows which operator uploaded each file.
+- SHA-256 integrity: hash computed server-side at upload time and shown as a tooltip on the filename for out-of-band verification.
+- Context menu: right-click any row for Download / Delete without requiring a prior selection.
 
 **Teamserver**
 

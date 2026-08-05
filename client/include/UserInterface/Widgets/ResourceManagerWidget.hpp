@@ -6,7 +6,10 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QLabel>
+#include <QFrame>
 #include <QJsonArray>
+#include <QJsonObject>
 
 class MugenNamespace::UserInterface::Widgets::ResourceManagerWidget : public QWidget
 {
@@ -19,6 +22,17 @@ public:
     QPushButton*  DeleteButton   = nullptr;
     QPushButton*  DownloadButton = nullptr;
     QLineEdit*    SearchBar      = nullptr;
+    QFrame*       DetailPanel    = nullptr;
+
+    // detail panel labels
+    QLabel*       dl_name        = nullptr;
+    QLabel*       dl_kind        = nullptr;
+    QLabel*       dl_size        = nullptr;
+    QLabel*       dl_uploader    = nullptr;
+    QLabel*       dl_added       = nullptr;
+    QLabel*       dl_hash        = nullptr;
+    QLabel*       dl_path        = nullptr;
+    QPushButton*  dl_copyHash    = nullptr;
 
     QString TeamserverName;
     QString Username;
@@ -32,6 +46,8 @@ private:
 
     void rebuildTable( const QJsonArray& entries );
     void applyFilter( const QString& query );
+    void showDetail( const QJsonObject& obj );
+    void hideDetail();
 };
 
 #endif
