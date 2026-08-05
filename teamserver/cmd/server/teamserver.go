@@ -1094,7 +1094,7 @@ func (t *Teamserver) resolveResourceRef(command string) string {
 		return command
 	}
 	cmd := strings.ToLower(parts[0])
-	if cmd != "bof" && cmd != "inline-execute" && cmd != "memfd" {
+	if cmd != "bof" && cmd != "inline-execute" && cmd != "memfd" && cmd != "execute-assembly" {
 		return command
 	}
 	filename := parts[1]
