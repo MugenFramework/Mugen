@@ -64,6 +64,12 @@ func (t *Teamserver) Start() {
 		return
 	}
 
+	t.ResourcesDir = TeamserverPath + "/data"
+	if err := os.MkdirAll(t.ResourcesDir+"/resources", 0o755); err != nil {
+		logger.Error("Failed to create resources directory: " + err.Error())
+		return
+	}
+
 	if t.Flags.Server.Host == "" {
 		t.Flags.Server.Host = t.Profile.ServerHost()
 	}
@@ -956,6 +962,11 @@ func (t *Teamserver) SendAllPackagesToNewClient(ClientID string) {
 		}
 	}
 
+	// send all stored resources to the new client
+	if resources := t.DB.ResourceList(); len(resources) > 0 {
+		_ = t.SendEvent(ClientID, events.Resources.List(resources))
+	}
+
 	// send all the agents that are alive right now to the new client
 	for _, demon := range t.Agents.Agents {
 		if demon.Active == false {
@@ -1072,6 +1083,31 @@ func (t *Teamserver) EndpointAdd(endpoint *Endpoint) bool {
 	t.Endpoints = append(t.Endpoints, endpoint)
 
 	return true
+}
+
+// resolveResourceRef vérifie si le premier argument d'une commande bof/inline-execute/memfd
+// est un nom court sans séparateur de chemin, et si ce nom correspond à une ressource stockée.
+// Si oui, il remplace le nom par le chemin complet sur disque.
+func (t *Teamserver) resolveResourceRef(command string) string {
+	parts := strings.Fields(command)
+	if len(parts) < 2 {
+		return command
+	}
+	cmd := strings.ToLower(parts[0])
+	if cmd != "bof" && cmd != "inline-execute" && cmd != "memfd" && cmd != "execute-assembly" {
+		return command
+	}
+	filename := parts[1]
+	// ne pas toucher les chemins absolus ou relatifs explicites
+	if strings.ContainsAny(filename, "/\\") {
+		return command
+	}
+	path, ok := t.DB.ResourceGet(filename)
+	if !ok {
+		return command
+	}
+	parts[1] = path
+	return strings.Join(parts, " ")
 }
 
 func (t *Teamserver) EndpointRemove(endpoint string) []*Endpoint {

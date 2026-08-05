@@ -95,9 +95,19 @@ namespace MugenNamespace::Util::Packager
         extern const int Logger;
         extern const int Profile;
     }
+
+    namespace Resource
+    {
+        extern const int Type;
+        extern const int List;
+        extern const int Add;
+        extern const int Remove;
+        extern const int Download;
+    }
 }
 
 auto NewPackageCommand( const QString& Teamserver, Util::Packager::Body_t Body ) -> void;
+auto NewPackageResource( const QString& Teamserver, Util::Packager::Body_t Body ) -> void;
 
 class MugenSpace::Packager
 {
@@ -118,6 +128,7 @@ public:
     bool DispatchGate( Util::Packager::PPackage Package );
     bool DispatchService( Util::Packager::PPackage Package );
     bool DispatchTeamserver( Util::Packager::PPackage Package );
+    bool DispatchResource( Util::Packager::PPackage Package );
 };
 
 #endif //MUGEN_PACKAGER_H

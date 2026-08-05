@@ -47,6 +47,7 @@ public:
     QAction*               actionGithub_Repository       = {};
     QAction*               actionListeners               = {};
     QAction*               actionNetworking              = {};
+    QAction*               actionResources               = {};
     QAction*               actionSessionsTable           = {};
     QAction*               actionSessionsGraph           = {};
     QAction*               actionSessionsMap             = {};
