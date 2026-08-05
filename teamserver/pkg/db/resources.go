@@ -1,10 +1,10 @@
 package db
 
-func (db *DB) ResourceAdd(name, path, kind string, size int64, addedAt string) error {
+func (db *DB) ResourceAdd(name, path, kind, user, hash string, size int64, addedAt string) error {
 	db.db.Exec(`DELETE FROM TS_Resources WHERE Name=?`, name)
 	_, err := db.db.Exec(
-		`INSERT INTO TS_Resources (Name, Path, Kind, Size, AddedAt) VALUES (?,?,?,?,?)`,
-		name, path, kind, size, addedAt,
+		`INSERT INTO TS_Resources (Name, Path, Kind, Size, AddedAt, User, Hash) VALUES (?,?,?,?,?,?,?)`,
+		name, path, kind, size, addedAt, user, hash,
 	)
 	return err
 }
@@ -16,15 +16,15 @@ func (db *DB) ResourceRemove(name string) error {
 
 func (db *DB) ResourceList() []map[string]string {
 	var resources []map[string]string
-	rows, err := db.db.Query(`SELECT Name, Path, Kind, Size, AddedAt FROM TS_Resources ORDER BY AddedAt DESC`)
+	rows, err := db.db.Query(`SELECT Name, Path, Kind, Size, AddedAt, User, Hash FROM TS_Resources ORDER BY AddedAt DESC`)
 	if err != nil {
 		return resources
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var name, path, kind, addedAt string
+		var name, path, kind, addedAt, user, hash string
 		var size int64
-		if err := rows.Scan(&name, &path, &kind, &size, &addedAt); err != nil {
+		if err := rows.Scan(&name, &path, &kind, &size, &addedAt, &user, &hash); err != nil {
 			continue
 		}
 		resources = append(resources, map[string]string{
@@ -33,6 +33,8 @@ func (db *DB) ResourceList() []map[string]string {
 			"Kind":    kind,
 			"Size":    formatSize(size),
 			"AddedAt": addedAt,
+			"User":    user,
+			"Hash":    hash,
 		})
 	}
 	return resources

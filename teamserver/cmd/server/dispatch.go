@@ -1,7 +1,9 @@
 package server
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1137,8 +1139,11 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 				return
 			}
 
+			sum := sha256.Sum256(data)
+			hash := hex.EncodeToString(sum[:])
+			user, _ := pk.Body.Info["User"].(string)
 			addedAt := time.Now().Format("02/01/2006 15:04:05")
-			if err := t.DB.ResourceAdd(name, path, kind, int64(len(data)), addedAt); err != nil {
+			if err := t.DB.ResourceAdd(name, path, kind, user, hash, int64(len(data)), addedAt); err != nil {
 				logger.Error("Resource.Add: db error: " + err.Error())
 				return
 			}

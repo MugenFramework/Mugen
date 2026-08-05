@@ -73,7 +73,7 @@ func (db *DB) init() error {
 		return err
 	}
 
-	_, err = db.db.Exec(`CREATE TABLE "TS_Resources" ("Name" text UNIQUE, "Path" text, "Kind" text, "Size" int, "AddedAt" text);`)
+	_, err = db.db.Exec(`CREATE TABLE "TS_Resources" ("Name" text UNIQUE, "Path" text, "Kind" text, "Size" int, "AddedAt" text, "User" text, "Hash" text);`)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,10 @@ func (db *DB) migrate() {
 	// add TS_Tunnels table if this is an existing DB without it
 	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_Tunnels" ("AgentID" text, "Type" text, "BindPort" int, "RemoteHost" text, "RemotePort" int)`)
 	// add TS_Resources table if this is an existing DB without it
-	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_Resources" ("Name" text UNIQUE, "Path" text, "Kind" text, "Size" int, "AddedAt" text)`)
+	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_Resources" ("Name" text UNIQUE, "Path" text, "Kind" text, "Size" int, "AddedAt" text, "User" text, "Hash" text)`)
+	// add User and Hash columns if this is an existing TS_Resources without them
+	db.db.Exec(`ALTER TABLE TS_Resources ADD COLUMN "User" text DEFAULT ''`)
+	db.db.Exec(`ALTER TABLE TS_Resources ADD COLUMN "Hash" text DEFAULT ''`)
 }
 
 func (db *DB) Existed() bool {

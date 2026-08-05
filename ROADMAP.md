@@ -108,6 +108,13 @@ This document tracks planned features, improvements, and long-term goals for the
 ### Resource Manager
 
 - [x] **Server-side file storage** - upload executables, BOFs, and scripts to the teamserver once (`data/resources/`), list/delete from the client, reference by name in commands (`execute-assembly Rubeus`) instead of sending bytes inline every time
+- [x] **Download** - retrieve any stored file from the teamserver to local disk via a save dialog; only the requesting operator receives the file
+- [x] **Overwrite protection** - uploading a file whose name already exists prompts for confirmation before replacing
+- [x] **Search bar** - real-time filter on name, kind, and date; useful when many files are stored
+- [x] **Reference by name** - `bof`, `inline-execute`, `memfd`, and `execute-assembly` accept a bare filename; the teamserver resolves it to the full path automatically for both Tengu and Demon
+- [x] **Uploader column** - tracks which operator uploaded each file; visible in the resource table
+- [x] **SHA-256 integrity** - hash computed server-side at upload time, stored in DB, shown as tooltip on the filename
+- [x] **Context menu** - right-click any row for Download / Delete actions without requiring a prior selection
 
 ### Client UI
 
