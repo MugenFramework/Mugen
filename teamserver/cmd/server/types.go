@@ -78,8 +78,9 @@ type Teamserver struct {
 	EventsList   []packager.Package
 	Service      *service.Service
 	WebHooks     *webhook.WebHook
-	DB           *db.DB
-	ResourcesDir string
+	DB             *db.DB
+	ResourcesDir   string
+	CurrentTaskID  sync.Map // map[agentID]taskID - tâche en cours par agent
 
 	Server struct {
 		Path   string

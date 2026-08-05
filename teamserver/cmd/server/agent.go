@@ -4,6 +4,7 @@ import (
 	"Mugen/pkg/logger"
 	"encoding/json"
 	"math/rand"
+	"strings"
 	"time"
 	"fmt"
 	"strconv"
@@ -214,6 +215,37 @@ func (t *Teamserver) AgentConsole(AgentID string, CommandID int, Output map[stri
 
 	t.EventAppend(pk)
 	t.EventBroadcast("", pk)
+
+	// persist output in task history
+	if CommandID == agent.MUGEN_CONSOLE_MESSAGE {
+		if val, ok := t.CurrentTaskID.Load(AgentID); ok {
+			if taskID, ok := val.(string); ok && taskID != "" {
+				if chunk := taskOutputChunk(Output); chunk != "" {
+					t.DB.TaskAppendOutput(taskID, chunk)
+				}
+			}
+		}
+	}
+}
+
+func taskOutputChunk(output map[string]string) string {
+	var parts []string
+	if msg := output["Message"]; msg != "" {
+		switch output["Type"] {
+		case "Good":
+			parts = append(parts, "[+] "+msg)
+		case "Error":
+			parts = append(parts, "[-] "+msg)
+		case "Info":
+			parts = append(parts, "[*] "+msg)
+		default:
+			parts = append(parts, msg)
+		}
+	}
+	if out := output["Output"]; out != "" {
+		parts = append(parts, out)
+	}
+	return strings.Join(parts, "\n")
 }
 
 func (t *Teamserver) PythonModuleCallback(ClientID string, AgentID string, CommandID int, Output map[string]string) {

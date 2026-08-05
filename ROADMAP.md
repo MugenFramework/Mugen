@@ -87,7 +87,12 @@ This document tracks planned features, improvements, and long-term goals for the
 - [ ] **ChaCha20 application-layer encryption** - encrypt Demon frames before sending regardless of transport, matching what Tengu already has; key generated at payload build time
 - [ ] **In-memory .NET assembly execution** - `execute-assembly` style, fork-and-run in a sacrificial process, output streamed back via named pipe
 - [ ] **Improved PPID spoofing** - inherit handles and env in addition to parent process
-- [ ] **Token vault improvements** - privilege-based filtering, auto-impersonate at spawn
+- [ ] **Token vault** - store multiple stolen tokens in-memory (named), switch between them without returning to the source process, list with privilege level; auto-impersonate on child spawn; `make_token` from credentials without touching LSASS
+
+### Arsenal Kit
+
+- [ ] **Artifact Kit** - customizable shellcode runner/loader templates (EXE, DLL, shellcode format) selectable at build time; today the builder always produces the same format
+- [ ] **Sleep Mask Kit** - pluggable sleep obfuscation interface for Demon; swap the inherited Havoc implementation with a custom one per operator (Foliage, Cronos, or custom)
 
 ### Python API / Modules
 
@@ -95,15 +100,6 @@ This document tracks planned features, improvements, and long-term goals for the
 - [ ] **`mugen.AgentInfo(agent_id)`** - expose full session metadata to scripts
 - [ ] **`mugen.OnTaskComplete(agent_id, callback)`** - callback triggered when a task completes
 - [ ] **`mugen.AddContextMenu(label, handler)`** - add right-click entries from a script
-
-### Teamserver
-
-- [ ] **REST API** - authenticated HTTP API for external tooling (BloodHound, SIEM, custom dashboards)
-- [ ] **Webhook notifications** - POST on check-in, task complete, error (Slack, Teams, custom)
-- [ ] **Audit log** - structured persistent log of all operator commands and agent responses
-- [ ] **Redirector support** - built-in HTTPS redirector config (auto-generate nginx/Apache rewrite rules)
-- [ ] **Multi-profile listeners** - multiple HTTP/HTTPS listeners with different C2 profiles running simultaneously
-- [ ] **Let's Encrypt integration** - automatic TLS certificate provisioning
 
 ### Resource Manager
 
@@ -124,7 +120,14 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Payload builder UX** - live config preview, one-liner copy-paste generator
 - [x] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
 - [x] **Multi-select sessions + bulk actions** - select multiple agents and send a command to all (shell, sleep, kill)
-- [ ] **Persistent console history** - console output survives restart/reconnect, stored in SQLite like session notes
+- [x] **Persistent task history** - all commands and their output are stored in SQLite (TS_TaskHistory), survive restart/reconnect; dedicated History tab per agent with: output search, comment, delete
+- [ ] **Structured task tracking** - each task has a status (queued / processing / completed / error) with timestamp and duration, visible per agent; replaces the raw console-only output model
+- [ ] **Operator attribution** - display which operator ran each command in a shared agent console
+- [ ] **Operator presence** - show in real time which agents other connected operators are interacting with
+- [ ] **Multi-teamserver** - connect to multiple teamservers simultaneously from a single client
+- [ ] **File transfer progress** - progress bar and size estimate for uploads and downloads
+- [ ] **Agent aliasing** - assign a short human-readable name to an agent (e.g. `dc01-system`), shown in the session table alongside the ID
+- [ ] **Agent timeline** - chronological view of all tasks and outputs for a single agent; useful for post-engagement reconstruction
 
 ### Networking (agent right-click)
 
