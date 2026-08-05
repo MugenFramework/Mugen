@@ -124,6 +124,14 @@ type (
 			Remove   int
 			Download int
 		}
+
+		TaskHistory struct {
+			Type       int
+			List       int
+			SetComment int
+			Delete     int
+			Sync       int
+		}
 	}
 )
 
@@ -274,4 +282,12 @@ var Type = Types{
 		Remove   int
 		Download int
 	}{Type: 0xA, List: 0x1, Add: 0x2, Remove: 0x3, Download: 0x4},
+
+	TaskHistory: struct {
+		Type       int
+		List       int
+		SetComment int
+		Delete     int
+		Sync       int
+	}{Type: 0xB, List: 0x1, SetComment: 0x2, Delete: 0x3, Sync: 0x4},
 }

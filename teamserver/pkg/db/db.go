@@ -78,6 +78,11 @@ func (db *DB) init() error {
 		return err
 	}
 
+	_, err = db.db.Exec(`CREATE TABLE "TS_TaskHistory" ("TaskID" text UNIQUE, "AgentID" text, "AgentType" text, "Operator" text, "CommandLine" text, "Output" text DEFAULT '', "Comment" text DEFAULT '', "Timestamp" text);`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -91,6 +96,8 @@ func (db *DB) migrate() {
 	// add User and Hash columns if this is an existing TS_Resources without them
 	db.db.Exec(`ALTER TABLE TS_Resources ADD COLUMN "User" text DEFAULT ''`)
 	db.db.Exec(`ALTER TABLE TS_Resources ADD COLUMN "Hash" text DEFAULT ''`)
+	// add TS_TaskHistory table if this is an existing DB without it
+	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_TaskHistory" ("TaskID" text UNIQUE, "AgentID" text, "AgentType" text, "Operator" text, "CommandLine" text, "Output" text DEFAULT '', "Comment" text DEFAULT '', "Timestamp" text)`)
 }
 
 func (db *DB) Existed() bool {

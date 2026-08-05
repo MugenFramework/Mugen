@@ -69,6 +69,12 @@ const int Util::Packager::Resource::Add             = 0x2;
 const int Util::Packager::Resource::Remove          = 0x3;
 const int Util::Packager::Resource::Download        = 0x4;
 
+const int Util::Packager::TaskHistory::Type         = 0xB;
+const int Util::Packager::TaskHistory::List         = 0x1;
+const int Util::Packager::TaskHistory::SetComment   = 0x2;
+const int Util::Packager::TaskHistory::Delete       = 0x3;
+const int Util::Packager::TaskHistory::Sync         = 0x4;
+
 using MugenNamespace::UserInterface::Widgets::ScriptManager;
 
 Util::Packager::PPackage Packager::DecodePackage( const QString& Package )
@@ -170,6 +176,9 @@ auto Packager::DispatchPackage( Util::Packager::PPackage Package ) -> bool
 
         case Util::Packager::Resource::Type:
             return DispatchResource( Package );
+
+        case Util::Packager::TaskHistory::Type:
+            return DispatchTaskHistory( Package );
 
         default:
             spdlog::info( "[PACKAGE] Event Id not found" );
@@ -769,6 +778,8 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
                         }
                         else
                         {
+                            // Mark this task in the console before printing the prompt
+                            Session.InteractedWidget->Console->beginTask( TaskID );
                             Session.InteractedWidget->AppendRaw();
                             Session.InteractedWidget->AppendRaw( Session.InteractedWidget->DemonCommands->Prompt );
                         }
@@ -1160,6 +1171,44 @@ auto NewPackageResource( const QString& TeamserverName, Util::Packager::Body_t B
     auto Package    = new Util::Packager::Package;
     auto Head       = Util::Packager::Head_t {
         .Event = Util::Packager::Resource::Type,
+    };
+    Package->Head   = Head;
+    Package->Body   = Body;
+    MugenX::Connector->SendPackage( Package );
+}
+
+bool Packager::DispatchTaskHistory( Util::Packager::PPackage Package )
+{
+    switch ( Package->Body.SubEvent )
+    {
+        case Util::Packager::TaskHistory::Sync:
+        {
+            auto agentID  = QString( Package->Body.Info[ "AgentID" ].c_str() );
+            auto tasksStr = QString( Package->Body.Info[ "Tasks"   ].c_str() );
+
+            auto doc   = QJsonDocument::fromJson( tasksStr.toUtf8() );
+            auto tasks = doc.array();
+
+            for ( auto& session : MugenX::Teamserver.Sessions )
+            {
+                if ( session.Name.compare( agentID ) == 0 )
+                {
+                    if ( session.InteractedWidget )
+                        session.InteractedWidget->replayHistory( tasks );
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    return true;
+}
+
+auto NewPackageTaskHistory( const QString& TeamserverName, Util::Packager::Body_t Body ) -> void
+{
+    auto Package    = new Util::Packager::Package;
+    auto Head       = Util::Packager::Head_t {
+        .Event = Util::Packager::TaskHistory::Type,
     };
     Package->Head   = Head;
     Package->Body   = Body;

@@ -179,6 +179,16 @@ void MugenNamespace::UserInterface::Widgets::TeamserverTabSession::setupUi( QWid
 
                 MugenX::Teamserver.TabSession->NewBottomTab( Session.InteractedWidget->DemonInteractedWidget, tabName.toStdString() );
                 Session.InteractedWidget->lineEdit->setFocus();
+
+                // Charger l'historique si pas encore fait pour cette session
+                if ( !Session.InteractedWidget->HistoryFetched )
+                {
+                    Session.InteractedWidget->HistoryFetched = true;
+                    Util::Packager::Body_t body;
+                    body.SubEvent          = Util::Packager::TaskHistory::List;
+                    body.Info[ "AgentID" ] = Session.Name.toStdString();
+                    NewPackageTaskHistory( this->TeamserverName, body );
+                }
             }
         }
     } );

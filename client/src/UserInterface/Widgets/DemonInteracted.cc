@@ -4,6 +4,7 @@
 #include <UserInterface/Widgets/NetworkingWidget.hpp>
 #include <UserInterface/Widgets/TeamserverTabSession.h>
 #include <Mugen/Service.hpp>
+#include <Mugen/Packager.hpp>
 #include <Util/ColorText.h>
 #include <QTimer>
 
@@ -17,9 +18,219 @@
 #include <QShortcut>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <QMenu>
+#include <QAction>
+#include <QMouseEvent>
+#include <QInputDialog>
+#include <QMessageBox>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QTextBrowser>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QTextBlock>
+#include <QStyle>
 
 using namespace MugenNamespace::UserInterface::Widgets;
 using namespace MugenNamespace::Util;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ConsoleTextEdit - QTextEdit with per-task ⋯ button overlay
+// ══════════════════════════════════════════════════════════════════════════════
+
+ConsoleTextEdit::ConsoleTextEdit(QWidget* parent)
+    : QTextEdit(parent)
+{
+    setReadOnly(true);
+    setLineWrapMode(QTextEdit::NoWrap);
+    viewport()->setMouseTracking(true);
+
+    menuBtn = new QToolButton(viewport());
+    menuBtn->setText("···");
+    menuBtn->setFixedSize(28, 18);
+    menuBtn->setStyleSheet(
+        "QToolButton {"
+        "  background: #2a2a3f;"
+        "  color: #ff6b9d;"
+        "  border: 1px solid #44475a;"
+        "  border-radius: 3px;"
+        "  font-size: 10px;"
+        "  padding: 0;"
+        "}"
+        "QToolButton:hover { background: #3a2a3f; }"
+    );
+    menuBtn->hide();
+
+    connect(menuBtn, &QToolButton::clicked, this, [this]() {
+        showMenu(hoveredTask);
+    });
+}
+
+void ConsoleTextEdit::beginTask(const QString& taskID)
+{
+    TaskBlock b;
+    b.startBlock = document()->blockCount();
+    b.taskID     = taskID;
+    taskBlocks.append(b);
+}
+
+void ConsoleTextEdit::resetBlocks()
+{
+    taskBlocks.clear();
+    hoveredTask = -1;
+    menuBtn->hide();
+    clear();
+}
+
+void ConsoleTextEdit::updateComment(const QString& taskID, const QString& comment)
+{
+    for (auto& b : taskBlocks) {
+        if (b.taskID == taskID) {
+            b.comment = comment;
+            break;
+        }
+    }
+}
+
+int ConsoleTextEdit::taskAtBlock(int blockNumber) const
+{
+    // return the index of the task whose block range contains blockNumber
+    for (int i = taskBlocks.size() - 1; i >= 0; --i) {
+        if (taskBlocks[i].startBlock <= blockNumber)
+            return i;
+    }
+    return -1;
+}
+
+void ConsoleTextEdit::repositionBtn(int taskIdx)
+{
+    if (taskIdx < 0 || taskIdx >= taskBlocks.size()) {
+        menuBtn->hide();
+        return;
+    }
+    QTextBlock blk = document()->findBlockByNumber(taskBlocks[taskIdx].startBlock);
+    if (!blk.isValid()) {
+        menuBtn->hide();
+        return;
+    }
+    QTextCursor cur(blk);
+    QRect r = cursorRect(cur);
+    int x = viewport()->width() - menuBtn->width() - 2;
+    int y = r.top();
+    menuBtn->move(x, y);
+    menuBtn->show();
+    menuBtn->raise();
+}
+
+void ConsoleTextEdit::showMenu(int taskIdx)
+{
+    if (taskIdx < 0 || taskIdx >= taskBlocks.size()) return;
+    const TaskBlock& task = taskBlocks[taskIdx];
+
+    QMenu menu(this);
+    menu.setStyleSheet(
+        "QMenu {"
+        "  background: #1a1a27;"
+        "  color: #f0f0ee;"
+        "  border: 1px solid #44475a;"
+        "}"
+        "QMenu::item:selected { background: #ff6b9d44; }"
+    );
+
+    QAction* searchAct  = menu.addAction("Search in output");
+    QAction* commentAct = menu.addAction("Comment");
+    menu.addSeparator();
+    QAction* deleteAct  = menu.addAction("Delete");
+    deleteAct->setIcon(style()->standardIcon(QStyle::SP_TrashIcon));
+
+    QAction* chosen = menu.exec(QCursor::pos());
+    if (!chosen) return;
+
+    if (chosen == searchAct) {
+        // Extract task's text range and show search popup
+        int startBlk = task.startBlock;
+        int endBlk   = (taskIdx + 1 < taskBlocks.size())
+                        ? taskBlocks[taskIdx + 1].startBlock - 1
+                        : document()->blockCount() - 1;
+
+        QString text;
+        for (int b = startBlk; b <= endBlk; b++) {
+            QTextBlock blk = document()->findBlockByNumber(b);
+            if (blk.isValid())
+                text += blk.text() + "\n";
+        }
+
+        auto* dlg      = new QDialog(this);
+        dlg->setWindowTitle("Search - " + task.taskID);
+        dlg->resize(700, 450);
+        auto* vl       = new QVBoxLayout(dlg);
+        auto* searchIn = new QLineEdit;
+        searchIn->setPlaceholderText("Search...");
+        searchIn->setStyleSheet(
+            "QLineEdit { background:#1a1a27; color:#f0f0ee;"
+            "  border:1px solid #44475a; border-radius:4px; padding:4px 8px; }"
+        );
+        auto* browser  = new QTextBrowser;
+        browser->setFont(QFont("Monospace", 10));
+        browser->setStyleSheet(
+            "QTextBrowser { background:#0d0d17; color:#f0f0ee; border:none; }");
+        browser->setPlainText(text);
+        vl->addWidget(searchIn);
+        vl->addWidget(browser);
+
+        connect(searchIn, &QLineEdit::textChanged, browser, [browser, text](const QString& q) {
+            if (q.isEmpty()) {
+                browser->setPlainText(text);
+                return;
+            }
+            QStringList lines = text.split('\n');
+            QStringList hits;
+            for (const auto& l : lines)
+                if (l.contains(q, Qt::CaseInsensitive))
+                    hits << l;
+            browser->setPlainText(hits.join('\n'));
+        });
+
+        dlg->setAttribute(Qt::WA_DeleteOnClose);
+        dlg->show();
+
+    } else if (chosen == commentAct) {
+        if (onComment) onComment(task.taskID, task.comment);
+    } else if (chosen == deleteAct) {
+        if (onDelete) onDelete(task.taskID);
+    }
+}
+
+void ConsoleTextEdit::mouseMoveEvent(QMouseEvent* e)
+{
+    QTextEdit::mouseMoveEvent(e);
+    QTextCursor cur = cursorForPosition(e->pos());
+    int blkNum = cur.block().blockNumber();
+    int idx    = taskAtBlock(blkNum);
+    if (idx != hoveredTask) {
+        hoveredTask = idx;
+        repositionBtn(idx);
+    }
+}
+
+void ConsoleTextEdit::leaveEvent(QEvent* e)
+{
+    QTextEdit::leaveEvent(e);
+    // Keep button visible if mouse moved onto it
+    if (!menuBtn->underMouse()) {
+        menuBtn->hide();
+        hoveredTask = -1;
+    }
+}
+
+void ConsoleTextEdit::resizeEvent(QResizeEvent* e)
+{
+    QTextEdit::resizeEvent(e);
+    if (menuBtn->isVisible() && hoveredTask >= 0)
+        repositionBtn(hoveredTask);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 
 DemonInteracted::DemonInput::DemonInput( QWidget* parent ) : QLineEdit( parent )
 {
@@ -124,10 +335,8 @@ void DemonInteracted::setupUi( QWidget *Form )
 
     gridLayout->addWidget( lineEdit, 3, 1, 1, 1 );
 
-    Console = new QTextEdit(Form);
+    Console = new ConsoleTextEdit(Form);
     Console->setObjectName(QString::fromUtf8("Console"));
-    Console->setReadOnly(true);
-    Console->setLineWrapMode( QTextEdit::LineWrapMode::NoWrap );
     Console->setStyleSheet(
             "background-color: "+Util::ColorText::Colors::Hex::Background+";"
             + "color: "+Util::ColorText::Colors::Hex::Foreground+";"
@@ -216,6 +425,51 @@ void DemonInteracted::setupUi( QWidget *Form )
     } else {
         label_2->setText( "[" + this->SessionInfo.User + "/" + this->SessionInfo.Computer + "] " + this->SessionInfo.Process + "/" + this->SessionInfo.PID + " " + this->SessionInfo.Arch + " ("+ this->SessionInfo.Domain + ")" );
     }
+
+    // ── Console task action callbacks ───────────────────────────────────────
+    Console->onSearch = [this]() {
+        showSearch();
+    };
+
+    Console->onComment = [this](const QString& taskID, const QString& current) {
+        bool ok = false;
+        QString comment = QInputDialog::getText(
+            this, "Comment",
+            "Add a comment for this task:",
+            QLineEdit::Normal, current, &ok
+        );
+        if (!ok) return;
+
+        Console->updateComment(taskID, comment);
+
+        Util::Packager::Body_t body;
+        body.SubEvent        = Util::Packager::TaskHistory::SetComment;
+        body.Info["TaskID"]  = taskID.toStdString();
+        body.Info["Comment"] = comment.toStdString();
+        NewPackageTaskHistory(this->TeamserverName, body);
+    };
+
+    Console->onDelete = [this](const QString& taskID) {
+        auto reply = QMessageBox::question(
+            this, "Delete task",
+            "Remove this task from history? This cannot be undone.",
+            QMessageBox::Yes | QMessageBox::No
+        );
+        if (reply != QMessageBox::Yes) return;
+
+        Util::Packager::Body_t body;
+        body.SubEvent       = Util::Packager::TaskHistory::Delete;
+        body.Info["TaskID"] = taskID.toStdString();
+        NewPackageTaskHistory(this->TeamserverName, body);
+
+        // Recharger l'historique après suppression
+        HistoryFetched = false;
+        Util::Packager::Body_t listBody;
+        listBody.SubEvent          = Util::Packager::TaskHistory::List;
+        listBody.Info["AgentID"]   = this->SessionInfo.Name.toStdString();
+        NewPackageTaskHistory(this->TeamserverName, listBody);
+        HistoryFetched = true;
+    };
 
     DemonCommands = new MugenSpace::DemonCommands;
     DemonCommands->Teamserver = this->TeamserverName;
@@ -570,4 +824,69 @@ void DemonInteracted::searchPrev()
     SearchIndex = ( SearchIndex - 1 + SearchHighlights.size() ) % SearchHighlights.size();
     Console->setTextCursor( SearchHighlights[SearchIndex].cursor );
     SearchCount->setText( QString( "%1/%2" ).arg( SearchIndex + 1 ).arg( SearchHighlights.size() ) );
+}
+
+void DemonInteracted::showEvent( QShowEvent* e )
+{
+    QWidget::showEvent( e );
+
+    // Demande l'historique au serveur la première fois que la console est affichée
+    // OU si la console est vide (ex: après un restart serveur avec reconnexion).
+    if ( !HistoryFetched && Console && !TeamserverName.isEmpty() && !SessionInfo.Name.isEmpty() )
+    {
+        HistoryFetched = true;
+        Util::Packager::Body_t body;
+        body.SubEvent          = Util::Packager::TaskHistory::List;
+        body.Info[ "AgentID" ] = SessionInfo.Name.toStdString();
+        NewPackageTaskHistory( TeamserverName, body );
+    }
+}
+
+void DemonInteracted::replayHistory( const QJsonArray& tasks )
+{
+    // Reset console + task tracking, then replay
+    Console->resetBlocks();
+
+    // Reapply stylesheet (clear() resets it)
+    Console->setStyleSheet(
+        "background-color: " + Util::ColorText::Colors::Hex::Background + ";"
+        + "color: " + Util::ColorText::Colors::Hex::Foreground + ";"
+    );
+
+    for ( const auto& val : tasks )
+    {
+        if ( !val.isObject() ) continue;
+        QJsonObject task = val.toObject();
+
+        QString taskID    = task["TaskID"].toString();
+        QString op        = task["Operator"].toString();
+        QString cmdLine   = task["CommandLine"].toString();
+        QString output    = task["Output"].toString();
+        QString comment   = task["Comment"].toString();
+        QString ts        = task["Timestamp"].toString();
+        QString agentType = task["AgentType"].toString();
+
+        // Build prompt exactly like the live prompt
+        QString prompt =
+            Util::ColorText::Comment( ts + " [" + op + "]" ) +
+            " " + Util::ColorText::UnderlinePink( agentType ) +
+            Util::ColorText::Cyan( " » " ) + cmdLine.toHtmlEscaped();
+
+        // Mark start of task
+        Console->beginTask( taskID );
+        if ( !comment.isEmpty() )
+            Console->updateComment( taskID, comment );
+
+        AppendRaw();            // empty separator line
+        AppendRaw( prompt );    // command prompt
+
+        // Replay output line by line
+        if ( !output.isEmpty() )
+        {
+            for ( const auto& line : output.split( '\n' ) )
+                AppendRaw( line.toHtmlEscaped() );
+        }
+    }
+
+    Console->verticalScrollBar()->setValue( Console->verticalScrollBar()->maximum() );
 }
