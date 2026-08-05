@@ -2898,7 +2898,7 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 								}
 							}
 
-							for (ItemsLeft > 0 && ((ListOnly && Parser.CanIRead([]parser.ReadType{parser.ReadBytes})) || (!ListOnly && Parser.CanIRead([]parser.ReadType{parser.ReadBytes, parser.ReadBool, parser.ReadInt64, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32})))) {
+							for (ItemsLeft > 0 && ((ListOnly && Parser.CanIRead([]parser.ReadType{parser.ReadBytes})) || (!ListOnly && Parser.CanIRead([]parser.ReadType{parser.ReadBytes, parser.ReadBool, parser.ReadInt64, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32})))) {
 
 								var (
 									FileName         = Parser.ParseUTF16String()
@@ -2909,11 +2909,11 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 									LastAccessYear   = 0
 									LastAccessMinute = 0
 									LastAccessHour   = 0
+									Attributes       = 0
 
 									Size         string
 									Type         string
 									LastModified string
-									DirText      string
 								)
 
 								if !ListOnly {
@@ -2924,6 +2924,7 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 									LastAccessYear   = Parser.ParseInt32()
 									LastAccessMinute = Parser.ParseInt32()
 									LastAccessHour   = Parser.ParseInt32()
+									Attributes       = Parser.ParseInt32()
 								}
 
 								ReadOne = true
@@ -2932,24 +2933,32 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 									Dir += fmt.Sprintf("%s%s\n", RootDirPath[:len(RootDirPath)-1], FileName)
 								} else {
 									LastModified = fmt.Sprintf("%02d/%02d/%d  %02d:%02d", LastAccessDay, LastAccessMonth, LastAccessYear, LastAccessHour, LastAccessMinute)
+
+									// Attributs Windows: d=Directory r=ReadOnly h=Hidden s=System a=Archive
+									attrD := '-'; if Attributes & 0x10 != 0 { attrD = 'd' }
+									attrR := '-'; if Attributes & 0x01 != 0 { attrR = 'r' }
+									attrH := '-'; if Attributes & 0x02 != 0 { attrH = 'h' }
+									attrS := '-'; if Attributes & 0x04 != 0 { attrS = 's' }
+									attrA := '-'; if Attributes & 0x20 != 0 { attrA = 'a' }
+									AttrStr := fmt.Sprintf("%c%c%c%c%c", attrD, attrR, attrH, attrS, attrA)
+
 									if IsDir {
 										Type = "dir"
-										DirText = "<DIR>"
-										Size    = ""
+										Size = ""
 									} else {
-										DirText = ""
-										Size    = common.ByteCountSI(int64(FileSize))
+										Size = common.ByteCountSI(int64(FileSize))
 									}
 
 									if Explorer {
 										DirArr = append(DirArr, map[string]string{
-											"Type":     Type,
-											"Size":     Size,
-											"Modified": LastModified,
-											"Name":     FileName,
+											"Type":        Type,
+											"Size":        Size,
+											"Modified":    LastModified,
+											"Name":        FileName,
+											"Permissions": AttrStr,
 										})
 									} else {
-										Dir += fmt.Sprintf("%-17s    %-5s  %-12s   %-8s\n", LastModified, DirText, Size, FileName)
+										Dir += fmt.Sprintf("%-5s  %-17s  %-12s   %-8s\n", AttrStr, LastModified, Size, FileName)
 									}
 								}
 

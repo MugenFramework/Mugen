@@ -75,8 +75,9 @@ namespace MugenNamespace::UserInterface::Widgets
         ConsoleTextEdit*            Console;
         QCompleter*                 CommandCompleter;
         QStringList                 CompleterCommands;
-        QString                     AgentTypeName   = "Demon";
-        bool                        HistoryFetched  = false;
+        QString                     AgentTypeName        = "Demon";
+        bool                        HistoryFetched       = false;
+        QString                     ConsoleInitialMessage;
 
         class DemonInput : public QLineEdit
         {

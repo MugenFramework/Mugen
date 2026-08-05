@@ -437,6 +437,8 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::NewSessionItem( Util:
 
             prev_cursor = Session.InteractedWidget->Console->textCursor();
 
+            Session.InteractedWidget->ConsoleInitialMessage = AgentMessageInfo;
+
             Session.InteractedWidget->Console->moveCursor( QTextCursor::End );
             Session.InteractedWidget->Console->insertHtml( AgentMessageInfo );
 

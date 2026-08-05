@@ -1,6 +1,8 @@
 #include <global.hpp>
 
 #include <UserInterface/Widgets/FileBrowser.hpp>
+#include <QFont>
+#include <QPushButton>
 #include <UserInterface/Widgets/DemonInteracted.h>
 #include <Mugen/Tengu/TenguCmdDispatch.h>
 
@@ -113,12 +115,18 @@ void FileBrowser::setupUi( QWidget* FileBrowser )
     TableFileBrowser->verticalHeader()->setDefaultSectionSize( 28 );
     TableFileBrowser->setFocusPolicy( Qt::NoFocus );
 
-    if ( TableFileBrowser->columnCount() < 3 )
-        TableFileBrowser->setColumnCount( 3 );
+    if ( TableFileBrowser->columnCount() < 5 )
+        TableFileBrowser->setColumnCount( 5 );
 
-    TableFileBrowser->setHorizontalHeaderItem( 0, new QTableWidgetItem( "Name" ) );
-    TableFileBrowser->setHorizontalHeaderItem( 1, new QTableWidgetItem( "Size" ) );
-    TableFileBrowser->setHorizontalHeaderItem( 2, new QTableWidgetItem( "Modified" ) );
+    // Col 0 : bouton → (fixe, seulement pour les dossiers)
+    // Col 1 : Name  2 : Permissions  3 : Size  4 : Modified
+    TableFileBrowser->setHorizontalHeaderItem( 0, new QTableWidgetItem( "" ) );
+    TableFileBrowser->setHorizontalHeaderItem( 1, new QTableWidgetItem( "Name" ) );
+    TableFileBrowser->setHorizontalHeaderItem( 2, new QTableWidgetItem( "Permissions" ) );
+    TableFileBrowser->setHorizontalHeaderItem( 3, new QTableWidgetItem( "Size" ) );
+    TableFileBrowser->setHorizontalHeaderItem( 4, new QTableWidgetItem( "Modified" ) );
+    TableFileBrowser->horizontalHeader()->setSectionResizeMode( 0, QHeaderView::Fixed );
+    TableFileBrowser->setColumnWidth( 0, 30 );
 
     formLayout->setWidget( 1, QFormLayout::SpanningRole, TableFileBrowser );
 
@@ -208,16 +216,18 @@ void FileBrowser::AddData( QJsonDocument JsonData )
         {
             if ( data.isObject() )
             {
-                auto Type     = data.toObject()[ "Type" ].toString();
-                auto Name     = data.toObject()[ "Name" ].toString();
-                auto Size     = data.toObject()[ "Size" ].toString();
-                auto Modified = data.toObject()[ "Modified" ].toString();
+                auto Type        = data.toObject()[ "Type" ].toString();
+                auto Name        = data.toObject()[ "Name" ].toString();
+                auto Size        = data.toObject()[ "Size" ].toString();
+                auto Modified    = data.toObject()[ "Modified" ].toString();
+                auto Permissions = data.toObject()[ "Permissions" ].toString();
                 auto fileData = FileData{
-                        .Path     = Path,
-                        .Type     = Type,
-                        .Name     = Name,
-                        .Size     = Size,
-                        .Modified = Modified,
+                        .Path        = Path,
+                        .Type        = Type,
+                        .Name        = Name,
+                        .Size        = Size,
+                        .Modified    = Modified,
+                        .Permissions = Permissions,
                 };
 
                 Data.Files.push_back( fileData );
@@ -248,9 +258,10 @@ void FileBrowser::TreeAddData( FileData Data )
 
 void FileBrowser::TableAddData( FileData Data )
 {
-    auto ItemName     = new FileBrowserTableItem();
-    auto ItemSize     = new FileBrowserTableItem();
-    auto ItemModified = new FileBrowserTableItem();
+    auto ItemName        = new FileBrowserTableItem();
+    auto ItemPermissions = new FileBrowserTableItem();
+    auto ItemSize        = new FileBrowserTableItem();
+    auto ItemModified    = new FileBrowserTableItem();
 
     if ( TableFileBrowser->rowCount() < 1 )
         TableFileBrowser->setRowCount( 1 );
@@ -266,6 +277,11 @@ void FileBrowser::TableAddData( FileData Data )
     ItemName->setFlags( ItemName->flags() ^ Qt::ItemIsEditable );
     ItemName->setTextAlignment( Qt::AlignLeft );
 
+    ItemPermissions->setText( Data.Permissions );
+    ItemPermissions->setFlags( ItemPermissions->flags() ^ Qt::ItemIsEditable );
+    ItemPermissions->setTextAlignment( Qt::AlignLeft );
+    ItemPermissions->setFont( QFont( "Monospace", 9 ) );
+
     ItemSize->setText( Data.Size );
     ItemSize->setFlags( ItemSize->flags() ^ Qt::ItemIsEditable );
     ItemSize->setTextAlignment( Qt::AlignLeft );
@@ -274,18 +290,40 @@ void FileBrowser::TableAddData( FileData Data )
     ItemModified->setFlags( ItemModified->flags() ^ Qt::ItemIsEditable );
     ItemModified->setTextAlignment( Qt::AlignLeft );
 
-    ItemName->Data     = Data;
-    ItemSize->Data     = Data;
-    ItemModified->Data = Data;
+    ItemName->Data        = Data;
+    ItemPermissions->Data = Data;
+    ItemSize->Data        = Data;
+    ItemModified->Data    = Data;
 
-    TableFileBrowser->setItem( TableFileBrowser->rowCount() - 1, 0, ItemName );
-    TableFileBrowser->setItem( TableFileBrowser->rowCount() - 1, 1, ItemSize );
-    TableFileBrowser->setItem( TableFileBrowser->rowCount() - 1, 2, ItemModified );
+    int row = TableFileBrowser->rowCount() - 1;
+
+    // Col 0 : bouton → visible en permanence pour les dossiers
+    if ( Data.Type.compare( "dir" ) == 0 )
+    {
+        auto navPath = Data.Path + ( IsTengu ? "/" : "\\" ) + Data.Name;
+        auto* navBtn = new QPushButton( "→" );
+        navBtn->setFixedSize( 24, 22 );
+        navBtn->setStyleSheet(
+            "QPushButton { background: transparent; border: none; color: #ff6b9d; font-size: 14px; }"
+            "QPushButton:hover { color: #ffffff; }"
+        );
+        navBtn->setToolTip( "Ouvrir " + Data.Name );
+        connect( navBtn, &QPushButton::clicked, this, [this, navPath]() {
+            TableClear();
+            ChangePathAndSendRequest( navPath );
+        });
+        TableFileBrowser->setCellWidget( row, 0, navBtn );
+    }
+
+    TableFileBrowser->setItem( row, 1, ItemName );
+    TableFileBrowser->setItem( row, 2, ItemPermissions );
+    TableFileBrowser->setItem( row, 3, ItemSize );
+    TableFileBrowser->setItem( row, 4, ItemModified );
 }
 
 void FileBrowser::onTableDoubleClick( int row, int column )
 {
-    auto Item = ( ( FileBrowserTableItem* ) TableFileBrowser->item( row, column ) );
+    auto Item = ( ( FileBrowserTableItem* ) TableFileBrowser->item( row, 1 ) );
 
     if ( Item->Data.Type.compare( "dir" ) == 0 )
     {
@@ -344,7 +382,7 @@ void FileBrowser::onButtonUp()
     ChangePathAndSendRequest( Path );
 }
 void FileBrowser::onTableMenuDownload(){
-    auto Item = ( ( FileBrowserTableItem* ) TableFileBrowser->item( TableFileBrowser->currentRow(), 0 ) );
+    auto Item = ( ( FileBrowserTableItem* ) TableFileBrowser->item( TableFileBrowser->currentRow(), 1 ) );
 
     if ( Item->Data.Type.compare( "dir" ) == 0 )
     {
@@ -388,10 +426,39 @@ void FileBrowser::onTableMenuDownload(){
 
 void FileBrowser::onTableContextMenu( const QPoint &pos )
 {
-    if ( ! TableFileBrowser->itemAt( pos ) )
+    auto item = TableFileBrowser->itemAt( pos );
+    if ( !item )
         return;
 
-    MenuFileBrowserTable->popup( TableFileBrowser->horizontalHeader()->viewport()->mapToGlobal( pos ) );
+    auto dataItem = dynamic_cast<FileBrowserTableItem*>( TableFileBrowser->item( item->row(), 1 ) );
+    if ( !dataItem )
+        return;
+
+    auto menu    = new QMenu( this );
+    auto isDir   = dataItem->Data.Type.compare( "dir" ) == 0;
+    auto menuStyle = QString(
+        "QMenu { background-color: #111118; color: #f0f0ee; border: 1px solid #2a2a3f; }"
+        "QMenu::item:selected { background: #2a2a3f; }"
+    );
+    menu->setStyleSheet( menuStyle );
+
+    if ( isDir )
+    {
+        menu->addAction( "Ouvrir", this, [this, dataItem]() {
+            QString sep  = IsTengu ? "/" : "\\";
+            QString path = dataItem->Data.Path + sep + dataItem->Data.Name;
+            TableClear();
+            ChangePathAndSendRequest( path );
+        });
+    }
+    else
+    {
+        menu->addAction( "Download", this, &FileBrowser::onTableMenuDownload );
+    }
+    menu->addSeparator();
+    menu->addAction( "Reload", this, &FileBrowser::onTableMenuReload );
+
+    menu->popup( TableFileBrowser->viewport()->mapToGlobal( pos ) );
 }
 
 void FileBrowser::onTreeContextMenu( const QPoint &pos )
@@ -409,7 +476,7 @@ void FileBrowser::onTableMenuMkdir()
 
 void FileBrowser::onTableMenuReload()
 {
-    auto Item = ( ( FileBrowserTableItem* ) TableFileBrowser->item( TableFileBrowser->currentRow(), 0 ) );
+    auto Item = ( ( FileBrowserTableItem* ) TableFileBrowser->item( TableFileBrowser->currentRow(), 1 ) );
     if ( !Item->Data.Path.isEmpty() )
     {
         QString Path = Item->Data.Path;

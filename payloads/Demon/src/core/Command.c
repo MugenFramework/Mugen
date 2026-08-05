@@ -776,6 +776,7 @@ VOID CommandFS( PPARSER Parser )
                             PackageAddInt32( Package, DirOrFile->FileTime.wYear );
                             PackageAddInt32( Package, DirOrFile->SystemTime.wMinute );
                             PackageAddInt32( Package, DirOrFile->SystemTime.wHour );
+                            PackageAddInt32( Package, (INT32)DirOrFile->Attributes );
                         }
 
                         TmpDirOrFile = DirOrFile->Next;

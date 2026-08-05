@@ -28,6 +28,7 @@ typedef struct
     QString Name;
     QString Size;
     QString Modified;
+    QString Permissions;
 } FileData;
 
 typedef struct _FileDirData

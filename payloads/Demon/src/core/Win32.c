@@ -1647,7 +1647,8 @@ PROOT_DIR listDir(
         Instance->Win32.FileTimeToSystemTime( &FindData.ftLastAccessTime, &DirOrFile->FileTime );
         Instance->Win32.SystemTimeToTzSpecificLocalTime( 0, &DirOrFile->FileTime, &DirOrFile->SystemTime );
 
-        DirOrFile->IsDir = IsDir;
+        DirOrFile->IsDir      = IsDir;
+        DirOrFile->Attributes = FindData.dwFileAttributes;
 
         if ( DirOrFile->IsDir )
         {
