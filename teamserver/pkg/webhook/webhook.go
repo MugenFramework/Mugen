@@ -42,8 +42,12 @@ func (w *WebHook) NewAgent(agent map[string]any) error {
 
 		AgentInfo = agent["Info"].(map[string]any)
 
-		message.AvatarUrl = &w.Discord.Avatar
-		message.Username = &w.Discord.User
+		if w.Discord.Avatar != "" {
+			message.AvatarUrl = &w.Discord.Avatar
+		}
+		if w.Discord.User != "" {
+			message.Username = &w.Discord.User
+		}
 		message.Embeds = new([]Embed)
 
 		embed.Title = StringPtr("New Agent Initialized")

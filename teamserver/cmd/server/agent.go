@@ -109,7 +109,9 @@ func (t *Teamserver) AgentHasDied(Agent *agent.Agent) bool {
 func (t *Teamserver) AgentAdd(Agent *agent.Agent) []*agent.Agent {
 	if Agent != nil {
 		if t.WebHooks != nil {
-			t.WebHooks.NewAgent(Agent.ToMap())
+			if err := t.WebHooks.NewAgent(Agent.ToMap()); err != nil {
+				logger.Error("Webhook error: " + err.Error())
+			}
 		}
 	}
 
