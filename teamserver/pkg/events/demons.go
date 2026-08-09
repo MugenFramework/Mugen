@@ -45,6 +45,7 @@ func (demons) NewDemon(Agent *agent.Agent) packager.Package {
 		"Listener": Agent.Info.ListenerName,
 		"MagicValue": fmt.Sprintf("%x", Agent.Info.MagicValue),
 		"NameID": Agent.DisplayID,
+		"Alias": Agent.Alias,
 		"OSArch": Agent.Info.OSArch,
 		"OSBuild": Agent.Info.OSBuild,
 		"OSVersion": Agent.Info.OSVersion,
@@ -129,6 +130,21 @@ func (demons) UpdateSession(AgentID, Username string) packager.Package {
 
 	Package.Body.Info["AgentID"]  = AgentID
 	Package.Body.Info["Username"] = Username
+
+	return Package
+}
+
+func (demons) SetAlias(AgentID, Alias string) packager.Package {
+	var Package packager.Package
+
+	Package.Head.Event = packager.Type.Session.Type
+	Package.Head.Time = time.Now().Format("02/01/2006 15:04:05")
+
+	Package.Body.SubEvent = packager.Type.Session.SetAlias
+	Package.Body.Info = make(map[string]interface{})
+
+	Package.Body.Info["AgentID"] = AgentID
+	Package.Body.Info["Alias"]   = Alias
 
 	return Package
 }

@@ -235,6 +235,7 @@ namespace MugenNamespace
 
             QString TeamserverID;
             QString Name;
+            QString Alias;
             u64     MagicValue;
             QString External;
             QString Internal;

@@ -68,6 +68,7 @@ void Util::SessionItem::Export()
                 auto SessionData = QJsonObject();
 
                 SessionData.insert( "AgentID",          QJsonValue::fromVariant( Name ) );
+                SessionData.insert( "Alias",            QJsonValue::fromVariant( Alias ) );
                 SessionData.insert( "MagicValue",       QJsonValue::fromVariant( (int) MagicValue ) );
                 SessionData.insert( "ExternalIP",       QJsonValue::fromVariant( External ) );
                 SessionData.insert( "InternalIP",       QJsonValue::fromVariant( Internal ) );

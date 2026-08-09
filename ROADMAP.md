@@ -56,9 +56,9 @@ This document tracks planned features, improvements, and long-term goals for the
 
 ---
 
-## v0.2 - general improvements + network evasion
+## v0.2 - general improvements + operational capabilities
 
-> v0.1 and v0.2 are general improvement releases. Goal: make the framework solid and operational before tackling the big items. Network evasion moves up in priority - it is a prerequisite for a serious red team tool in 2026.
+> v0.1 and v0.2 are general improvement releases. Goal: make the framework solid and operational before tackling the big items.
 
 ### Network evasion (high priority)
 
@@ -75,18 +75,11 @@ This document tracks planned features, improvements, and long-term goals for the
 
 ### Demon (Windows agent)
 
-- [ ] **Crystal Palace loader integration** - modular evasion layer via [Crystal-Havoc](https://github.com/calv004/Crystal-Havoc) (Calvin Roth, MIT): callstack spoofing + indirect syscalls as a swappable layer, decoupled from the Demon implant core
-- [ ] **Module stomping** - overwrite the `.text` section of a legitimate DLL instead of allocating RWX memory
-- [ ] **Stack spoofing** - synthetic call stack during sleep via fibers or CFG bypass
-- [ ] **ETW provider unhooking** - disable per provider instead of a global patch
-- [ ] **Heap encryption during sleep** - encrypt implant heap alongside stack duplication
-- [ ] **Sleep callback obfuscation** - mask the call stack during sleep via timer callbacks (Foliage/Cronos style) instead of thread suspension; complements heap encryption
-- [ ] **Threadless injection** - overwrite return addresses or APC without `CreateRemoteThread`
-- [ ] **Custom reflective loader** - replace the PE-Sieve-visible Reflective DLL with a custom loader
-- [ ] **PIC shellcode conversion** - full position-independent shellcode format for Demon (no import table, RIP-relative addressing); logical evolution of the custom reflective loader, inspired by Jhin
+- [ ] **Crystal Palace loader integration** - modular evasion layer via [Crystal-Havoc](https://github.com/calv004/Crystal-Havoc) (Calvin Roth, MIT), decoupled from the Demon implant core; operators plug it in if they need it
+- [ ] **Custom reflective loader** - replace the Havoc-inherited reflective loader with a clean Mugen implementation
+- [ ] **PIC shellcode conversion** - full position-independent shellcode format for Demon (no import table, RIP-relative addressing); makes Demon compatible with any external loader, packer, or crypter
 - [ ] **ChaCha20 application-layer encryption** - encrypt Demon frames before sending regardless of transport, matching what Tengu already has; key generated at payload build time
 - [ ] **In-memory .NET assembly execution** - `execute-assembly` style, fork-and-run in a sacrificial process, output streamed back via named pipe
-- [ ] **Improved PPID spoofing** - inherit handles and env in addition to parent process
 - [ ] **Token vault** - store multiple stolen tokens in-memory (named), switch between them without returning to the source process, list with privilege level; auto-impersonate on child spawn; `make_token` from credentials without touching LSASS
 
 ### Arsenal Kit
@@ -126,7 +119,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [ ] **Operator presence** - show in real time which agents other connected operators are interacting with
 - [ ] **Multi-teamserver** - connect to multiple teamservers simultaneously from a single client
 - [ ] **File transfer progress** - progress bar and size estimate for uploads and downloads
-- [ ] **Agent aliasing** - assign a short human-readable name to an agent (e.g. `dc01-system`), shown in the session table alongside the ID
+- [x] **Agent aliasing** - assign a short human-readable name to an agent (e.g. `dc01-system`), shown in the session table alongside the ID; stored teamserver-side so every operator sees it, and it survives reconnects and server restarts
 - [ ] **Agent timeline** - chronological view of all tasks and outputs for a single agent; useful for post-engagement reconstruction
 
 ### Networking (agent right-click)
@@ -148,6 +141,22 @@ This document tracks planned features, improvements, and long-term goals for the
 - [ ] **Go module API** - new Go API: plugins compiled as `.so` loaded dynamically by the teamserver, or native embedded modules
 - [ ] **Port existing modules** - rewrite current Python modules in Go (SituationalAwareness, persistence, privesc)
 - [ ] **Go plugin SDK** - documentation and stable interface for writing Mugen modules in Go
+
+### Client UI refactor (exploratory)
+
+- [ ] **Sidebar navigation** - replace the current mini-navbar with a persistent left sidebar for primary sections (sessions, callbacks, resource manager, loot, script manager, etc.); top navbar kept but stripped down to Mugen menu, theme toggle, and About only; improves discoverability and reduces navbar clutter - *idea to be refined*
+
+### Client stability
+
+- [ ] **WebSocket heartbeat** - 30-minute Qt timer that sends a ping to the teamserver to prevent idle WebSocket disconnects (reverse proxy / server-side timeout); inherited Havoc client has no keepalive mechanism
+- [ ] **Null-safety in packet handler** - check that `Packager` is initialized before dispatching a received packet; a race between connect and the first server message crashes the client
+- [ ] **Package memory management** - `DecodePackage` allocates with `new`; the result is never freed after `DispatchPackage` returns; fix the leak and add the delete in the handler
+- [ ] **Exception wrappers in WebSocket handlers** - `binaryMessageReceived` and `connected` have no try/catch; a malformed packet or any exception in the dispatch chain crashes the client; wrap in try/catch and log instead
+
+### Security hardening
+
+- [ ] **Per-IP brute-force protection** - exponential backoff on failed auth attempts (per IP, not per username to avoid lockouts), auto-decay after inactivity, memory-only; closes the raw WebSocket bruteforce gap
+- [ ] **Per-session unique key exchange** - replace the inherited static/fingerprinted Havoc KEX with a per-agent HMAC-based derivation + HKDF key expansion; eliminates the static network signature shared across all Demon agents
 
 ### Progressive Havoc code replacement
 

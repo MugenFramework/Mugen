@@ -855,6 +855,14 @@ func (t *Teamserver) EventAgentUpdate(AgentID, Username string) {
 	t.EventBroadcast("", pk)
 }
 
+/* the alias is replayed to reconnecting clients through NewDemon,
+ * so it only needs to be broadcast to the currently connected ones */
+func (t *Teamserver) EventAgentAlias(AgentID, Alias string) {
+	var pk = events.Demons.SetAlias(AgentID, Alias)
+
+	t.EventBroadcast("", pk)
+}
+
 func (t *Teamserver) EventListenerError(ListenerName string, Error error) {
 	var pk = events.Listener.ListenerError("", ListenerName, Error)
 

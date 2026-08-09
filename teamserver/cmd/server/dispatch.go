@@ -48,6 +48,31 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 			break
 
+		case packager.Type.Session.SetAlias:
+			var AgentID string
+
+			if val, ok := pk.Body.Info["AgentID"].(string); ok {
+				AgentID = val
+			} else {
+				logger.Debug("SetAlias: no AgentID given")
+				return
+			}
+
+			Alias, ok := pk.Body.Info["Alias"].(string)
+			if !ok {
+				logger.Debug("SetAlias: no Alias given")
+				return
+			}
+
+			for i := range t.Agents.Agents {
+				if t.Agents.Agents[i].DisplayID == AgentID {
+					t.AgentSetAlias(t.Agents.Agents[i], Alias)
+					break
+				}
+			}
+
+			break
+
 		case packager.Type.Session.Input:
 			var (
 				job       *agent.Job

@@ -54,6 +54,7 @@ const int Util::Packager::Session::SendCommand      = 0x3;
 const int Util::Packager::Session::ReceiveCommand   = 0x4;
 const int Util::Packager::Session::MarkAs           = 0x5;
 const int Util::Packager::Session::UpdateSession    = 0x6;
+const int Util::Packager::Session::SetAlias         = 0x7;
 
 const int Util::Packager::Service::Type             = 0x9;
 const int Util::Packager::Service::AgentRegister    = 0x1;
@@ -653,6 +654,7 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
 
             auto Agent = Util::SessionItem {
                     .Name         = Package->Body.Info[ "NameID" ].c_str(),
+                    .Alias        = Package->Body.Info[ "Alias" ].c_str(),
                     .MagicValue   = MagicValue,
                     .External     = Package->Body.Info[ "ExternalIP" ].c_str(),
                     .Internal     = Package->Body.Info[ "InternalIP" ].c_str(),
@@ -990,6 +992,16 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
                     }
                 }
             }
+
+            break;
+        }
+
+        case Util::Packager::Session::SetAlias:
+        {
+            auto AgentID = QString( Package->Body.Info[ "AgentID" ].c_str() );
+            auto Alias   = QString( Package->Body.Info[ "Alias" ].c_str() );
+
+            MugenX::Teamserver.TabSession->SessionTableWidget->SetSessionAlias( AgentID, Alias );
 
             break;
         }

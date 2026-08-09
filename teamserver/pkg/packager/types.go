@@ -80,6 +80,7 @@ type (
 			Remove        int
 			MarkAsDead    int
 			UpdateSession int
+			SetAlias      int
 		}
 
 		Gate struct {
@@ -217,6 +218,7 @@ var Type = Types{
 		Remove        int
 		MarkAsDead    int
 		UpdateSession int
+		SetAlias      int
 	}{
 		Type:          0x7,
 		NewSession:    0x1,
@@ -225,6 +227,7 @@ var Type = Types{
 		Output:        0x4,
 		MarkAsDead:    0x5,
 		UpdateSession: 0x6,
+		SetAlias:      0x7,
 	},
 
 	Gate: struct {
