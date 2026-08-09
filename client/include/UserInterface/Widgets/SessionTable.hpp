@@ -39,6 +39,7 @@ private:
     QTableWidgetItem*   TitleLast        = nullptr;
     QTableWidgetItem*   TitleHealth      = nullptr;
     QTableWidgetItem*   TitleTags        = nullptr;
+    QTableWidgetItem*   TitleAlias       = nullptr;
 
 public:
     QTableWidget*   SessionTableWidget = nullptr;
@@ -53,6 +54,7 @@ public:
     void ChangeSessionValue( QString DemonID, int key, QString value );
     void SetHealthCell( const QString& agentId, const QString& text, const QColor& color );
     void SetSessionTags( const QString& AgentID, const QString& Tags );
+    void SetSessionAlias( const QString& AgentID, const QString& Alias );
     void updateRow();
     void applyFilter( const QString& query );
 

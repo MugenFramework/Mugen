@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 	"fmt"
 	"strconv"
 
@@ -13,6 +15,52 @@ import (
 	"Mugen/pkg/events"
 	"Mugen/pkg/packager"
 )
+
+/* AliasMaxLength bounds the operator assigned agent alias so it stays
+ * readable in the client session table */
+const AliasMaxLength = 32
+
+/* SanitizeAlias strips control characters out of an operator supplied alias
+ * and bounds its length. An empty result means "clear the alias". */
+func SanitizeAlias(Alias string) string {
+	var builder strings.Builder
+
+	for _, char := range Alias {
+		if unicode.IsControl(char) || char == utf8.RuneError {
+			continue
+		}
+		builder.WriteRune(char)
+	}
+
+	Alias = strings.TrimSpace(builder.String())
+
+	if utf8.RuneCountInString(Alias) > AliasMaxLength {
+		Alias = string([]rune(Alias)[:AliasMaxLength])
+	}
+
+	return Alias
+}
+
+/* AgentSetAlias assigns a human readable name to an agent, persists it and
+ * lets every connected operator know about it. An empty Alias clears it. */
+func (t *Teamserver) AgentSetAlias(Agent *agent.Agent, Alias string) {
+	Alias = SanitizeAlias(Alias)
+
+	Agent.Alias = Alias
+
+	AgentID, err := strconv.ParseInt(Agent.NameID, 16, 64)
+	if err != nil {
+		logger.Error("Could not parse agent id: " + err.Error())
+		return
+	}
+
+	if err := t.DB.AgentSetAlias(int(AgentID), Alias); err != nil {
+		logger.Error("Could not set agent alias: " + err.Error())
+		return
+	}
+
+	t.EventAgentAlias(Agent.DisplayID, Alias)
+}
 
 func (t *Teamserver) AgentUpdate(agent *agent.Agent) {
 	err := t.DB.AgentUpdate(agent)

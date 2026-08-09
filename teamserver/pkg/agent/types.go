@@ -140,6 +140,7 @@ type SocksServer struct {
 type Agent struct {
 	NameID    string
 	DisplayID string // prefixed display name: "DN-XXXXXXXX" for Demon, "TU-XXXXXXXX" for Tengu
+	Alias      string // operator assigned human readable name, e.g. "dc01-system" (empty if unset)
 	JobQueue   []Job
 	Tasks      []Job
 	SessionDir string

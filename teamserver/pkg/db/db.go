@@ -58,7 +58,7 @@ func (db *DB) init() error {
 		return err
 	}
 
-	_, err = db.db.Exec(`CREATE TABLE "TS_Agents" ("AgentID" int, "Active" int, "Reason" string, "AESKey" string, "AESIv" string, "Hostname" string, "Username" string, "DomainName" string, "ExternalIP" string, "InternalIP" string, "ProcessName" string, BaseAddress int, "ProcessPID" int, "ProcessTID" int, "ProcessPPID" int, "ProcessArch" string, "Elevated" string, "OSVersion" string, "OSArch" string, "SleepDelay" int, "SleepJitter" int, "KillDate" int, "WorkingHours" int, "FirstCallIn" string, "LastCallIn" string, "MagicValue" int DEFAULT 0);`)
+	_, err = db.db.Exec(`CREATE TABLE "TS_Agents" ("AgentID" int, "Active" int, "Reason" string, "AESKey" string, "AESIv" string, "Hostname" string, "Username" string, "DomainName" string, "ExternalIP" string, "InternalIP" string, "ProcessName" string, BaseAddress int, "ProcessPID" int, "ProcessTID" int, "ProcessPPID" int, "ProcessArch" string, "Elevated" string, "OSVersion" string, "OSArch" string, "SleepDelay" int, "SleepJitter" int, "KillDate" int, "WorkingHours" int, "FirstCallIn" string, "LastCallIn" string, "MagicValue" int DEFAULT 0, "Alias" text DEFAULT '');`)
 	if err != nil {
 		return err
 	}
@@ -89,6 +89,8 @@ func (db *DB) init() error {
 func (db *DB) migrate() {
 	// add MagicValue column to existing DBs that don't have it
 	db.db.Exec(`ALTER TABLE TS_Agents ADD COLUMN "MagicValue" int DEFAULT 0`)
+	// add Alias column to existing DBs that don't have it
+	db.db.Exec(`ALTER TABLE TS_Agents ADD COLUMN "Alias" text DEFAULT ''`)
 	// add TS_Tunnels table if this is an existing DB without it
 	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_Tunnels" ("AgentID" text, "Type" text, "BindPort" int, "RemoteHost" text, "RemotePort" int)`)
 	// add TS_Resources table if this is an existing DB without it

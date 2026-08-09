@@ -30,8 +30,8 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
     gridLayout->setSpacing( 2 );
     SessionTableWidget = new QTableWidget( this );
 
-    if ( SessionTableWidget->columnCount() < 11 )
-        SessionTableWidget->setColumnCount( 11 );
+    if ( SessionTableWidget->columnCount() < 12 )
+        SessionTableWidget->setColumnCount( 12 );
 
     TitleAgentID   = new QTableWidgetItem( "ID"       );
     TitleExternal  = new QTableWidgetItem( "EXTERNAL" );
@@ -44,6 +44,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
     TitleLast      = new QTableWidgetItem( "LAST"     );
     TitleHealth    = new QTableWidgetItem( "HEALTH"   );
     TitleTags      = new QTableWidgetItem( "TAGS"     );
+    TitleAlias     = new QTableWidgetItem( "ALIAS"    );
 
     SessionTableWidget->setHorizontalHeaderItem( 0,  TitleAgentID   );
     SessionTableWidget->setHorizontalHeaderItem( 1,  TitleExternal  );
@@ -56,6 +57,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
     SessionTableWidget->setHorizontalHeaderItem( 8,  TitleLast      );
     SessionTableWidget->setHorizontalHeaderItem( 9,  TitleHealth    );
     SessionTableWidget->setHorizontalHeaderItem( 10, TitleTags      );
+    SessionTableWidget->setHorizontalHeaderItem( 11, TitleAlias     );
     SessionTableWidget->horizontalHeader()->resizeSection( 5, 150 );
 
     SessionTableWidget->setEnabled( true );
@@ -407,6 +409,12 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::NewSessionItem( Util:
     item_Tags->setForeground( QColor( 0x50, 0xfa, 0x7b ) ); // green accent for tags
     SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 10, item_Tags );
 
+    auto item_Alias = new QTableWidgetItem( item.Alias );
+    item_Alias->setTextAlignment( Qt::AlignCenter );
+    item_Alias->setFlags( item_Alias->flags() ^ Qt::ItemIsEditable );
+    item_Alias->setForeground( QColor( 0xff, 0x6b, 0x9d ) ); // sakura accent for the alias
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 11, item_Alias );
+
     SessionTableWidget->setSortingEnabled( isSortingEnabled );
 
     for ( auto & Session : MugenX::Teamserver.Sessions )
@@ -506,8 +514,30 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionTags( const
     }
 }
 
+void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionAlias( const QString& AgentID, const QString& Alias )
+{
+    for ( auto& s : MugenX::Teamserver.Sessions ) {
+        if ( s.Name == AgentID ) {
+            s.Alias = Alias;
+            if ( s.InteractedWidget )
+                s.InteractedWidget->SessionInfo.Alias = Alias;
+            break;
+        }
+    }
+
+    for ( int i = 0; i < SessionTableWidget->rowCount(); i++ ) {
+        if ( SessionTableWidget->item( i, 0 )->text() == AgentID ) {
+            auto item = SessionTableWidget->item( i, 11 );
+            if ( item ) {
+                item->setText( Alias );
+            }
+            break;
+        }
+    }
+}
+
 // Query language: space-separated tokens, each "field:value" or plain text.
-// Fields: type, health, user, listener, ip, id, os, proc, computer
+// Fields: type, health, user, listener, ip, id, alias, os, proc, computer
 // All tokens must match (implicit AND).
 void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QString& query )
 {
@@ -548,6 +578,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QS
                 else if ( field == "listener" ) matched = listener.contains(val);
                 else if ( field == "ip"       ) matched = getCol(1).contains(val) || getCol(2).contains(val);
                 else if ( field == "id"       ) matched = getCol(0).contains(val);
+                else if ( field == "alias"    ) matched = getCol(11).contains(val);
                 else if ( field == "os"       ) matched = getCol(5).contains(val);
                 else if ( field == "proc"     ) matched = getCol(6).contains(val);
                 else if ( field == "computer" ) matched = getCol(4).contains(val);
@@ -568,17 +599,27 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QS
     }
 }
 
+// The key is versioned: a state saved by an older client has a different
+// column count and would be rejected by restoreState() anyway.
+static const char* SessionTableHeaderKey = "SessionTable/headerStateV2";
+
 void MugenNamespace::UserInterface::Widgets::SessionTable::saveColumnLayout()
 {
     QSettings s( "MugenFramework", "Mugen" );
-    s.setValue( "SessionTable/headerState", SessionTableWidget->horizontalHeader()->saveState() );
+    s.setValue( SessionTableHeaderKey, SessionTableWidget->horizontalHeader()->saveState() );
 }
 
 void MugenNamespace::UserInterface::Widgets::SessionTable::restoreColumnLayout()
 {
     QSettings s( "MugenFramework", "Mugen" );
-    auto state = s.value( "SessionTable/headerState" ).toByteArray();
-    if ( !state.isEmpty() )
-        SessionTableWidget->horizontalHeader()->restoreState( state );
+    auto  state  = s.value( SessionTableHeaderKey ).toByteArray();
+    auto* header = SessionTableWidget->horizontalHeader();
+
+    if ( ! state.isEmpty() && header->restoreState( state ) )
+        return;
+
+    // no usable layout yet: ALIAS is the last logical column, show it right
+    // after ID so both identifiers of an agent sit next to each other
+    header->moveSection( header->visualIndex( 11 ), 1 );
 }
 

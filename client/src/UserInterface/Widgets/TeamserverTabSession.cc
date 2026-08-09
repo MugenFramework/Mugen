@@ -400,6 +400,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         SessionMenu.addAction( "Mark as Alive" );
 
     SessionMenu.addAction( ColorMenu.menuAction() );
+    SessionMenu.addAction( "Set Alias" );
     SessionMenu.addAction( "Notes & Tags" );
     SessionMenu.addAction( "Export" );
     SessionMenu.addAction( separator3 );
@@ -579,6 +580,41 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                 else if ( action->text().compare( "Export" ) == 0 )
                 {
                     Session.Export();
+                }
+                else if ( action->text().compare( "Set Alias" ) == 0 )
+                {
+                    bool accepted = false;
+                    auto alias    = QInputDialog::getText(
+                            this->window(),
+                            "Set Alias - " + Session.Name,
+                            "Alias (leave empty to clear):",
+                            QLineEdit::Normal,
+                            Session.Alias,
+                            &accepted
+                    ).trimmed();
+
+                    if ( ! accepted )
+                        break;
+
+                    auto Package = new Util::Packager::Package;
+
+                    Package->Head = Util::Packager::Head_t {
+                            .Event= Util::Packager::Session::Type,
+                            .User = MugenX::Teamserver.User.toStdString(),
+                            .Time = CurrentTime().toStdString(),
+                    };
+
+                    Package->Body = Util::Packager::Body_t {
+                            .SubEvent = Util::Packager::Session::SetAlias,
+                            .Info = {
+                                { "AgentID", Session.Name.toStdString() },
+                                { "Alias",   alias.toStdString() },
+                            }
+                    };
+
+                    /* the table is updated when the teamserver broadcasts the
+                     * alias back, so every operator stays in sync */
+                    MugenX::Connector->SendPackage( Package );
                 }
                 else if ( action->text().compare( "Notes & Tags" ) == 0 )
                 {
