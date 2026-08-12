@@ -270,6 +270,11 @@ namespace MugenNamespace
             std::map<QString, PyObject*> TaskIDToPythonCallbacks;
 
             void Export();
+
+            QString ConsoleTabTitle() const {
+                auto label = Alias.trimmed().isEmpty() ? Name : Alias.trimmed();
+                return "[" + label + "] " + User + "/" + Computer;
+            }
         } SessionItem;
 
         typedef struct

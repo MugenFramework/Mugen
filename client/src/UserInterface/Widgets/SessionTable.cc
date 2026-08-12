@@ -521,6 +521,8 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionAlias( cons
             s.Alias = Alias;
             if ( s.InteractedWidget )
                 s.InteractedWidget->SessionInfo.Alias = Alias;
+            if ( MugenX::Teamserver.TabSession )
+                MugenX::Teamserver.TabSession->UpdateConsoleTabTitle( s );
             break;
         }
     }

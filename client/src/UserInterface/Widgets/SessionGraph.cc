@@ -643,18 +643,7 @@ void Node::contextMenuEvent( QGraphicsSceneContextMenuEvent* event )
             {
                 if ( action->text().compare( "Interact" ) == 0 )
                 {
-                    auto tabName = "[" + Session.Name + "] " + Session.User + "/" + Session.Computer;
-                    for ( int i = 0 ; i < MugenX::Teamserver.TabSession->tabWidget->count(); i++ )
-                    {
-                        if ( MugenX::Teamserver.TabSession->tabWidget->tabText( i ) == tabName )
-                        {
-                            MugenX::Teamserver.TabSession->tabWidget->setCurrentIndex( i );
-                            return;
-                        }
-                    }
-
-                    MugenX::Teamserver.TabSession->NewBottomTab( Session.InteractedWidget->DemonInteractedWidget, tabName.toStdString() );
-                    Session.InteractedWidget->lineEdit->setFocus();
+                    MugenX::Teamserver.TabSession->OpenConsoleTab( Session );
                 }
                 else if ( action->text().compare( "Mark as Dead" ) == 0 )
                 {

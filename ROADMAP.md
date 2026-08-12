@@ -113,13 +113,18 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Payload builder UX** - live config preview, one-liner copy-paste generator
 - [x] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
 - [x] **Multi-select sessions + bulk actions** - select multiple agents and send a command to all (shell, sleep, kill)
+- [ ] **Bulk actions expansion** - extend multi-select beyond shell / sleep / kill: set tag, set alias, mark dead, sleep with jitter
 - [x] **Persistent task history** - all commands and their output are stored in SQLite (TS_TaskHistory), survive restart/reconnect; dedicated History tab per agent with: output search, comment, delete
-- [ ] **Structured task tracking** - each task has a status (queued / processing / completed / error) with timestamp and duration, visible per agent; replaces the raw console-only output model
+- [ ] **Task status** - each task has a status (queued / sent / processing / completed / error) with timestamp and duration, visible in the agent console and as a per-agent list; operators can see whether a command is waiting on the next beacon or already done
 - [ ] **Operator attribution** - display which operator ran each command in a shared agent console
 - [ ] **Operator presence** - show in real time which agents other connected operators are interacting with
 - [ ] **Multi-teamserver** - connect to multiple teamservers simultaneously from a single client
 - [ ] **File transfer progress** - progress bar and size estimate for uploads and downloads
 - [x] **Agent aliasing** - assign a short human-readable name to an agent (e.g. `dc01-system`), shown in the session table alongside the ID; stored teamserver-side so every operator sees it, and it survives reconnects and server restarts
+- [x] **Alias in console tab titles** - console tabs currently show `[TU-xxxx] user/host` and ignore the alias; when an alias is set, the tab should display it (e.g. `[dc01-system] user/host`)
+- [ ] **Notes & tags teamserver-side** - notes and tags are stored in the local client SQLite today, so other operators never see them; persist them on the teamserver like aliases, shared across operators and surviving reconnects
+- [ ] **Remove Map View** - drop the geolocation map (ip-api.com); unused in operations and leaks the operator IP to a third party
+- [ ] **Split console reuse** - split view currently creates new `DemonInteracted` widgets and only mirrors output; reuse the existing session consoles so local command history, focus, and task state stay in sync
 - [ ] **Agent timeline** - chronological view of all tasks and outputs for a single agent; useful for post-engagement reconstruction
 
 ### Networking (agent right-click)
