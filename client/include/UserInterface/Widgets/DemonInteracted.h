@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QJsonArray>
 #include <QToolButton>
+#include <QHash>
 #include <functional>
 
 // ── ConsoleTextEdit ─────────────────────────────────────────────────────────
@@ -34,6 +35,9 @@ public:
     // Update stored comment for a task (after server confirms)
     void updateComment(const QString& taskID, const QString& comment);
 
+    // Replace the status badge on the live prompt ([queued] → [sent] → [done] / [error])
+    void updateStatus(const QString& taskID, const QString& status);
+
     // Callbacks set by DemonInteracted
     std::function<void()>                                    onSearch;
     std::function<void(const QString& taskID, const QString& current)> onComment;
@@ -54,6 +58,9 @@ private:
     int  taskAtBlock(int blockNumber) const;
     void repositionBtn(int taskIdx);
     void showMenu(int taskIdx);
+    void applyStatusBadge(const QString& taskID, const QString& status);
+
+    QHash<QString, int> statusEpoch;
 };
 
 // ── DemonInteracted ──────────────────────────────────────────────────────────
@@ -116,6 +123,7 @@ namespace MugenNamespace::UserInterface::Widgets
         void AppendRaw( const QString& text = "" );
         void AppendNoNL( const QString& test );
         void replayHistory( const QJsonArray& tasks );
+        void updateTaskStatus( const QString& taskID, const QString& status );
 
         QString TaskInfo( bool Show, QString TaskID, const QString& text ) const;
         QString TaskError( const QString& text ) const;
