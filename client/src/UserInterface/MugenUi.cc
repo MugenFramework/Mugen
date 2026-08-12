@@ -13,6 +13,7 @@
 #include <UserInterface/Widgets/ScriptManager.h>
 #include <UserInterface/Widgets/LootWidget.h>
 #include <UserInterface/Widgets/ResourceManagerWidget.hpp>
+#include <UserInterface/Widgets/TasksWidget.hpp>
 #include <UserInterface/Widgets/DashboardWidget.hpp>
 
 #include <Util/ColorText.h>
@@ -93,6 +94,9 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
 
     actionResources = new QAction( MugenWindow );
     actionResources->setObjectName( QString::fromUtf8( "actionResources" ) );
+
+    actionTasks = new QAction( MugenWindow );
+    actionTasks->setObjectName( QString::fromUtf8( "actionTasks" ) );
 
     actionSessionsTable = new QAction( MugenWindow );
     actionSessionsTable->setObjectName( QString::fromUtf8( "actionSessionsTable" ) );
@@ -210,6 +214,7 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
     menuView->addAction( actionListeners );
     menuView->addAction( actionNetworking );
     menuView->addAction( actionResources );
+    menuView->addAction( actionTasks );
     menuView->addSeparator();
     menuView->addAction( MenuSession->menuAction() );
     menuView->addAction( actionDashboard );
@@ -269,8 +274,12 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
 
 void MugenNamespace::UserInterface::MugenUi::OneSecondTick()
 {
-    if ( MugenX::Teamserver.TabSession && MugenX::Teamserver.TabSession->Dashboard )
-        MugenX::Teamserver.TabSession->Dashboard->Refresh();
+    auto tab = MugenX::Teamserver.TabSession;
+    if ( !tab ) return;
+    if ( tab->Dashboard )
+        tab->Dashboard->Refresh();
+    if ( tab->TasksView )
+        tab->TasksView->RefreshDurations();
 }
 
 void MugenNamespace::UserInterface::MugenUi::MarkSessionAs(MugenNamespace::Util::SessionItem Session, QString Mark)
@@ -462,6 +471,7 @@ void MugenNamespace::UserInterface::MugenUi::retranslateUi(QMainWindow* Window )
     actionListeners->setText( "Listeners" );
     actionNetworking->setText( "Networking" );
     actionResources->setText( "Resources" );
+    actionTasks->setText( "Tasks" );
     actionSessionsTable->setText( "Table" );
     actionSessionsGraph->setText( "Graph" );
     actionDashboard->setText( "Dashboard" );
@@ -588,6 +598,30 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
         }
 
         NewBottomTab( tab->ResourceManager->ResourceView, "Resources" );
+    } );
+
+    QMainWindow::connect( actionTasks, &QAction::triggered, this, [&](){
+        auto tab = MugenX::Teamserver.TabSession;
+        if ( !tab ) return;
+
+        if ( tab->TasksView == nullptr ) {
+            tab->TasksView = new Widgets::TasksWidget;
+            tab->TasksView->TeamserverName = MugenX::Teamserver.Name;
+            tab->TasksView->setupUi( new QWidget );
+        }
+
+        for ( int i = 0; i < tab->tabWidget->count(); i++ )
+        {
+            if ( tab->tabWidget->tabText( i ) == "Tasks" )
+            {
+                tab->tabWidget->setCurrentIndex( i );
+                tab->TasksView->RequestSnapshot();
+                return;
+            }
+        }
+
+        tab->TasksView->RequestSnapshot();
+        NewBottomTab( tab->TasksView->TasksView, "Tasks" );
     } );
 
     QMainWindow::connect( actionTeamserver, &QAction::triggered, this, [&](){

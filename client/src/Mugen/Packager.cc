@@ -75,6 +75,9 @@ const int Util::Packager::TaskHistory::List         = 0x1;
 const int Util::Packager::TaskHistory::SetComment   = 0x2;
 const int Util::Packager::TaskHistory::Delete       = 0x3;
 const int Util::Packager::TaskHistory::Sync         = 0x4;
+const int Util::Packager::TaskHistory::Update       = 0x5;
+const int Util::Packager::TaskHistory::ListAll      = 0x6;
+const int Util::Packager::TaskHistory::Snapshot     = 0x7;
 
 using MugenNamespace::UserInterface::Widgets::ScriptManager;
 
@@ -770,6 +773,7 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
 
                         Session.InteractedWidget->DemonCommands->Prompt = QString (
                                 Util::ColorText::Comment( QString( Package->Head.Time.c_str() ) + " [" + QString( Package->Head.User.c_str() ) + "]" ) +
+                                " " + Util::ColorText::Yellow( "[queued]" ) +
                                 " " + Util::ColorText::UnderlinePink( AgentType ) +
                                 Util::ColorText::Cyan(" » ") + QString( Package->Body.Info[ "CommandLine" ].c_str() )
                         );
@@ -1207,6 +1211,36 @@ bool Packager::DispatchTaskHistory( Util::Packager::PPackage Package )
                         session.InteractedWidget->replayHistory( tasks );
                     break;
                 }
+            }
+            break;
+        }
+
+        case Util::Packager::TaskHistory::Snapshot:
+        {
+            auto tab = MugenX::Teamserver.TabSession;
+            if ( tab && tab->TasksView )
+                tab->TasksView->LoadSnapshot( QString( Package->Body.Info[ "Tasks" ].c_str() ) );
+            break;
+        }
+
+        case Util::Packager::TaskHistory::Update:
+        {
+            auto doc = QJsonDocument::fromJson( QString( Package->Body.Info[ "Task" ].c_str() ).toUtf8() );
+            if ( !doc.isObject() )
+                break;
+
+            auto task = doc.object();
+
+            auto tab = MugenX::Teamserver.TabSession;
+            if ( tab && tab->TasksView )
+                tab->TasksView->UpsertTask( task );
+
+            auto taskID  = task["TaskID"].toString();
+            auto status  = task["Status"].toString();
+            for ( auto& session : MugenX::Teamserver.Sessions )
+            {
+                if ( session.InteractedWidget )
+                    session.InteractedWidget->updateTaskStatus( taskID, status );
             }
             break;
         }

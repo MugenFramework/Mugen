@@ -29,10 +29,24 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QTextBlock>
+#include <QTextCursor>
+#include <QColor>
 #include <QStyle>
 
 using namespace MugenNamespace::UserInterface::Widgets;
 using namespace MugenNamespace::Util;
+
+static QString TaskStatusBadge( const QString& status )
+{
+    auto s = status.toLower();
+    if ( s == "queued" )     return ColorText::Yellow( "[queued]" );
+    if ( s == "sent" )       return ColorText::Cyan( "[sent]" );
+    if ( s == "processing" ) return ColorText::Orange( "[processing]" );
+    if ( s == "error" )      return ColorText::Red( "[error]" );
+    if ( s == "completed" )  return ColorText::Green( "[done]" );
+    if ( s.isEmpty() )       return ColorText::Green( "[done]" );
+    return ColorText::Comment( "[" + status.toHtmlEscaped() + "]" );
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ConsoleTextEdit - QTextEdit with per-task ⋯ button overlay
@@ -77,6 +91,7 @@ void ConsoleTextEdit::beginTask(const QString& taskID)
 void ConsoleTextEdit::resetBlocks()
 {
     taskBlocks.clear();
+    statusEpoch.clear();
     hoveredTask = -1;
     menuBtn->hide();
     clear();
@@ -89,6 +104,89 @@ void ConsoleTextEdit::updateComment(const QString& taskID, const QString& commen
             b.comment = comment;
             break;
         }
+    }
+}
+
+void ConsoleTextEdit::updateStatus(const QString& taskID, const QString& status)
+{
+    if ( taskID.isEmpty() || status.isEmpty() )
+        return;
+
+    auto s = status.toLower();
+
+    // sent/processing usually last a few ms (agent picks up the job and
+    // returns output in the same callback). Only paint them if they stick.
+    if ( s == "sent" || s == "processing" ) {
+        int epoch = ++statusEpoch[taskID];
+        QTimer::singleShot( 600, this, [this, taskID, status, epoch]() {
+            if ( statusEpoch.value( taskID ) != epoch )
+                return;
+            applyStatusBadge( taskID, status );
+        } );
+        return;
+    }
+
+    ++statusEpoch[taskID];
+    applyStatusBadge( taskID, status );
+}
+
+void ConsoleTextEdit::applyStatusBadge(const QString& taskID, const QString& status)
+{
+    static const QStringList badges = {
+        "[queued]", "[sent]", "[processing]", "[done]", "[error]"
+    };
+
+    auto s = status.toLower();
+    QString label = "[done]";
+    QColor  color = QColor( Util::ColorText::Colors::Hex::Green );
+    if ( s == "queued" ) {
+        label = "[queued]";
+        color = QColor( Util::ColorText::Colors::Hex::Yellow );
+    } else if ( s == "sent" ) {
+        label = "[sent]";
+        color = QColor( Util::ColorText::Colors::Hex::Cyan );
+    } else if ( s == "processing" ) {
+        label = "[processing]";
+        color = QColor( Util::ColorText::Colors::Hex::Orange );
+    } else if ( s == "error" ) {
+        label = "[error]";
+        color = QColor( Util::ColorText::Colors::Hex::Red );
+    }
+
+    for ( int i = 0; i < taskBlocks.size(); i++ ) {
+        if ( taskBlocks[i].taskID != taskID )
+            continue;
+
+        int from = qMax( 0, taskBlocks[i].startBlock - 1 );
+        int to   = ( i + 1 < taskBlocks.size() )
+                       ? taskBlocks[i + 1].startBlock
+                       : document()->blockCount();
+        to = qMin( to, from + 8 );
+
+        for ( int n = from; n < to; n++ ) {
+            QTextBlock blk = document()->findBlockByNumber( n );
+            if ( !blk.isValid() )
+                continue;
+
+            const QString t = blk.text();
+            for ( const auto& badge : badges ) {
+                int idx = t.indexOf( badge );
+                if ( idx < 0 )
+                    continue;
+                if ( badge == label )
+                    return;
+
+                QTextCursor cur( blk );
+                if ( idx > 0 )
+                    cur.movePosition( QTextCursor::NextCharacter, QTextCursor::MoveAnchor, idx );
+                cur.movePosition( QTextCursor::NextCharacter, QTextCursor::KeepAnchor, badge.size() );
+                QTextCharFormat fmt;
+                fmt.setForeground( color );
+                cur.insertText( label, fmt );
+                return;
+            }
+        }
+        return;
     }
 }
 
@@ -565,6 +663,7 @@ void DemonInteracted::AppendText( const QString& text )
 
     DemonCommands->Prompt = QString(
         ColorText::Comment( CurrentDateTime() + " [" + MugenX::Teamserver.User + "] " ) +
+        TaskStatusBadge( "queued" ) + " " +
         ColorText::UnderlinePink( AgentTypeName ) + ColorText::Cyan(" » ") + text
     );
 
@@ -708,6 +807,12 @@ void UserInterface::Widgets::DemonInteracted::AppendRaw(const QString& text)
     this->Console->append( text );
     for ( auto* mirror : MirrorConsoles )
         mirror->append( text );
+}
+
+void DemonInteracted::updateTaskStatus( const QString& taskID, const QString& status )
+{
+    if ( Console )
+        Console->updateStatus( taskID, status );
 }
 
 void DemonInteracted::AddMirror( QTextEdit* c )
@@ -872,10 +977,12 @@ void DemonInteracted::replayHistory( const QJsonArray& tasks )
         QString comment   = task["Comment"].toString();
         QString ts        = task["Timestamp"].toString();
         QString agentType = task["AgentType"].toString();
+        QString status    = task["Status"].toString();
 
         // Build prompt exactly like the live prompt
         QString prompt =
             Util::ColorText::Comment( ts + " [" + op + "]" ) +
+            " " + TaskStatusBadge( status ) +
             " " + Util::ColorText::UnderlinePink( agentType ) +
             Util::ColorText::Cyan( " » " ) + cmdLine.toHtmlEscaped();
 

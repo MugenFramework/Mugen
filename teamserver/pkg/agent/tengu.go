@@ -1299,6 +1299,7 @@ func TenguHandlePivotFrame(teamserver TeamServer, Header Header) []byte {
 			jobs = Agent.GetQueuedJobs()
 		}
 		payload = BuildTenguMessage(jobs)
+		teamserver.TaskMarkSent(jobs)
 	} else {
 		/* Task result - dispatch and reply with NOJOB so the Tengu doesn't
 		   block on recv for 120s waiting for a response that never comes. */

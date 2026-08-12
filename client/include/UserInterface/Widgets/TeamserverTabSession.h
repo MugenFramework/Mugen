@@ -10,6 +10,7 @@
 #include <UserInterface/Widgets/Teamserver.hpp>
 #include <UserInterface/Widgets/NetworkingWidget.hpp>
 #include <UserInterface/Widgets/ResourceManagerWidget.hpp>
+#include <UserInterface/Widgets/TasksWidget.hpp>
 
 class DashboardWidget;
 #include <UserInterface/Widgets/Store.hpp>
@@ -46,6 +47,7 @@ public:
     Widgets::ListenersTable*          ListenerTableWidget = {};
     Widgets::NetworkingWidget*        NetworkingView      = {};
     Widgets::ResourceManagerWidget*   ResourceManager     = {};
+    Widgets::TasksWidget*             TasksView           = {};
     Widgets::PythonScriptInterpreter* PythonScriptWidget  = {};
     Widgets::ScriptManager*           ScriptManagerWidget = {};
     Payload*                          PayloadDialog       = {};

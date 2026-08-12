@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"Mugen/pkg/agent"
+	"Mugen/pkg/db"
 	"Mugen/pkg/events"
 	"Mugen/pkg/packager"
 )
@@ -266,16 +267,87 @@ func (t *Teamserver) AgentConsole(AgentID string, CommandID int, Output map[stri
 	t.EventAppend(pk)
 	t.EventBroadcast("", pk)
 
-	// persist output in task history
 	if CommandID == agent.MUGEN_CONSOLE_MESSAGE {
-		if val, ok := t.CurrentTaskID.Load(AgentID); ok {
-			if taskID, ok := val.(string); ok && taskID != "" {
-				if chunk := taskOutputChunk(Output); chunk != "" {
-					t.DB.TaskAppendOutput(taskID, chunk)
-				}
-			}
+		taskID := t.currentTaskID(AgentID)
+		t.noteTaskConsole(taskID, Output)
+	}
+}
+
+func (t *Teamserver) currentTaskID(agentID string) string {
+	if val, ok := t.CurrentTaskID.Load(agentID); ok {
+		if taskID, ok := val.(string); ok {
+			return taskID
 		}
 	}
+	return ""
+}
+
+func (t *Teamserver) TaskRecord(taskID, agentID, agentType, operator, commandLine string) {
+	if taskID == "" {
+		return
+	}
+	ts := time.Now().UTC().Format("02/01/2006 15:04:05")
+	_ = t.DB.TaskAdd(taskID, agentID, agentType, operator, commandLine, ts)
+	t.broadcastTask(taskID)
+}
+
+func (t *Teamserver) TaskMarkSent(jobs []agent.Job) {
+	now := time.Now().UTC().Format("02/01/2006 15:04:05")
+	for _, job := range jobs {
+		if job.TaskID == "" || job.Command == agent.COMMAND_NOJOB {
+			continue
+		}
+		if t.DB.TaskAdvanceStatus(job.TaskID, "sent", now) {
+			t.broadcastTask(job.TaskID)
+		}
+	}
+}
+
+func (t *Teamserver) noteTaskConsole(taskID string, output map[string]string) {
+	if taskID == "" {
+		return
+	}
+	if chunk := taskOutputChunk(output); chunk != "" {
+		_ = t.DB.TaskAppendOutput(taskID, chunk)
+	}
+	status := db.StatusFromOutput(output)
+	if status == "" {
+		return
+	}
+	now := time.Now().UTC().Format("02/01/2006 15:04:05")
+	if t.DB.TaskAdvanceStatus(taskID, status, now) {
+		t.broadcastTask(taskID)
+	}
+}
+
+func (t *Teamserver) broadcastTask(taskID string) {
+	row := t.DB.TaskGet(taskID)
+	if row == nil {
+		return
+	}
+	delete(row, "Output")
+	if alias := t.agentAlias(row["AgentID"]); alias != "" {
+		row["Alias"] = alias
+	}
+	t.EventBroadcast("", events.TaskHistory.Update(row))
+}
+
+func (t *Teamserver) agentAlias(agentID string) string {
+	for _, a := range t.Agents.Agents {
+		if a.DisplayID == agentID || a.NameID == agentID {
+			return a.Alias
+		}
+	}
+	return ""
+}
+
+func (t *Teamserver) enrichTasks(tasks []map[string]string) []map[string]string {
+	for i := range tasks {
+		if alias := t.agentAlias(tasks[i]["AgentID"]); alias != "" {
+			tasks[i]["Alias"] = alias
+		}
+	}
+	return tasks
 }
 
 func taskOutputChunk(output map[string]string) string {

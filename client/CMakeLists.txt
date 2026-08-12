@@ -116,6 +116,7 @@ set( MUGEN_INCLUDE
         include/UserInterface/Widgets/DashboardWidget.hpp
         include/UserInterface/Widgets/NetworkingWidget.hpp
         include/UserInterface/Widgets/ResourceManagerWidget.hpp
+        include/UserInterface/Widgets/TasksWidget.hpp
 
         include/UserInterface/MugenUI.hpp
 )
@@ -151,6 +152,7 @@ set(
         src/UserInterface/Widgets/DashboardWidget.cc
         src/UserInterface/Widgets/NetworkingWidget.cc
         src/UserInterface/Widgets/ResourceManagerWidget.cc
+        src/UserInterface/Widgets/TasksWidget.cc
 
         # SmallWidgets
         src/UserInterface/SmallWidgets/EventViewer.cc

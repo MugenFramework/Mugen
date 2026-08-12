@@ -133,7 +133,8 @@ namespace MugenNamespace
             class PythonScriptInterpreter;
             class ScriptManager;
             class NetworkingWidget;
-class ResourceManagerWidget;
+            class ResourceManagerWidget;
+            class TasksWidget;
         }
 
         namespace SmallWidgets {

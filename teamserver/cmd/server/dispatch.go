@@ -106,16 +106,22 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 						var (
 							Message = new(map[string]string)
+							taskID  string
 							Console = func(AgentID string, Message map[string]string) {
 								var (
 									out, _ = json.Marshal(Message)
-									pk     = events.Demons.DemonOutput(DemonID, agent.MUGEN_CONSOLE_MESSAGE, string(out))
+									outPk  = events.Demons.DemonOutput(DemonID, agent.MUGEN_CONSOLE_MESSAGE, string(out))
 								)
 
-								t.EventAppend(pk)
-								t.EventBroadcast("", pk)
+								t.EventAppend(outPk)
+								t.EventBroadcast("", outPk)
+								t.noteTaskConsole(taskID, Message)
 							}
 						)
+
+						if tid, ok := pk.Body.Info["TaskID"].(string); ok {
+							taskID = tid
+						}
 
 						if val, ok := pk.Body.Info["CommandID"]; ok {
 
@@ -123,7 +129,7 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 								// TODO: move to own function.
 								logr.LogrInstance.AddAgentInput("Demon", pk.Body.Info["DemonID"].(string), pk.Head.User, pk.Body.Info["TaskID"].(string), pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
-								t.DB.TaskAdd(pk.Body.Info["TaskID"].(string), DemonID, "Demon", pk.Head.User, pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
+								t.TaskRecord(pk.Body.Info["TaskID"].(string), DemonID, "Demon", pk.Head.User, pk.Body.Info["CommandLine"].(string))
 
 								if pk.Head.OneTime == "true" {
 									return
@@ -160,7 +166,7 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 								// TODO: move to own function.
 								logr.LogrInstance.AddAgentInput("Demon", pk.Body.Info["DemonID"].(string), pk.Head.User, pk.Body.Info["TaskID"].(string), pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
-								t.DB.TaskAdd(pk.Body.Info["TaskID"].(string), DemonID, "Demon", pk.Head.User, pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
+								t.TaskRecord(pk.Body.Info["TaskID"].(string), DemonID, "Demon", pk.Head.User, pk.Body.Info["CommandLine"].(string))
 
 								var Command = pk.Body.Info["Command"].(string)
 
@@ -242,10 +248,10 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 									if t.Agents.Agents[i].Pivots.Parent != nil {
 										logr.LogrInstance.AddAgentInput("Demon", t.Agents.Agents[i].NameID, pk.Head.User, pk.Body.Info["TaskID"].(string), pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
-										t.DB.TaskAdd(pk.Body.Info["TaskID"].(string), t.Agents.Agents[i].NameID, "Demon", pk.Head.User, pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
+										t.TaskRecord(pk.Body.Info["TaskID"].(string), t.Agents.Agents[i].NameID, "Demon", pk.Head.User, pk.Body.Info["CommandLine"].(string))
 									} else {
 										logr.LogrInstance.AddAgentInput("Demon", pk.Body.Info["DemonID"].(string), pk.Head.User, pk.Body.Info["TaskID"].(string), pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
-										t.DB.TaskAdd(pk.Body.Info["TaskID"].(string), DemonID, "Demon", pk.Head.User, pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
+										t.TaskRecord(pk.Body.Info["TaskID"].(string), DemonID, "Demon", pk.Head.User, pk.Body.Info["CommandLine"].(string))
 									}
 
 									if pk.Head.OneTime == "true" {
@@ -286,6 +292,10 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 						// Tengu agent: all commands go through the text-based task prepare.
 						operator := pk.Head.User
+						taskID := ""
+						if tid, ok := pk.Body.Info["TaskID"].(string); ok {
+							taskID = tid
+						}
 						var Console = func(AgentID string, Message map[string]string) {
 							if operator != "" {
 								Message["Operator"] = operator
@@ -294,6 +304,7 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 							consolePk := events.Demons.DemonOutput(DemonID, agent.MUGEN_CONSOLE_MESSAGE, string(out))
 							t.EventAppend(consolePk)
 							t.EventBroadcast("", consolePk)
+							t.noteTaskConsole(taskID, Message)
 						}
 
 						var Command string
@@ -303,15 +314,10 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 							Command = cmdline
 						}
 
-						taskID := ""
-						if tid, ok := pk.Body.Info["TaskID"].(string); ok {
-							taskID = tid
-						}
-
 						Command = t.resolveResourceRef(Command)
 
 						logr.LogrInstance.AddAgentInput("Tengu", DemonID, pk.Head.User, taskID, Command, time.Now().UTC().Format("02/01/2006 15:04:05"))
-						t.DB.TaskAdd(taskID, DemonID, "Tengu", pk.Head.User, Command, time.Now().UTC().Format("02/01/2006 15:04:05"))
+						t.TaskRecord(taskID, DemonID, "Tengu", pk.Head.User, Command)
 
 						var backups = map[string]interface{}{
 							"TaskID":      taskID,
@@ -342,7 +348,7 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 								if pk.Body.Info["CommandID"] == "Python Plugin" {
 									logr.LogrInstance.AddAgentInput(AgentType, pk.Body.Info["DemonID"].(string), pk.Head.User, pk.Body.Info["TaskID"].(string), pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
-									t.DB.TaskAdd(pk.Body.Info["TaskID"].(string), DemonID, AgentType, pk.Head.User, pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
+									t.TaskRecord(pk.Body.Info["TaskID"].(string), DemonID, AgentType, pk.Head.User, pk.Body.Info["CommandLine"].(string))
 
 									if pk.Head.OneTime == "true" {
 										return
@@ -381,7 +387,7 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 									// log agent input
 									logr.LogrInstance.AddAgentInput(a.Name, pk.Body.Info["DemonID"].(string), pk.Head.User, pk.Body.Info["TaskID"].(string), pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
-									t.DB.TaskAdd(pk.Body.Info["TaskID"].(string), DemonID, a.Name, pk.Head.User, pk.Body.Info["CommandLine"].(string), time.Now().UTC().Format("02/01/2006 15:04:05"))
+									t.TaskRecord(pk.Body.Info["TaskID"].(string), DemonID, a.Name, pk.Head.User, pk.Body.Info["CommandLine"].(string))
 								}
 
 							}
@@ -1247,9 +1253,12 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 			if !ok || agentID == "" {
 				return
 			}
-			tasks := t.DB.TaskListByAgent(agentID)
-			// broadcast comme Resource.Download : pk.Head.User est vide dans les custom packages
+			tasks := t.enrichTasks(t.DB.TaskListByAgent(agentID))
 			t.EventBroadcast("", events.TaskHistory.Sync(agentID, tasks))
+
+		case packager.Type.TaskHistory.ListAll:
+			tasks := t.enrichTasks(t.DB.TaskListAll(500))
+			t.EventBroadcast("", events.TaskHistory.Snapshot(tasks))
 
 		case packager.Type.TaskHistory.SetComment:
 			taskID, ok1 := pk.Body.Info["TaskID"].(string)

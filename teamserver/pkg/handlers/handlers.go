@@ -138,6 +138,8 @@ func handleDemonAgent(Teamserver agent.TeamServer, Header agent.Header, External
 				payload = agent.BuildPayloadMessage(job, Agent.Encryption.AESKey, Agent.Encryption.AESIv)
 			)
 
+			Teamserver.TaskMarkSent(job)
+
 			// write the response to the buffer
 			_, err = Response.Write(payload)
 			if err != nil {

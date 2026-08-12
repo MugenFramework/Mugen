@@ -53,6 +53,7 @@ type TeamServer interface {
 	AgentLastTimeCalled(AgentID string, LastCallback string, Sleep int, Jitter int, KillDate int64, WorkingHours int32)
 	AgentExist(AgentID int) bool
 	AgentConsole(DemonID string, CommandID int, Output map[string]string)
+	TaskMarkSent(jobs []Job)
 
 	EventAppend(event packager.Package) []packager.Package
 	EventBroadcast(ExceptClient string, pk packager.Package)
