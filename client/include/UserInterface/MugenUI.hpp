@@ -50,7 +50,6 @@ public:
     QAction*               actionResources               = {};
     QAction*               actionSessionsTable           = {};
     QAction*               actionSessionsGraph           = {};
-    QAction*               actionSessionsMap             = {};
     QAction*               actionDashboard               = {};
     QAction*               actionLogs                    = {};
     QSystemTrayIcon*       TrayIcon                      = {};

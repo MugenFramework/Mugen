@@ -100,9 +100,6 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
     actionSessionsGraph = new QAction( MugenWindow );
     actionSessionsGraph->setObjectName( QString::fromUtf8( "actionSessionsGraph" ) );
 
-    actionSessionsMap = new QAction( MugenWindow );
-    actionSessionsMap->setObjectName( QString::fromUtf8( "actionSessionsMap" ) );
-
     actionDashboard = new QAction( MugenWindow );
     actionDashboard->setObjectName( QString::fromUtf8( "actionDashboard" ) );
 
@@ -209,7 +206,6 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
 
     MenuSession->addAction( actionSessionsTable );
     MenuSession->addAction( actionSessionsGraph );
-    MenuSession->addAction( actionSessionsMap );
 
     menuView->addAction( actionListeners );
     menuView->addAction( actionNetworking );
@@ -468,7 +464,6 @@ void MugenNamespace::UserInterface::MugenUi::retranslateUi(QMainWindow* Window )
     actionResources->setText( "Resources" );
     actionSessionsTable->setText( "Table" );
     actionSessionsGraph->setText( "Graph" );
-    actionSessionsMap->setText( "Map" );
     actionDashboard->setText( "Dashboard" );
     actionLogs->setText( "Event Viewer" );
     actionLoot->setText( "Loot" );
@@ -621,12 +616,6 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
 
     QMainWindow::connect( actionSessionsGraph, &QAction::triggered, this, [&]() {
         MugenX::Teamserver.TabSession->MainViewWidget->setCurrentIndex( 1 );
-    } );
-
-    QMainWindow::connect( actionSessionsMap, &QAction::triggered, this, [&]() {
-        auto tab = MugenX::Teamserver.TabSession;
-        tab->SessionMapWidget->UpdateMap( MugenX::Teamserver.Sessions );
-        tab->MainViewWidget->setCurrentIndex( 2 );
     } );
 
     QMainWindow::connect( actionDashboard, &QAction::triggered, this, [&]() {

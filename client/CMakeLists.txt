@@ -12,8 +12,8 @@ set( CMAKE_AUTOUIC ON )
 set( CMAKE_CPP_COMPILER /usr/bin/x86_64-w64-mingw32-g++ )
 set( CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc )
 set( CMAKE_CXX_FLAGS "-fpermissive" )
-set( REQUIRED_LIBS Core Gui Widgets Network WebSockets Sql Svg )
-set( REQUIRED_LIBS_QUALIFIED Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Network Qt5::WebSockets Qt5::Sql Qt5::Svg )
+set( REQUIRED_LIBS Core Gui Widgets Network WebSockets Sql )
+set( REQUIRED_LIBS_QUALIFIED Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Network Qt5::WebSockets Qt5::Sql )
 set( APP_ICON_RESOURCE_WINDOWS "data/Mugen.qrc" )
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY .. )
 set( CMAKE_INCLUDE_CURRENT_DIR ON )
@@ -113,7 +113,6 @@ set( MUGEN_INCLUDE
         include/UserInterface/Widgets/FileBrowser.hpp
         include/UserInterface/Widgets/Teamserver.hpp
         include/UserInterface/Widgets/Store.hpp
-        include/UserInterface/Widgets/SessionMap.hpp
         include/UserInterface/Widgets/DashboardWidget.hpp
         include/UserInterface/Widgets/NetworkingWidget.hpp
         include/UserInterface/Widgets/ResourceManagerWidget.hpp
@@ -149,7 +148,6 @@ set(
         src/UserInterface/Widgets/Teamserver.cc
         src/UserInterface/Widgets/Store.cc
         src/UserInterface/Widgets/ProcessList.cc
-        src/UserInterface/Widgets/SessionMap.cc
         src/UserInterface/Widgets/DashboardWidget.cc
         src/UserInterface/Widgets/NetworkingWidget.cc
         src/UserInterface/Widgets/ResourceManagerWidget.cc
