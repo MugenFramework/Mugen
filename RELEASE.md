@@ -32,6 +32,7 @@
 - Networking right-click menu: right-click any live agent to open Networking -> SOCKS5 (Start.../Stop) or Networking -> Port Forward (Add.../Remove...). SOCKS5 starts a local proxy on the teamserver; port forward binds a local port and relays through the agent.
 - SOCKS Manager and Port Forward Manager: Actions -> SOCKS Manager / Port Forward Manager open global views of all active tunnels across all agents, each with a Stop/Remove button per entry.
 - Agent aliasing: right-click an agent -> Set Alias to give it a short human-readable name (e.g. `dc01-system`), shown in a dedicated ALIAS column next to the agent ID. Aliases are stored on the teamserver, so they are shared by every operator and survive client reconnects and server restarts. Saving an empty alias clears it. The session table filter accepts `alias:` as a search field.
+- Console tab titles: when an alias is set, the agent console tab shows `[dc01-system] user/host` instead of the raw ID. Clearing the alias restores `[TU-xxxx] user/host`. The title updates live if the alias is changed while the tab is open.
 
 ---
 

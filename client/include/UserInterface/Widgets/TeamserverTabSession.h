@@ -62,6 +62,8 @@ public:
     void setupUi( QWidget* Page, QString TeamserverName );
     void NewBottomTab( QWidget* TabWidget, const std::string& TitleName, QString IconPath = "" ) const;
     void NewWidgetTab( QWidget* TabWidget, const std::string& TitleName ) const;
+    void OpenConsoleTab( const Util::SessionItem& Session ) const;
+    void UpdateConsoleTabTitle( const Util::SessionItem& Session ) const;
 
     void OpenProcessList( const QString& sessionID );
     void OpenFileBrowser( const QString& sessionID );
