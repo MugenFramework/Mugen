@@ -78,7 +78,7 @@ func (db *DB) init() error {
 		return err
 	}
 
-	_, err = db.db.Exec(`CREATE TABLE "TS_TaskHistory" ("TaskID" text UNIQUE, "AgentID" text, "AgentType" text, "Operator" text, "CommandLine" text, "Output" text DEFAULT '', "Comment" text DEFAULT '', "Timestamp" text);`)
+	_, err = db.db.Exec(`CREATE TABLE "TS_TaskHistory" ("TaskID" text UNIQUE, "AgentID" text, "AgentType" text, "Operator" text, "CommandLine" text, "Output" text DEFAULT '', "Comment" text DEFAULT '', "Timestamp" text, "Status" text DEFAULT 'queued', "SentAt" text DEFAULT '', "CompletedAt" text DEFAULT '');`)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,11 @@ func (db *DB) migrate() {
 	db.db.Exec(`ALTER TABLE TS_Resources ADD COLUMN "User" text DEFAULT ''`)
 	db.db.Exec(`ALTER TABLE TS_Resources ADD COLUMN "Hash" text DEFAULT ''`)
 	// add TS_TaskHistory table if this is an existing DB without it
-	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_TaskHistory" ("TaskID" text UNIQUE, "AgentID" text, "AgentType" text, "Operator" text, "CommandLine" text, "Output" text DEFAULT '', "Comment" text DEFAULT '', "Timestamp" text)`)
+	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_TaskHistory" ("TaskID" text UNIQUE, "AgentID" text, "AgentType" text, "Operator" text, "CommandLine" text, "Output" text DEFAULT '', "Comment" text DEFAULT '', "Timestamp" text, "Status" text DEFAULT 'queued', "SentAt" text DEFAULT '', "CompletedAt" text DEFAULT '')`)
+	// existing history rows are already done; new columns default to completed
+	db.db.Exec(`ALTER TABLE TS_TaskHistory ADD COLUMN "Status" text DEFAULT 'completed'`)
+	db.db.Exec(`ALTER TABLE TS_TaskHistory ADD COLUMN "SentAt" text DEFAULT ''`)
+	db.db.Exec(`ALTER TABLE TS_TaskHistory ADD COLUMN "CompletedAt" text DEFAULT ''`)
 }
 
 func (db *DB) Existed() bool {

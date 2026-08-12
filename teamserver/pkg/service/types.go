@@ -25,6 +25,7 @@ type Teamserver interface {
 	EventAppend(pk packager.Package) []packager.Package
 	EventBroadcast(FromUser string, pk packager.Package)
 	SendEvent(id string, pk packager.Package) error
+	TaskMarkSent(jobs []agent.Job)
 }
 
 type ConfigService struct {

@@ -51,6 +51,7 @@ func handleTenguAgent(Teamserver agent.TeamServer, Header agent.Header, External
 			} else {
 				jobs := Agent.GetQueuedJobs()
 				payload = agent.BuildTenguMessage(jobs)
+				Teamserver.TaskMarkSent(jobs)
 			}
 
 			// Encrypt response if the agent session is encrypted.

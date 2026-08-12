@@ -20,6 +20,7 @@
 - Networking tunnel persistence: active SOCKS5 proxies and port forward rules are saved to the SQLite database and automatically restored on server restart. Agents reconnecting after a restart will resume tunneling without manual intervention.
 - Fixed TCP, DNS, and DoH listeners not surviving a server restart. TCP config was saved to the database but the restore loop had no case for it. DNS and DoH were neither saved nor restored. All three now persist correctly across restarts.
 - Fixed `json.Marshal` panic in `ToMap()`: `TunnelSave` and `TunnelRemove` are function-type fields that `structs.Map()` includes in the serialization map. Functions are not JSON-serializable; they are now removed from the map before any marshal call, consistent with the other non-serializable fields (`Connection`, `SessionDir`, `JobQueue`, `Parent`).
+- Task history now stores `Status`, `SentAt`, and `CompletedAt`. Existing rows migrate as `completed`. Status advances as the job leaves the queue (`sent`), when output starts (`processing`), and when a result or error comes back.
 
 **Client**
 
@@ -34,6 +35,8 @@
 - Agent aliasing: right-click an agent -> Set Alias to give it a short human-readable name (e.g. `dc01-system`), shown in a dedicated ALIAS column next to the agent ID. Aliases are stored on the teamserver, so they are shared by every operator and survive client reconnects and server restarts. Saving an empty alias clears it. The session table filter accepts `alias:` as a search field.
 - Console tab titles: when an alias is set, the agent console tab shows `[dc01-system] user/host` instead of the raw ID. Clearing the alias restores `[TU-xxxx] user/host`. The title updates live if the alias is changed while the tab is open.
 - Map view removed: the geolocation map (ip-api.com) is gone from Session View. It was unused in operations and sent the operator IP to a third party.
+- Task status: every command is tracked as queued / sent / processing / completed / error. The agent console shows a colour badge on the prompt (`[queued]`, `[sent]`, `[done]`, `[error]`). Duration is measured from queue time to completion.
+- Tasks widget: **View → Tasks** is a live table of every task across all agents (status, agent, alias, type, operator, command, time, duration). Filter with `status:queued`, `agent:TU-`, `user:alice`, or the In progress / Completed / Error dropdown. Double-click a row to open that agent's console.
 
 ---
 

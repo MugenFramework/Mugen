@@ -113,6 +113,9 @@ namespace MugenNamespace::Util::Packager
         extern const int SetComment;
         extern const int Delete;
         extern const int Sync;
+        extern const int Update;
+        extern const int ListAll;
+        extern const int Snapshot;
     }
 }
 

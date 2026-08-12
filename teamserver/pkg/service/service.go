@@ -260,6 +260,8 @@ func (s *Service) dispatch(response map[string]map[string]any, client *ClientSer
 								PayloadBuffer []byte
 							)
 
+							s.Teamserver.TaskMarkSent(TasksQueue)
+
 							for _, task := range TasksQueue {
 								PayloadBuffer = append(PayloadBuffer, task.Payload...)
 							}

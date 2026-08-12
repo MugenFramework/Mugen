@@ -132,6 +132,9 @@ type (
 			SetComment int
 			Delete     int
 			Sync       int
+			Update     int
+			ListAll    int
+			Snapshot   int
 		}
 	}
 )
@@ -292,5 +295,8 @@ var Type = Types{
 		SetComment int
 		Delete     int
 		Sync       int
-	}{Type: 0xB, List: 0x1, SetComment: 0x2, Delete: 0x3, Sync: 0x4},
+		Update     int
+		ListAll    int
+		Snapshot   int
+	}{Type: 0xB, List: 0x1, SetComment: 0x2, Delete: 0x3, Sync: 0x4, Update: 0x5, ListAll: 0x6, Snapshot: 0x7},
 }

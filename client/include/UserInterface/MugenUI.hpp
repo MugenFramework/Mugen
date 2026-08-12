@@ -48,6 +48,7 @@ public:
     QAction*               actionListeners               = {};
     QAction*               actionNetworking              = {};
     QAction*               actionResources               = {};
+    QAction*               actionTasks                   = {};
     QAction*               actionSessionsTable           = {};
     QAction*               actionSessionsGraph           = {};
     QAction*               actionDashboard               = {};
