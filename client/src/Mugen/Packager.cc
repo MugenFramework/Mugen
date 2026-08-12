@@ -975,8 +975,6 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
                 }
             }
 
-            MugenX::Teamserver.TabSession->SessionMapWidget->UpdateMap( MugenX::Teamserver.Sessions );
-
             auto* node = MugenX::Teamserver.TabSession->SessionGraphWidget->GraphNodeGet( QString( AgentID.c_str() ) );
             if ( node )
             {

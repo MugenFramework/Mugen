@@ -7,7 +7,6 @@
 
 #include <UserInterface/Widgets/LootWidget.h>
 #include <UserInterface/Widgets/SessionGraph.hpp>
-#include <UserInterface/Widgets/SessionMap.hpp>
 #include <UserInterface/Widgets/Teamserver.hpp>
 #include <UserInterface/Widgets/NetworkingWidget.hpp>
 #include <UserInterface/Widgets/ResourceManagerWidget.hpp>
@@ -43,7 +42,6 @@ public:
     class Store*                      Store               = {};
     Widgets::SessionTable*            SessionTableWidget  = {};
     GraphWidget*                      SessionGraphWidget  = {};
-    SessionMap*                       SessionMapWidget    = {};
     DashboardWidget*                  Dashboard           = {};
     Widgets::ListenersTable*          ListenerTableWidget = {};
     Widgets::NetworkingWidget*        NetworkingView      = {};

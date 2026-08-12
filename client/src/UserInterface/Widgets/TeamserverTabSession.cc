@@ -3,7 +3,6 @@
 #include <UserInterface/Widgets/TeamserverTabSession.h>
 #include <UserInterface/Widgets/SessionTable.hpp>
 #include <UserInterface/Widgets/SessionGraph.hpp>
-#include <UserInterface/Widgets/SessionMap.hpp>
 #include <UserInterface/Widgets/DashboardWidget.hpp>
 #include <UserInterface/Widgets/TeamserverTabSession.h>
 #include <UserInterface/Widgets/DemonInteracted.h>
@@ -93,12 +92,10 @@ void MugenNamespace::UserInterface::Widgets::TeamserverTabSession::setupUi( QWid
     SessionTableWidget->setFocusPolicy( Qt::NoFocus );
 
     SessionGraphWidget = new GraphWidget( MainViewWidget );
-    SessionMapWidget   = new SessionMap( MainViewWidget );
 
-    // Session Table (index 0), Graph (index 1), Map (index 2)
+    // Session Table (index 0), Graph (index 1)
     MainViewWidget->addWidget( SessionTableWidget );
     MainViewWidget->addWidget( SessionGraphWidget );
-    MainViewWidget->addWidget( SessionMapWidget );
     MainViewWidget->setCurrentIndex( 0 );
 
     splitter_SessionAndTabs->addWidget( MainViewWidget );
