@@ -131,42 +131,41 @@ func (t *Teamserver) Start() {
 	})
 
 	// start the teamserver websocket connection
-	go func(Host, Port string) {
-		var (
-			certPath = TeamserverPath + "/data/server.cert"
-			keyPath  = TeamserverPath + "/data/server.key"
+	var (
+		certPath = TeamserverPath + "/data/server.cert"
+		keyPath  = TeamserverPath + "/data/server.key"
+	)
 
-			Cert []byte
-			Key  []byte
-		)
+	Cert, Key, err := certs.HTTPSGenerateRSACertificate(t.Flags.Server.Host)
+	if err != nil {
+		logger.Error("Failed to generate server certificates: " + err.Error())
+		return
+	}
 
-		Cert, Key, err = certs.HTTPSGenerateRSACertificate(Host)
-		if err != nil {
-			logger.Error("Failed to generate server certificates: " + err.Error())
-			os.Exit(0)
-		}
+	if err = os.WriteFile(certPath, Cert, 0644); err != nil {
+		logger.Error("Couldn't save server cert file: " + err.Error())
+		return
+	}
+	if err = os.WriteFile(keyPath, Key, 0644); err != nil {
+		logger.Error("Couldn't save server cert file: " + err.Error())
+		return
+	}
 
-		err = os.WriteFile(certPath, Cert, 0644)
-		if err != nil {
-			logger.Error("Couldn't save server cert file: " + err.Error())
-			os.Exit(0)
-		}
+	if fp, fpErr := certs.SHA256Fingerprint(Cert); fpErr != nil {
+		logger.Error("Couldn't compute TLS fingerprint: " + fpErr.Error())
+	} else {
+		logger.Info("TLS SHA-256: " + colors.Blue(fp))
+	}
 
-		err = os.WriteFile(keyPath, Key, 0644)
-		if err != nil {
-			logger.Error("Couldn't save server cert file: " + err.Error())
-			os.Exit(0)
-		}
-
-		// start the teamserver
-		if err = t.Server.Engine.RunTLS(Host+":"+Port, certPath, keyPath); err != nil {
+	go func(Host, Port, certPath, keyPath string) {
+		if err := t.Server.Engine.RunTLS(Host+":"+Port, certPath, keyPath); err != nil {
 			logger.Error("Failed to start websocket: " + err.Error())
 		}
 
 		ServerFinished <- true
 
 		os.Exit(0)
-	}(t.Flags.Server.Host, t.Flags.Server.Port)
+	}(t.Flags.Server.Host, t.Flags.Server.Port, certPath, keyPath)
 
 	t.WebHooks = webhook.NewWebHook()
 	t.Listeners = []*Listener{}

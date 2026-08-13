@@ -111,7 +111,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Actions button** - quick-action menu next to the session table filter (Beacon Builder, Process List, File Explorer)
 - [x] **Session table column customization** - hide/reorder columns, persist layout
 - [x] **Payload builder UX** - live config preview, one-liner copy-paste generator
-- [x] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
+- [ ] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog (the teamserver already logs `TLS SHA-256` at startup)
 - [x] **Multi-select sessions + bulk actions** - select multiple agents and send a command to all (shell, sleep, kill)
 - [x] **Bulk actions expansion** - extend multi-select beyond shell / sleep / kill: set tag, set alias, mark dead, sleep with jitter
 - [x] **Persistent task history** - all commands and their output are stored in SQLite (TS_TaskHistory), survive restart/reconnect; dedicated History tab per agent with: output search, comment, delete
