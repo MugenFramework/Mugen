@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"Mugen/pkg/common"
 	"Mugen/pkg/common/parser"
 	"Mugen/pkg/logger"
 	"golang.org/x/crypto/chacha20"
@@ -1101,8 +1102,10 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 		}
 		a.RequestCompleted(RequestID)
 		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
-			"Type":    "Good",
-			"Message": fmt.Sprintf("Downloaded %d bytes -> %s", len(data), savePath),
+			"Type":      "Good",
+			"Message":   fmt.Sprintf("Downloaded %d bytes -> %s", len(data), savePath),
+			"MiscType":  "download",
+			"MiscData2": base64.StdEncoding.EncodeToString([]byte(filepath.Base(filename))) + ";" + common.ByteCountSI(int64(len(data))),
 		})
 
 	case TENGU_SCREENSHOT:

@@ -127,18 +127,10 @@ LootWidget::LootWidget()
     gridLayout->setObjectName( QString::fromUtf8( "gridLayout" ) );
     
     LabelShow = new QLabel( this );
-    LabelShow->setObjectName( QString::fromUtf8( "LabelShow" ) );
-
-    gridLayout->addWidget( LabelShow, 0, 3, 1, 1 );
+    LabelShow->setVisible( false );
 
     ComboShow = new QComboBox( this );
-    ComboShow->addItem( QString( "Screenshots" ) );
-    ComboShow->addItem( QString( "Downloads" ) );
-    ComboShow->addItem( QString( "Credentials" ) );
-    ComboShow->setObjectName( QString::fromUtf8( "ComboShow" ) );
-    ComboShow->setMinimumSize( QSize( 150, 0 ) );
-
-    gridLayout->addWidget( ComboShow, 0, 4, 1, 1 );
+    ComboShow->setVisible( false );
 
     LabelAgentID = new QLabel( this );
     LabelAgentID->setObjectName( QString::fromUtf8( "LabelAgentID" ) );
@@ -158,7 +150,7 @@ LootWidget::LootWidget()
     StackWidget->setContentsMargins( 0, 0, 0, 0 );
 
     Screenshots = new QWidget();
-    Screenshots->setSizePolicy( QSizePolicy::Ignored, QSizePolicy::Ignored );
+    Screenshots->setSizePolicy( QSizePolicy::Preferred, QSizePolicy::Preferred );
 
     Screenshots->setObjectName( QString::fromUtf8( "Screenshots" ) );
     gridLayout_2 = new QGridLayout( Screenshots );
@@ -200,6 +192,7 @@ LootWidget::LootWidget()
 
     StackWidget->addWidget( Screenshots );
     Downloads = new QWidget();
+    Downloads->setSizePolicy( QSizePolicy::Ignored, QSizePolicy::Ignored );
     Downloads->setObjectName(QString::fromUtf8("Downloads"));
     gridLayout_3 = new QGridLayout( Downloads );
     gridLayout_3->setObjectName(QString::fromUtf8("gridLayout_3"));
@@ -230,6 +223,7 @@ LootWidget::LootWidget()
 
     // Credentials tab
     Credentials = new QWidget();
+    Credentials->setSizePolicy( QSizePolicy::Ignored, QSizePolicy::Ignored );
     Credentials->setObjectName( QString::fromUtf8( "Credentials" ) );
     gridLayout_4 = new QGridLayout( Credentials );
     gridLayout_4->setObjectName( QString::fromUtf8( "gridLayout_4" ) );
@@ -309,7 +303,6 @@ LootWidget::LootWidget()
     connect( DownloadTable, &QTableWidget::clicked, this, &LootWidget::onDownloadTableClick );
     connect( splitter, &QSplitter::splitterMoved, ScreenshotImage, &ImageLabel::resizeImage );
     connect( ComboAgentID, &QComboBox::currentTextChanged, this, &LootWidget::onAgentChange );
-    connect( ComboShow, &QComboBox::currentTextChanged, this, &LootWidget::onShowChange );
     connect( BtnAddCredential,    &QPushButton::clicked, this, &LootWidget::onAddCredential    );
     connect( BtnEditCredential,   &QPushButton::clicked, this, &LootWidget::onEditCredential   );
     connect( BtnRemoveCredential, &QPushButton::clicked, this, &LootWidget::onRemoveCredential );
@@ -336,7 +329,7 @@ void LootWidget::AddScreenshot( const QString& DemonID, const QString& Name, con
 
     LootItems.push_back( Item );
 
-    if ( ComboAgentID->currentText().compare( DemonID ) == 0 || ComboAgentID->currentText().compare( "[ All ]" ) == 0 )
+    if ( agentVisible( DemonID ) )
         ScreenshotTableAdd( Name, Date );
 }
 
@@ -355,7 +348,7 @@ void LootWidget::AddDownload( const QString &DemonID, const QString &Name, const
 
     LootItems.push_back( Item );
 
-    if ( ComboAgentID->currentText().compare( DemonID ) == 0 || ComboAgentID->currentText().compare( "[ All ]" ) == 0 )
+    if ( agentVisible( DemonID ) )
         DownloadTableAdd( Name, Size, Date );
 }
 
@@ -426,41 +419,43 @@ void LootWidget::onDownloadTableClick( const QModelIndex &index )
     }
 }
 
-void LootWidget::onAgentChange( const QString& text )
+bool LootWidget::agentVisible( const QString& agentID ) const
 {
-    ScreenshotImage->setPixmap( QPixmap() );
+    auto filter = ComboAgentID->currentText();
+    return filter.isEmpty() || filter.compare( "[ All ]" ) == 0 || filter.compare( agentID ) == 0;
+}
 
-    // todo: free columns items
-    for ( int i = ScreenshotTable->rowCount(); i >= 0; i-- )
-        ScreenshotTable->removeRow( i );
+void LootWidget::refreshLootTables()
+{
+    ScreenshotTable->setRowCount( 0 );
+    DownloadTable->setRowCount( 0 );
+    CredentialTable->setRowCount( 0 );
+    ScreenshotImage->setPixmap( QPixmap() );
 
     for ( auto& item : LootItems )
     {
-        if ( item.AgentID.compare( text ) == 0 || text.compare( "[ All ]" ) == 0 )
+        if ( ! agentVisible( item.AgentID ) )
+            continue;
+
+        switch ( item.Type )
         {
-            switch ( item.Type )
-            {
-                case LOOT_IMAGE:
-                {
-                    ScreenshotTableAdd( item.Data.Name, item.Data.Date );
-                    break;
-                }
-
-                case LOOT_FILE:
-                {
-                    DownloadTableAdd( item.Data.Name, item.Data.Size, item.Data.Date );
-                    break;
-                }
-
-                case LOOT_CREDENTIAL:
-                {
-                    CredentialTableAdd( item.Cred.CredType, item.Cred.Username, item.Cred.Secret,
-                                        item.Cred.Domain, item.Cred.Source, item.AgentID, item.Cred.Timestamp );
-                    break;
-                }
-            }
+            case LOOT_IMAGE:
+                ScreenshotTableAdd( item.Data.Name, item.Data.Date );
+                break;
+            case LOOT_FILE:
+                DownloadTableAdd( item.Data.Name, item.Data.Size, item.Data.Date );
+                break;
+            case LOOT_CREDENTIAL:
+                CredentialTableAdd( item.Cred.CredType, item.Cred.Username, item.Cred.Secret,
+                                    item.Cred.Domain, item.Cred.Source, item.AgentID, item.Cred.Timestamp );
+                break;
         }
     }
+}
+
+void LootWidget::onAgentChange( const QString& )
+{
+    refreshLootTables();
 }
 
 void LootWidget::AddCredential( const QString& DemonID, const QString& CredType, const QString& Username,
@@ -479,7 +474,7 @@ void LootWidget::AddCredential( const QString& DemonID, const QString& CredType,
 
     LootItems.push_back( Item );
 
-    if ( ComboAgentID->currentText().compare( DemonID ) == 0 || ComboAgentID->currentText().compare( "[ All ]" ) == 0 )
+    if ( agentVisible( DemonID ) )
         CredentialTableAdd( CredType, Username, Secret, Domain, Source, DemonID, Timestamp );
 }
 
@@ -521,21 +516,32 @@ void LootWidget::AddSessionSection( const QString& AgentID )
 
 void LootWidget::onShowChange( const QString& text )
 {
-    if ( text.compare( "Screenshots" ) == 0 )
-    {
-        StackWidget->setCurrentIndex( 0 );
-        CredentialBar->setVisible( false );
-    }
-    else if ( text.compare( "Downloads" ) == 0 )
-    {
-        StackWidget->setCurrentIndex( 1 );
-        CredentialBar->setVisible( false );
-    }
+    int idx = 0;
+    bool creds = false;
+
+    if ( text.compare( "Downloads" ) == 0 )
+        idx = 1;
     else if ( text.compare( "Credentials" ) == 0 )
     {
-        StackWidget->setCurrentIndex( 2 );
-        CredentialBar->setVisible( true );
+        idx = 2;
+        creds = true;
     }
+
+    for ( int i = 0; i < StackWidget->count(); i++ )
+    {
+        auto policy = ( i == idx ) ? QSizePolicy::Preferred : QSizePolicy::Ignored;
+        StackWidget->widget( i )->setSizePolicy( policy, policy );
+    }
+
+    StackWidget->setCurrentIndex( idx );
+    CredentialBar->setVisible( creds );
+    StackWidget->updateGeometry();
+}
+
+void LootWidget::ShowKind( const QString& kind )
+{
+    onShowChange( kind );
+    refreshLootTables();
 }
 
 void LootWidget::ScreenshotTableAdd( const QString &Name, const QString &Date )

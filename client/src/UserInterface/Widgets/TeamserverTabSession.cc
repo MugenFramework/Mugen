@@ -17,6 +17,7 @@
 #include <Util/ColorText.h>
 #include <Mugen/Packager.hpp>
 #include <Mugen/Connector.hpp>
+#include <Mugen/Mugen.hpp>
 
 #include <QFile>
 #include <QToolButton>
@@ -1004,6 +1005,65 @@ void UserInterface::Widgets::TeamserverTabSession::OpenPayloadBuilder()
         PayloadDialog->TeamserverName = MugenX::Teamserver.Name;
     }
     PayloadDialog->Start();
+}
+
+void UserInterface::Widgets::TeamserverTabSession::OpenOps( const QString& page )
+{
+    if ( OpsHub == nullptr ) {
+        OpsHub = new UserInterface::Widgets::OpsWidget;
+        OpsHub->setupUi();
+
+        QObject::connect( OpsHub, &UserInterface::Widgets::OpsWidget::pageChanged, this, [this]( const QString& id ) {
+            if ( LootWidget ) {
+                if ( id == "screenshots" )
+                    LootWidget->ShowKind( "Screenshots" );
+                else if ( id == "downloads" )
+                    LootWidget->ShowKind( "Downloads" );
+                else if ( id == "credentials" )
+                    LootWidget->ShowKind( "Credentials" );
+            }
+            if ( id == "tasks" && TasksView )
+                TasksView->RequestSnapshot();
+            else if ( id == "networking" && NetworkingView )
+                NetworkingView->Refresh();
+        } );
+    }
+
+    if ( LootWidget == nullptr )
+        LootWidget = new ::LootWidget;
+    OpsHub->Attach( "screenshots", LootWidget );
+    OpsHub->Attach( "credentials", LootWidget );
+    OpsHub->Attach( "downloads",   LootWidget );
+
+    if ( ResourceManager == nullptr ) {
+        ResourceManager = new Widgets::ResourceManagerWidget;
+        ResourceManager->TeamserverName = MugenX::Teamserver.Name;
+        ResourceManager->Username       = MugenX::Teamserver.User;
+        ResourceManager->setupUi( new QWidget );
+    }
+    OpsHub->Attach( "resources", ResourceManager->ResourceView );
+
+    if ( TasksView == nullptr ) {
+        TasksView = new Widgets::TasksWidget;
+        TasksView->TeamserverName = MugenX::Teamserver.Name;
+        TasksView->setupUi( new QWidget );
+    }
+    OpsHub->Attach( "tasks", TasksView->TasksView );
+
+    if ( NetworkingView == nullptr ) {
+        NetworkingView = new Widgets::NetworkingWidget;
+        NetworkingView->TeamserverName = MugenX::Teamserver.Name;
+        NetworkingView->setupUi( new QWidget );
+    }
+    OpsHub->Attach( "networking", NetworkingView->NetworkingView );
+
+    OpsHub->SetPage( page );
+
+    int idx = tabWidget->indexOf( OpsHub );
+    if ( idx >= 0 )
+        tabWidget->setCurrentIndex( idx );
+    else
+        NewBottomTab( OpsHub, "Ops" );
 }
 
 void UserInterface::Widgets::TeamserverTabSession::removeTabSmall( int index ) const

@@ -9,6 +9,8 @@
 
 #include <Util/ColorText.h>
 #include <QFile>
+#include <QFileInfo>
+#include <QRegularExpression>
 
 using namespace MugenNamespace::MugenSpace;
 
@@ -68,9 +70,10 @@ void DispatchOutput::MessageOutput( QString JsonString, const QString& Date = ""
         {
             auto MiscDataInfo = JsonDocument[ "MiscData2" ].toString().split( ";" );
             auto Name         = QByteArray::fromBase64( MiscDataInfo[ 0 ].toLocal8Bit() );
-            auto Size         = ( MiscDataInfo[ 1 ] );
+            auto Size         = ( MiscDataInfo.size() > 1 ) ? MiscDataInfo[ 1 ] : QString();
 
-            MugenX::Teamserver.TabSession->LootWidget->AddDownload( DemonCommandInstance->DemonID, Name, Size, Date, nullptr );
+            if ( MugenX::Teamserver.TabSession->LootWidget )
+                MugenX::Teamserver.TabSession->LootWidget->AddDownload( DemonCommandInstance->DemonID, Name, Size, Date, nullptr );
         }
         else if ( Type.compare( "ProcessUI" ) == 0 )
         {
@@ -109,6 +112,22 @@ void DispatchOutput::MessageOutput( QString JsonString, const QString& Date = ""
             auto Split = Data.split( ";" );
 
             MugenX::Teamserver.TabSession->SessionGraphWidget->GraphPivotNodeReconnect( Split[ 0 ], Split[ 1 ] );
+        }
+    }
+    else if ( MessageType == "Good" )
+    {
+        /* Tengu completes downloads without MiscType; scrape the console line. */
+        static const QRegularExpression TenguDl(
+            QStringLiteral( "^Downloaded (\\d+) bytes -> (.+)$" )
+        );
+        auto match = TenguDl.match( Message );
+        if ( match.hasMatch() && MugenX::Teamserver.TabSession->LootWidget )
+        {
+            auto bytes = match.captured( 1 );
+            auto name  = QFileInfo( match.captured( 2 ) ).fileName();
+            MugenX::Teamserver.TabSession->LootWidget->AddDownload(
+                DemonCommandInstance->DemonID, name, bytes + " B", Date, nullptr
+            );
         }
     }
 }

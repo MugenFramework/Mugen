@@ -11,6 +11,7 @@
 #include <UserInterface/Widgets/NetworkingWidget.hpp>
 #include <UserInterface/Widgets/ResourceManagerWidget.hpp>
 #include <UserInterface/Widgets/TasksWidget.hpp>
+#include <UserInterface/Widgets/OpsWidget.hpp>
 
 class DashboardWidget;
 #include <UserInterface/Widgets/Store.hpp>
@@ -48,6 +49,7 @@ public:
     Widgets::NetworkingWidget*        NetworkingView      = {};
     Widgets::ResourceManagerWidget*   ResourceManager     = {};
     Widgets::TasksWidget*             TasksView           = {};
+    Widgets::OpsWidget*               OpsHub              = {};
     Widgets::PythonScriptInterpreter* PythonScriptWidget  = {};
     Widgets::ScriptManager*           ScriptManagerWidget = {};
     Payload*                          PayloadDialog       = {};
@@ -68,6 +70,7 @@ public:
     void OpenProcessList( const QString& sessionID );
     void OpenFileBrowser( const QString& sessionID );
     void OpenPayloadBuilder();
+    void OpenOps( const QString& page );
 
 protected slots:
     void handleDemonContextMenu( const QPoint& pos );

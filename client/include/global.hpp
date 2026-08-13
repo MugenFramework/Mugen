@@ -135,6 +135,7 @@ namespace MugenNamespace
             class NetworkingWidget;
             class ResourceManagerWidget;
             class TasksWidget;
+            class OpsWidget;
         }
 
         namespace SmallWidgets {

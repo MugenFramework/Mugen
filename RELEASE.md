@@ -6,7 +6,7 @@
 
 **Resource Manager**
 
-- Server-side file storage (`data/resources/`): upload executables, BOFs, and scripts to the teamserver once. Files persist across restarts and are broadcast to every operator on connect. The `View > Resources` tab lists all stored files with Upload, Delete, and Download buttons. Supported kinds: `exe`, `bof`, `script`, `other` (auto-detected from extension).
+- Server-side file storage (`data/resources/`): upload executables, BOFs, and scripts to the teamserver once. Files persist across restarts and are broadcast to every operator on connect. **View → Ops → Resources** lists all stored files with Upload, Delete, and Download buttons. Supported kinds: `exe`, `bof`, `script`, `other` (auto-detected from extension).
 - Download: retrieve any stored file from the teamserver to local disk via a save dialog; only the requesting operator receives the transfer.
 - Overwrite protection: uploading a file whose name already exists prompts for confirmation before replacing it.
 - Search bar: real-time filter on name, kind, or date.
@@ -37,7 +37,8 @@
 - Console tab titles: when an alias is set, the agent console tab shows `[dc01-system] user/host` instead of the raw ID. Clearing the alias restores `[TU-xxxx] user/host`. The title updates live if the alias is changed while the tab is open.
 - Map view removed: the geolocation map (ip-api.com) is gone from Session View. It was unused in operations and sent the operator IP to a third party.
 - Task status: every command is tracked as queued / sent / processing / completed / error. The agent console shows a colour badge on the prompt (`[queued]`, `[sent]`, `[done]`, `[error]`). Duration is measured from queue time to completion.
-- Tasks widget: **View → Tasks** is a live table of every task across all agents (status, agent, alias, type, operator, command, time, duration). Filter with `status:queued`, `agent:TU-`, `user:alice`, or the In progress / Completed / Error dropdown. Double-click a row to open that agent's console.
+- Tasks widget: **View → Ops → Tasks** is a live table of every task across all agents (status, agent, alias, type, operator, command, time, duration). Filter with `status:queued`, `agent:TU-`, `user:alice`, or the In progress / Completed / Error dropdown. Double-click a row to open that agent's console.
+- Ops hub: **View → Ops** is a single bottom tab with an internal navbar (Screenshots, Credentials, Downloads, Resources, Tasks, Networking). The old separate View entries for Loot / Resources / Tasks / Networking are gone. Tengu `download` now shows up in Downloads like Demon.
 - Notes and tags: right-click → Notes_Tags is now teamserver-side. Every operator sees the same tags (session table column) and notes; they survive reconnects and restarts. The session table filter accepts `tag:` and `notes:`.
 - Session color: right-click → Color tints the row (left accent bar). The highlight is stored on the teamserver, shared by every operator, and survives reconnects and server restarts. Reset clears it.
 
