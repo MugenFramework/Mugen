@@ -318,7 +318,6 @@ LootWidget::LootWidget()
     LabelShow->setText( "Show: " );
 
     connect( ScreenshotTable, &QTableWidget::clicked, this, &LootWidget::onScreenshotTableClick );
-    connect( DownloadTable, &QTableWidget::clicked, this, &LootWidget::onDownloadTableClick );
     connect( splitter, &QSplitter::splitterMoved, ScreenshotImage, &ImageLabel::resizeImage );
     connect( ComboAgentID, &QComboBox::currentTextChanged, this, &LootWidget::onAgentChange );
     connect( BtnAddCredential,    &QPushButton::clicked, this, &LootWidget::onAddCredential    );
@@ -417,38 +416,6 @@ void LootWidget::onScreenshotTableClick( const QModelIndex &index )
         auto image = QPixmap();
         if ( image.loadFromData( item.Data.Data ) )
             ScreenshotImage->setPixmap( image );
-        break;
-    }
-}
-
-void LootWidget::onDownloadTableClick( const QModelIndex &index )
-{
-    auto* nameItem = DownloadTable->item( index.row(), 0 );
-    if ( ! nameItem )
-        return;
-
-    auto FileName = nameItem->text();
-    auto AgentID  = nameItem->data( Qt::UserRole ).toString();
-    auto lower    = FileName.toLower();
-    if ( !lower.endsWith(".png") && !lower.endsWith(".jpg") &&
-         !lower.endsWith(".jpeg") && !lower.endsWith(".bmp") )
-        return;
-
-    for ( auto& item : LootItems )
-    {
-        if ( item.Type != LOOT_FILE ) continue;
-        if ( item.Data.Name.compare( FileName ) != 0 ) continue;
-        if ( ! AgentID.isEmpty() && item.AgentID != AgentID ) continue;
-
-        ShowKind( "Screenshots" );
-
-        QPixmap px;
-        if ( item.Data.Data.isEmpty() ) {
-            // load from disk if data wasn't kept in memory
-            // savePath matches the teamserver convention
-        } else if ( px.loadFromData( item.Data.Data ) ) {
-            ScreenshotImage->setPixmap( px );
-        }
         break;
     }
 }

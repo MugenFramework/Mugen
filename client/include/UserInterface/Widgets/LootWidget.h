@@ -145,7 +145,6 @@ private Q_SLOTS:
     void onAgentChange( const QString& text );
     void onShowChange( const QString& text );
     void onScreenshotTableClick( const QModelIndex &index );
-    void onDownloadTableClick( const QModelIndex &index );
     void onScreenshotTableCtx( const QPoint &pos );
     void onDownloadTableCtx( const QPoint &pos );
     void onAddCredential();
