@@ -53,7 +53,9 @@ QString MugenNamespace::Util::ColorText::Background(const QString& text)
 }
 
 QString MugenNamespace::Util::ColorText::Foreground(const QString& text) {
-    return "<span style=\"color: "+ MugenNamespace::Util::ColorText::Colors::Hex::Foreground +";\" >" + text.toHtmlEscaped() + "</span>";
+    QString escaped = text.toHtmlEscaped();
+    escaped.replace( QLatin1Char( ' ' ), QStringLiteral( "&nbsp;" ) );
+    return "<span style=\"color: "+ MugenNamespace::Util::ColorText::Colors::Hex::Foreground +"; white-space: pre-wrap;\" >" + escaped + "</span>";
 }
 
 QString MugenNamespace::Util::ColorText::Comment(const QString& text) {

@@ -42,11 +42,13 @@ public:
     std::function<void()>                                    onSearch;
     std::function<void(const QString& taskID, const QString& current)> onComment;
     std::function<void(const QString& taskID)>               onDelete;
+    std::function<void(const QString& href)>                 onLink;
 
     const QVector<TaskBlock>& blocks() const { return taskBlocks; }
 
 protected:
     void mouseMoveEvent(QMouseEvent* e) override;
+    void mouseReleaseEvent(QMouseEvent* e) override;
     void leaveEvent(QEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
 
@@ -121,7 +123,9 @@ namespace MugenNamespace::UserInterface::Widgets
         void setupUi( QWidget* Form );
         void AppendText( const QString& text );
         void AppendRaw( const QString& text = "" );
+        void AppendOutput( const QString& text );
         void AppendNoNL( const QString& test );
+        void handleConsoleLink( const QString& href );
         void replayHistory( const QJsonArray& tasks );
         void updateTaskStatus( const QString& taskID, const QString& status );
 

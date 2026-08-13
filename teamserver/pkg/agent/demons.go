@@ -2893,8 +2893,18 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 								if IsFirst {
 									IsFirst = false
 									Dir += fmt.Sprintf(" Directory of %s:\n\n", RootDirPath)
+									Dir += fmt.Sprintf("%-5s  %-5s  %-17s  %-12s   %s\n", "Tasks", "Attr", "Modified", "Size", "Name")
+									Dir += fmt.Sprintf("%s  %s  %s  %s   %s\n",
+										strings.Repeat("-", 5), strings.Repeat("-", 5),
+										strings.Repeat("-", 17), strings.Repeat("-", 12),
+										strings.Repeat("-", 8))
 								} else {
 									Dir += fmt.Sprintf("\n\n Directory of %s:\n\n", RootDirPath)
+									Dir += fmt.Sprintf("%-5s  %-5s  %-17s  %-12s   %s\n", "Tasks", "Attr", "Modified", "Size", "Name")
+									Dir += fmt.Sprintf("%s  %s  %s  %s   %s\n",
+										strings.Repeat("-", 5), strings.Repeat("-", 5),
+										strings.Repeat("-", 17), strings.Repeat("-", 12),
+										strings.Repeat("-", 8))
 								}
 							}
 
@@ -2958,7 +2968,15 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 											"Permissions": AttrStr,
 										})
 									} else {
-										Dir += fmt.Sprintf("%-5s  %-17s  %-12s   %-8s\n", AttrStr, LastModified, Size, FileName)
+										task := "     "
+										if IsDir {
+											child := strings.TrimRight(RootDirPath, "*")
+											if !strings.HasSuffix(child, "\\") && !strings.HasSuffix(child, "/") {
+												child += "\\"
+											}
+											task = "{{ls:" + child + FileName + "}}"
+										}
+										Dir += task + "  " + fmt.Sprintf("%-5s  %-17s  %-12s   %-8s\n", AttrStr, LastModified, Size, FileName)
 									}
 								}
 

