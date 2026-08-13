@@ -4,11 +4,15 @@
 #include <UserInterface/Widgets/LootWidget.h>
 #include <UserInterface/Widgets/TeamserverTabSession.h>
 #include <Mugen/DBManager/DBManager.hpp>
+#include <Mugen/Packager.hpp>
+#include <Mugen/Mugen.hpp>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>
 #include <QLabel>
 #include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QTreeWidgetItem>
 #include <QHeaderView>
 #include <QScrollBar>
@@ -22,6 +26,9 @@
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <QDateTime>
+#include <QMessageBox>
+#include <QMenu>
+#include <algorithm>
 
 // imagelabel.cpp
 ImageLabel::ImageLabel( QWidget* parent ) : QWidget( parent )
@@ -281,6 +288,24 @@ LootWidget::LootWidget()
     CredentialBar->setVisible( false );
     gridLayout->addWidget( CredentialBar, 2, 0, 1, 6 );
 
+    FileBar = new QWidget( this );
+    auto fileBarLayout = new QHBoxLayout( FileBar );
+    fileBarLayout->setContentsMargins( 4, 4, 4, 4 );
+    fileBarLayout->setSpacing( 4 );
+
+    BtnDownloadFile = new QPushButton( "Download", FileBar );
+    BtnDeleteFile   = new QPushButton( "Delete",   FileBar );
+    BtnDownloadFile->setEnabled( false );
+    BtnDeleteFile->setEnabled( false );
+
+    fileBarLayout->addStretch();
+    fileBarLayout->addWidget( BtnDownloadFile );
+    fileBarLayout->addWidget( BtnDeleteFile );
+    fileBarLayout->addStretch();
+
+    FileBar->setVisible( true );
+    gridLayout->addWidget( FileBar, 2, 0, 1, 6 );
+
     StackWidget->setCurrentIndex( 0 );
 
     ScreenshotTable->setHorizontalHeaderItem( 0, new QTableWidgetItem( "Name" ) );
@@ -292,13 +317,6 @@ LootWidget::LootWidget()
 
     LabelShow->setText( "Show: " );
 
-    ScreenshotMenu           = new QMenu( this );
-    ScreenshotActionDownload = new QAction( "Download" );
-
-    ScreenshotMenu->setStyleSheet( MenuStyle );
-    ScreenshotMenu->addAction( ScreenshotActionDownload );
-
-    connect( this, &QTableWidget::customContextMenuRequested, this, &LootWidget::onScreenshotTableCtx );
     connect( ScreenshotTable, &QTableWidget::clicked, this, &LootWidget::onScreenshotTableClick );
     connect( DownloadTable, &QTableWidget::clicked, this, &LootWidget::onDownloadTableClick );
     connect( splitter, &QSplitter::splitterMoved, ScreenshotImage, &ImageLabel::resizeImage );
@@ -307,6 +325,12 @@ LootWidget::LootWidget()
     connect( BtnEditCredential,   &QPushButton::clicked, this, &LootWidget::onEditCredential   );
     connect( BtnRemoveCredential, &QPushButton::clicked, this, &LootWidget::onRemoveCredential );
     connect( CredentialTable, &QTableWidget::customContextMenuRequested, this, &LootWidget::onCredentialTableCtx );
+    connect( BtnDownloadFile, &QPushButton::clicked, this, &LootWidget::requestFileDownload );
+    connect( BtnDeleteFile,   &QPushButton::clicked, this, &LootWidget::requestFileDelete );
+    connect( ScreenshotTable, &QTableWidget::itemSelectionChanged, this, &LootWidget::updateFileButtons );
+    connect( DownloadTable,   &QTableWidget::itemSelectionChanged, this, &LootWidget::updateFileButtons );
+    connect( ScreenshotTable, &QTableWidget::customContextMenuRequested, this, &LootWidget::onScreenshotTableCtx );
+    connect( DownloadTable,   &QTableWidget::customContextMenuRequested, this, &LootWidget::onDownloadTableCtx );
 
     Reload();
 
@@ -315,6 +339,9 @@ LootWidget::LootWidget()
 
 void LootWidget::AddScreenshot( const QString& DemonID, const QString& Name, const QString& Date, const QByteArray& Data )
 {
+    if ( hasLoot( LOOT_IMAGE, DemonID, Name ) )
+        return;
+
     spdlog::info( "Add Screenshot" );
 
     auto Item = LootData{
@@ -330,11 +357,14 @@ void LootWidget::AddScreenshot( const QString& DemonID, const QString& Name, con
     LootItems.push_back( Item );
 
     if ( agentVisible( DemonID ) )
-        ScreenshotTableAdd( Name, Date );
+        ScreenshotTableAdd( DemonID, Name, Date );
 }
 
 void LootWidget::AddDownload( const QString &DemonID, const QString &Name, const QString& Size, const QString &Date, const QByteArray &Data )
 {
+    if ( hasLoot( LOOT_FILE, DemonID, Name ) )
+        return;
+
     auto Item = LootData{
         .Type       = LOOT_FILE,
         .AgentID    = DemonID,
@@ -349,7 +379,7 @@ void LootWidget::AddDownload( const QString &DemonID, const QString &Name, const
     LootItems.push_back( Item );
 
     if ( agentVisible( DemonID ) )
-        DownloadTableAdd( Name, Size, Date );
+        DownloadTableAdd( DemonID, Name, Size, Date );
 }
 
 void LootWidget::Reload()
@@ -368,45 +398,49 @@ void LootWidget::Reload()
 
 void LootWidget::onScreenshotTableClick( const QModelIndex &index )
 {
-    auto DemonID  = ComboAgentID->currentText();
-    auto FileName = ScreenshotTable->item( index.row(), 0 )->text();
+    auto* nameItem = ScreenshotTable->item( index.row(), 0 );
+    if ( ! nameItem )
+        return;
+
+    auto FileName = nameItem->text();
+    auto AgentID  = nameItem->data( Qt::UserRole ).toString();
 
     for ( auto& item : LootItems )
     {
-        if ( DemonID.compare( "[ All ]" ) == 0 || DemonID.compare( item.AgentID ) == 0 )
-        {
-            if ( item.Type == LOOT_IMAGE )
-            {
-                if ( item.Data.Name.compare( FileName ) == 0 )
-                {
-                    auto image = QPixmap();
-                    if ( image.loadFromData( item.Data.Data ) )
-                    {
-                        ScreenshotImage->setPixmap( image );
-                    }
-                }
-            }
-        }
+        if ( item.Type != LOOT_IMAGE )
+            continue;
+        if ( item.Data.Name.compare( FileName ) != 0 )
+            continue;
+        if ( ! AgentID.isEmpty() && item.AgentID != AgentID )
+            continue;
+
+        auto image = QPixmap();
+        if ( image.loadFromData( item.Data.Data ) )
+            ScreenshotImage->setPixmap( image );
+        break;
     }
 }
 
 void LootWidget::onDownloadTableClick( const QModelIndex &index )
 {
-    auto FileName = DownloadTable->item( index.row(), 0 )->text();
+    auto* nameItem = DownloadTable->item( index.row(), 0 );
+    if ( ! nameItem )
+        return;
+
+    auto FileName = nameItem->text();
+    auto AgentID  = nameItem->data( Qt::UserRole ).toString();
     auto lower    = FileName.toLower();
     if ( !lower.endsWith(".png") && !lower.endsWith(".jpg") &&
          !lower.endsWith(".jpeg") && !lower.endsWith(".bmp") )
         return;
 
-    auto DemonID = ComboAgentID->currentText();
     for ( auto& item : LootItems )
     {
         if ( item.Type != LOOT_FILE ) continue;
         if ( item.Data.Name.compare( FileName ) != 0 ) continue;
-        if ( DemonID.compare( "[ All ]" ) != 0 && DemonID.compare( item.AgentID ) != 0 ) continue;
+        if ( ! AgentID.isEmpty() && item.AgentID != AgentID ) continue;
 
-        // Switch to Screenshots tab and display the image
-        ComboShow->setCurrentText( "Screenshots" );
+        ShowKind( "Screenshots" );
 
         QPixmap px;
         if ( item.Data.Data.isEmpty() ) {
@@ -425,6 +459,16 @@ bool LootWidget::agentVisible( const QString& agentID ) const
     return filter.isEmpty() || filter.compare( "[ All ]" ) == 0 || filter.compare( agentID ) == 0;
 }
 
+bool LootWidget::hasLoot( int type, const QString& agentID, const QString& name ) const
+{
+    for ( auto& item : LootItems )
+    {
+        if ( item.Type == type && item.AgentID == agentID && item.Data.Name == name )
+            return true;
+    }
+    return false;
+}
+
 void LootWidget::refreshLootTables()
 {
     ScreenshotTable->setRowCount( 0 );
@@ -440,10 +484,10 @@ void LootWidget::refreshLootTables()
         switch ( item.Type )
         {
             case LOOT_IMAGE:
-                ScreenshotTableAdd( item.Data.Name, item.Data.Date );
+                ScreenshotTableAdd( item.AgentID, item.Data.Name, item.Data.Date );
                 break;
             case LOOT_FILE:
-                DownloadTableAdd( item.Data.Name, item.Data.Size, item.Data.Date );
+                DownloadTableAdd( item.AgentID, item.Data.Name, item.Data.Size, item.Data.Date );
                 break;
             case LOOT_CREDENTIAL:
                 CredentialTableAdd( item.Cred.CredType, item.Cred.Username, item.Cred.Secret,
@@ -451,6 +495,86 @@ void LootWidget::refreshLootTables()
                 break;
         }
     }
+
+    updateFileButtons();
+}
+
+bool LootWidget::selectedFile( QString& agentID, QString& name, int& type ) const
+{
+    const bool shots = StackWidget->currentIndex() == 0;
+    auto* table = shots ? ScreenshotTable : DownloadTable;
+    type = shots ? LOOT_IMAGE : LOOT_FILE;
+
+    int row = table->currentRow();
+    if ( row < 0 )
+        return false;
+
+    auto* item = table->item( row, 0 );
+    if ( ! item )
+        return false;
+
+    name    = item->text();
+    agentID = item->data( Qt::UserRole ).toString();
+    return ! name.isEmpty() && ! agentID.isEmpty();
+}
+
+void LootWidget::updateFileButtons()
+{
+    QString agent, name;
+    int type = 0;
+    const bool ok = FileBar->isVisible() && selectedFile( agent, name, type );
+    BtnDownloadFile->setEnabled( ok );
+    BtnDeleteFile->setEnabled( ok );
+}
+
+void LootWidget::sendLootRequest( int subEvent, const QString& agentID, const QString& name, int type )
+{
+    Util::Packager::Body_t body;
+    body.SubEvent              = subEvent;
+    body.Info[ "AgentID" ]     = agentID.toStdString();
+    body.Info[ "Name" ]        = name.toStdString();
+    body.Info[ "Kind" ]        = ( type == LOOT_IMAGE ) ? "screenshot" : "download";
+    body.Info[ "RequestUser" ] = MugenX::Teamserver.User.toStdString();
+    NewPackageLoot( MugenX::Teamserver.Name, body );
+}
+
+void LootWidget::requestFileDownload()
+{
+    QString agent, name;
+    int type = 0;
+    if ( ! selectedFile( agent, name, type ) )
+        return;
+
+    sendLootRequest( Util::Packager::Loot::Download, agent, name, type );
+}
+
+void LootWidget::requestFileDelete()
+{
+    QString agent, name;
+    int type = 0;
+    if ( ! selectedFile( agent, name, type ) )
+        return;
+
+    auto ans = QMessageBox::question(
+        nullptr,
+        "Delete loot?",
+        "Delete \"" + name + "\" from the teamserver?\nThis cannot be undone.",
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No
+    );
+    if ( ans != QMessageBox::Yes )
+        return;
+
+    sendLootRequest( Util::Packager::Loot::Remove, agent, name, type );
+}
+
+void LootWidget::RemoveFile( const QString& agentID, const QString& name, int type )
+{
+    LootItems.erase( std::remove_if( LootItems.begin(), LootItems.end(), [&]( const LootData& d ) {
+        return d.Type == type && d.AgentID == agentID && d.Data.Name == name;
+    } ), LootItems.end() );
+
+    refreshLootTables();
 }
 
 void LootWidget::onAgentChange( const QString& )
@@ -535,6 +659,9 @@ void LootWidget::onShowChange( const QString& text )
 
     StackWidget->setCurrentIndex( idx );
     CredentialBar->setVisible( creds );
+    FileBar->setVisible( ! creds );
+    if ( ! creds )
+        updateFileButtons();
     StackWidget->updateGeometry();
 }
 
@@ -544,14 +671,13 @@ void LootWidget::ShowKind( const QString& kind )
     refreshLootTables();
 }
 
-void LootWidget::ScreenshotTableAdd( const QString &Name, const QString &Date )
+void LootWidget::ScreenshotTableAdd( const QString &AgentID, const QString &Name, const QString &Date )
 {
     for ( int i = 0; i < ScreenshotTable->rowCount(); i++ )
     {
-        if ( ScreenshotTable->item( i, 0 )->text().compare( Name ) == 0 )
-        {
+        auto* it = ScreenshotTable->item( i, 0 );
+        if ( it && it->text().compare( Name ) == 0 && it->data( Qt::UserRole ).toString() == AgentID )
             return;
-        }
     }
 
     auto item_Name = new QTableWidgetItem( Name );
@@ -559,6 +685,8 @@ void LootWidget::ScreenshotTableAdd( const QString &Name, const QString &Date )
 
     item_Name->setTextAlignment( Qt::AlignCenter );
     item_Name->setFlags( item_Name->flags() ^ Qt::ItemIsEditable );
+    item_Name->setData( Qt::UserRole, AgentID );
+    item_Name->setToolTip( AgentID );
 
     item_Date->setTextAlignment( Qt::AlignCenter );
     item_Date->setFlags( item_Date->flags() ^ Qt::ItemIsEditable );
@@ -569,14 +697,23 @@ void LootWidget::ScreenshotTableAdd( const QString &Name, const QString &Date )
     ScreenshotTable->setItem( ScreenshotTable->rowCount() - 1, 1, item_Date );
 }
 
-void LootWidget::DownloadTableAdd( const QString &Name, const QString &Size, const QString &Date )
+void LootWidget::DownloadTableAdd( const QString &AgentID, const QString &Name, const QString &Size, const QString &Date )
 {
+    for ( int i = 0; i < DownloadTable->rowCount(); i++ )
+    {
+        auto* it = DownloadTable->item( i, 0 );
+        if ( it && it->text().compare( Name ) == 0 && it->data( Qt::UserRole ).toString() == AgentID )
+            return;
+    }
+
     auto item_Name = new QTableWidgetItem( Name );
     auto item_Size = new QTableWidgetItem( Size );
     auto item_Date = new QTableWidgetItem( Date );
 
     item_Name->setTextAlignment( Qt::AlignCenter );
     item_Name->setFlags( item_Name->flags() ^ Qt::ItemIsEditable );
+    item_Name->setData( Qt::UserRole, AgentID );
+    item_Name->setToolTip( AgentID );
 
     item_Size->setTextAlignment( Qt::AlignCenter );
     item_Size->setFlags( item_Size->flags() ^ Qt::ItemIsEditable );
@@ -593,10 +730,42 @@ void LootWidget::DownloadTableAdd( const QString &Name, const QString &Size, con
 
 void LootWidget::onScreenshotTableCtx( const QPoint &pos )
 {
-    if ( ! ScreenshotTable->itemAt( pos ) )
+    auto* item = ScreenshotTable->itemAt( pos );
+    if ( ! item )
         return;
 
-    ScreenshotMenu->popup( ScreenshotTable->horizontalHeader()->viewport()->mapToGlobal( pos ) );
+    ScreenshotTable->setCurrentItem( item );
+    updateFileButtons();
+
+    QMenu menu( this );
+    auto* actDownload = menu.addAction( "Download" );
+    auto* actDelete   = menu.addAction( "Delete" );
+    auto* chosen = menu.exec( ScreenshotTable->viewport()->mapToGlobal( pos ) );
+
+    if ( chosen == actDownload )
+        requestFileDownload();
+    else if ( chosen == actDelete )
+        requestFileDelete();
+}
+
+void LootWidget::onDownloadTableCtx( const QPoint &pos )
+{
+    auto* item = DownloadTable->itemAt( pos );
+    if ( ! item )
+        return;
+
+    DownloadTable->setCurrentItem( item );
+    updateFileButtons();
+
+    QMenu menu( this );
+    auto* actDownload = menu.addAction( "Download" );
+    auto* actDelete   = menu.addAction( "Delete" );
+    auto* chosen = menu.exec( DownloadTable->viewport()->mapToGlobal( pos ) );
+
+    if ( chosen == actDownload )
+        requestFileDownload();
+    else if ( chosen == actDelete )
+        requestFileDelete();
 }
 
 void LootWidget::onCredentialTableCtx( const QPoint& pos )

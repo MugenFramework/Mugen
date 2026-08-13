@@ -7,10 +7,10 @@ JOBS   ?= $(shell nproc 2>/dev/null || echo 4)
 
 # ── main targets ──────────────────────────────────────────────────────────────
 
-# full build (first time or after client-cleanup)
+# full build (first time, or after wiping data/): downloads MinGW into data/
 all: ts-build client-build
 
-# recompile everything without wiping the cmake cache - use this after code changes
+# recompile after code changes. does not restore data/ (MinGW, loot, DB)
 rebuild: ts-compile client-compile
 
 # ── teamserver ────────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 
 const int Util::Packager::InitConnection::Type      = 0x1;
 const int Util::Packager::InitConnection::Success   = 0x1;
@@ -80,6 +81,11 @@ const int Util::Packager::TaskHistory::Sync         = 0x4;
 const int Util::Packager::TaskHistory::Update       = 0x5;
 const int Util::Packager::TaskHistory::ListAll      = 0x6;
 const int Util::Packager::TaskHistory::Snapshot     = 0x7;
+
+const int Util::Packager::Loot::Type                = 0xC;
+const int Util::Packager::Loot::Add                 = 0x1;
+const int Util::Packager::Loot::Download            = 0x2;
+const int Util::Packager::Loot::Remove              = 0x3;
 
 using MugenNamespace::UserInterface::Widgets::ScriptManager;
 
@@ -185,6 +191,9 @@ auto Packager::DispatchPackage( Util::Packager::PPackage Package ) -> bool
 
         case Util::Packager::TaskHistory::Type:
             return DispatchTaskHistory( Package );
+
+        case Util::Packager::Loot::Type:
+            return DispatchLoot( Package );
 
         default:
             spdlog::info( "[PACKAGE] Event Id not found" );
@@ -1264,6 +1273,78 @@ bool Packager::DispatchTaskHistory( Util::Packager::PPackage Package )
         }
     }
     return true;
+}
+
+bool Packager::DispatchLoot( Util::Packager::PPackage Package )
+{
+    auto tab = MugenX::Teamserver.TabSession;
+    if ( ! tab || ! tab->LootWidget )
+        return true;
+
+    auto agent = QString( Package->Body.Info[ "AgentID" ].c_str() );
+    auto kind  = QString( Package->Body.Info[ "Kind"    ].c_str() );
+    auto name  = QString( Package->Body.Info[ "Name"    ].c_str() );
+
+    switch ( Package->Body.SubEvent )
+    {
+        case Util::Packager::Loot::Add:
+        {
+            auto size = QString( Package->Body.Info[ "Size" ].c_str() );
+            auto date = QString( Package->Body.Info[ "Date" ].c_str() );
+            auto data = QByteArray::fromBase64( QString( Package->Body.Info[ "Data" ].c_str() ).toUtf8() );
+
+            tab->LootWidget->AddSessionSection( agent );
+            if ( kind == "screenshot" )
+                tab->LootWidget->AddScreenshot( agent, name, date, data );
+            else
+                tab->LootWidget->AddDownload( agent, name, size, date, data );
+            break;
+        }
+
+        case Util::Packager::Loot::Download:
+        {
+            auto requestUser = QString( Package->Body.Info[ "RequestUser" ].c_str() );
+            if ( requestUser != MugenX::Teamserver.User )
+                break;
+
+            auto content  = QString( Package->Body.Info[ "Content" ].c_str() );
+            auto saveName = QFileInfo( name ).fileName();
+            auto savePath = QFileDialog::getSaveFileName(
+                nullptr, "Save Loot", QDir::homePath() + "/" + saveName
+            );
+            if ( savePath.isEmpty() )
+                break;
+
+            auto data = QByteArray::fromBase64( content.toUtf8() );
+            QFile f( savePath );
+            if ( f.open( QIODevice::WriteOnly ) )
+            {
+                f.write( data );
+                f.close();
+            }
+            break;
+        }
+
+        case Util::Packager::Loot::Remove:
+        {
+            int type = ( kind == "screenshot" ) ? LootWidget::LOOT_IMAGE : LootWidget::LOOT_FILE;
+            tab->LootWidget->RemoveFile( agent, name, type );
+            break;
+        }
+    }
+
+    return true;
+}
+
+auto NewPackageLoot( const QString& TeamserverName, Util::Packager::Body_t Body ) -> void
+{
+    auto Package    = new Util::Packager::Package;
+    auto Head       = Util::Packager::Head_t {
+        .Event = Util::Packager::Loot::Type,
+    };
+    Package->Head   = Head;
+    Package->Body   = Body;
+    MugenX::Connector->SendPackage( Package );
 }
 
 auto NewPackageTaskHistory( const QString& TeamserverName, Util::Packager::Body_t Body ) -> void

@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"os"
+	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -20,6 +21,12 @@ func DatabaseNew(dbpath string) (*DB, error) {
 	)
 
 	db.path = dbpath
+
+	if dir := filepath.Dir(dbpath); dir != "" && dir != "." {
+		if err = os.MkdirAll(dir, 0o755); err != nil {
+			return nil, err
+		}
+	}
 
 	db.existed = true
 	if _, err = os.Stat(dbpath); os.IsNotExist(err) {

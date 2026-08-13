@@ -22,6 +22,8 @@
 - Fixed `json.Marshal` panic in `ToMap()`: `TunnelSave` and `TunnelRemove` are function-type fields that `structs.Map()` includes in the serialization map. Functions are not JSON-serializable; they are now removed from the map before any marshal call, consistent with the other non-serializable fields (`Connection`, `SessionDir`, `JobQueue`, `Parent`).
 - Task history now stores `Status`, `SentAt`, and `CompletedAt`. Existing rows migrate as `completed`. Status advances as the job leaves the queue (`sent`), when output starts (`processing`), and when a result or error comes back.
 - Notes and tags are stored on the teamserver (`TS_Agents.Tags` / `Notes`), like aliases. Every operator sees the same values; they survive reconnects and server restarts. Empty save clears them. Tags are capped at 256 characters, notes at 4096.
+- Screenshots and downloads are stored under a stable `data/loot/agents/` tree (no more per-boot timestamped folder). Connecting operators receive the existing files so Ops → Screenshots / Downloads is not empty after a restart.
+- Opening `data/teamserver.db` creates the `data/` directory if it is missing (no more panic after a wipe). MinGW still lives under `data/` — `make rebuild` does not restore it; use `make ts-build` or `./teamserver/Install.sh`. Do not `rm -rf data/` to reset loot.
 
 **Client**
 
@@ -39,6 +41,8 @@
 - Task status: every command is tracked as queued / sent / processing / completed / error. The agent console shows a colour badge on the prompt (`[queued]`, `[sent]`, `[done]`, `[error]`). Duration is measured from queue time to completion.
 - Tasks widget: **View → Ops → Tasks** is a live table of every task across all agents (status, agent, alias, type, operator, command, time, duration). Filter with `status:queued`, `agent:TU-`, `user:alice`, or the In progress / Completed / Error dropdown. Double-click a row to open that agent's console.
 - Ops hub: **View → Ops** is a single bottom tab with an internal navbar (Screenshots, Credentials, Downloads, Resources, Tasks, Networking). The old separate View entries for Loot / Resources / Tasks / Networking are gone. Tengu `download` now shows up in Downloads like Demon.
+- Screenshots and downloads persist on the teamserver (`data/loot/agents/<id>/`). They survive a server restart and are restored to Ops when an operator connects. Timestamped loot folders from previous runs are migrated automatically.
+- Screenshots and Downloads: **Download** pulls the file from the teamserver onto the operator machine (save dialog; only the requester receives the bytes). **Delete** removes it from disk and from every operator's Ops view. Same actions in the row context menu.
 - Notes and tags: right-click → Notes_Tags is now teamserver-side. Every operator sees the same tags (session table column) and notes; they survive reconnects and restarts. The session table filter accepts `tag:` and `notes:`.
 - Session color: right-click → Color tints the row (left accent bar). The highlight is stored on the teamserver, shared by every operator, and survives reconnects and server restarts. Reset clears it.
 
