@@ -37,7 +37,7 @@ func (db *DB) AgentAdd(agent *agent.Agent) error {
 	}
 
 	/* prepare some arguments to execute for the sqlite db */
-	stmt, err := db.db.Prepare("INSERT INTO TS_Agents ( AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, MagicValue, Alias, Tags, Notes) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.db.Prepare("INSERT INTO TS_Agents ( AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, MagicValue, Alias, Tags, Notes, Color) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,8 @@ func (db *DB) AgentAdd(agent *agent.Agent) error {
 		int64(agent.Info.MagicValue),
 		agent.Alias,
 		agent.Tags,
-		agent.Notes)
+		agent.Notes,
+		agent.Color)
 	if err != nil {
 		return err
 	}
@@ -197,6 +198,22 @@ func (db *DB) AgentSetMeta(AgentID int, Tags, Notes string) error {
 	return nil
 }
 
+/* AgentSetColor persists the session table highlight. An empty Color clears it. */
+func (db *DB) AgentSetColor(AgentID int, Color string) error {
+	stmt, err := db.db.Prepare("UPDATE TS_Agents SET Color = ? WHERE AgentID = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(Color, AgentID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (db *DB) AgentExist(AgentID int) bool {
 	// prepare some arguments to execute for the sqlite db
 	stmt, err := db.db.Prepare("SELECT COUNT(*) FROM TS_Agents WHERE AgentID = ?")
@@ -249,7 +266,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 
 	var Agents []*agent.Agent
 
-	query, err := db.db.Query("SELECT AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, COALESCE(MagicValue, 0), COALESCE(Alias, ''), COALESCE(Tags, ''), COALESCE(Notes, '') FROM TS_Agents WHERE Active = 1")
+	query, err := db.db.Query("SELECT AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, COALESCE(MagicValue, 0), COALESCE(Alias, ''), COALESCE(Tags, ''), COALESCE(Notes, ''), COALESCE(Color, '') FROM TS_Agents WHERE Active = 1")
 	if err != nil {
 		return nil
 	}
@@ -287,10 +304,11 @@ func (db *DB) AgentAll() []*agent.Agent {
 			Alias      string
 			Tags       string
 			Notes      string
+			Color      string
 		)
 
 		/* read the selected items */
-		err = query.Scan(&AgentID, &Active, &Reason, &AESKey, &AESIv, &Hostname, &Username, &DomainName, &ExternalIP, &InternalIP, &ProcessName, &BaseAddress, &ProcessPID, &ProcessTID, &ProcessPPID, &ProcessArch, &Elevated, &OSVersion, &OSArch, &SleepDelay, &SleepJitter, &KillDate, &WorkingHours, &FirstCallIn, &LastCallIn, &MagicValue, &Alias, &Tags, &Notes)
+		err = query.Scan(&AgentID, &Active, &Reason, &AESKey, &AESIv, &Hostname, &Username, &DomainName, &ExternalIP, &InternalIP, &ProcessName, &BaseAddress, &ProcessPID, &ProcessTID, &ProcessPPID, &ProcessArch, &Elevated, &OSVersion, &OSArch, &SleepDelay, &SleepJitter, &KillDate, &WorkingHours, &FirstCallIn, &LastCallIn, &MagicValue, &Alias, &Tags, &Notes, &Color)
 		if err != nil {
 			/* at this point we failed
 			 * just return the collected agents */
@@ -313,6 +331,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 		Agent.Alias           = Alias
 		Agent.Tags            = Tags
 		Agent.Notes           = Notes
+		Agent.Color           = Color
 		Agent.SessionDir      = ""
 		Agent.BackgroundCheck = false
 		Agent.TaskedOnce      = true

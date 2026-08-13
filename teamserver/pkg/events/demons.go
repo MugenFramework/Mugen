@@ -48,6 +48,7 @@ func (demons) NewDemon(Agent *agent.Agent) packager.Package {
 		"Alias": Agent.Alias,
 		"Tags": Agent.Tags,
 		"Notes": Agent.Notes,
+		"Color": Agent.Color,
 		"OSArch": Agent.Info.OSArch,
 		"OSBuild": Agent.Info.OSBuild,
 		"OSVersion": Agent.Info.OSVersion,
@@ -163,6 +164,21 @@ func (demons) SetMeta(AgentID, Tags, Notes string) packager.Package {
 	Package.Body.Info["AgentID"] = AgentID
 	Package.Body.Info["Tags"]    = Tags
 	Package.Body.Info["Notes"]   = Notes
+
+	return Package
+}
+
+func (demons) SetColor(AgentID, Color string) packager.Package {
+	var Package packager.Package
+
+	Package.Head.Event = packager.Type.Session.Type
+	Package.Head.Time = time.Now().Format("02/01/2006 15:04:05")
+
+	Package.Body.SubEvent = packager.Type.Session.SetColor
+	Package.Body.Info = make(map[string]interface{})
+
+	Package.Body.Info["AgentID"] = AgentID
+	Package.Body.Info["Color"]   = Color
 
 	return Package
 }

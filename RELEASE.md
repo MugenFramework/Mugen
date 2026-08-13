@@ -39,6 +39,7 @@
 - Task status: every command is tracked as queued / sent / processing / completed / error. The agent console shows a colour badge on the prompt (`[queued]`, `[sent]`, `[done]`, `[error]`). Duration is measured from queue time to completion.
 - Tasks widget: **View → Tasks** is a live table of every task across all agents (status, agent, alias, type, operator, command, time, duration). Filter with `status:queued`, `agent:TU-`, `user:alice`, or the In progress / Completed / Error dropdown. Double-click a row to open that agent's console.
 - Notes and tags: right-click → Notes_Tags is now teamserver-side. Every operator sees the same tags (session table column) and notes; they survive reconnects and restarts. The session table filter accepts `tag:` and `notes:`.
+- Session color: right-click → Color tints the row (left accent bar). The highlight is stored on the teamserver, shared by every operator, and survives reconnects and server restarts. Reset clears it.
 
 ---
 

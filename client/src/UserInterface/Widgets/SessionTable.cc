@@ -15,10 +15,49 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QInputDialog>
+#include <QStyledItemDelegate>
+#include <QPainter>
 #include <Util/ColorText.h>
 
 using namespace MugenNamespace::UserInterface::Widgets;
 using namespace MugenNamespace::Util;
+
+static QColor sessionAccentFromName( const QString& name )
+{
+    if ( name.compare( "Red",    Qt::CaseInsensitive ) == 0 ) return QColor( ColorText::Colors::Hex::Red );
+    if ( name.compare( "Blue",   Qt::CaseInsensitive ) == 0 ) return QColor( ColorText::Colors::Hex::Cyan );
+    if ( name.compare( "Pink",   Qt::CaseInsensitive ) == 0 ) return QColor( ColorText::Colors::Hex::Pink );
+    if ( name.compare( "Yellow", Qt::CaseInsensitive ) == 0 ) return QColor( ColorText::Colors::Hex::Yellow );
+    if ( name.compare( "Green",  Qt::CaseInsensitive ) == 0 ) return QColor( ColorText::Colors::Hex::Green );
+    if ( name.compare( "Purple", Qt::CaseInsensitive ) == 0 ) return QColor( ColorText::Colors::Hex::Purple );
+    if ( name.compare( "Orange", Qt::CaseInsensitive ) == 0 ) return QColor( ColorText::Colors::Hex::Orange );
+    return QColor();
+}
+
+/* QTableWidget::item in Mugen.qss swallows QTableWidgetItem::setBackground.
+ * Paint a translucent wash + left accent on top of the styled item instead. */
+class SessionColorDelegate : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    void paint( QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index ) const override
+    {
+        QStyledItemDelegate::paint( painter, option, index );
+
+        const QColor accent = index.model()->index( index.row(), 0 ).data( Qt::UserRole ).value<QColor>();
+        if ( ! accent.isValid() )
+            return;
+
+        painter->save();
+        QColor wash = accent;
+        wash.setAlpha( 38 );
+        painter->fillRect( option.rect, wash );
+        if ( index.column() == 0 )
+            painter->fillRect( QRect( option.rect.x(), option.rect.y(), 3, option.rect.height() ), accent );
+        painter->restore();
+    }
+};
 
 void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form, QString TeamserverName)
 {
@@ -75,6 +114,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
     SessionTableWidget->verticalHeader()->setDefaultSectionSize( 28 );
     SessionTableWidget->setFocusPolicy( Qt::NoFocus );
     SessionTableWidget->setAlternatingRowColors( true );
+    SessionTableWidget->setItemDelegate( new SessionColorDelegate( SessionTableWidget ) );
 
     SessionTableWidget->horizontalHeaderItem( 0 )->setSizeHint( QSize( 0, 0 ) );
 
@@ -415,6 +455,13 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::NewSessionItem( Util:
     item_Alias->setForeground( QColor( 0xff, 0x6b, 0x9d ) ); // sakura accent for the alias
     SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 11, item_Alias );
 
+    if ( ! item.Color.isEmpty() ) {
+        auto* idItem = SessionTableWidget->item( SessionTableWidget->rowCount() - 1, 0 );
+        QColor accent = sessionAccentFromName( item.Color );
+        if ( idItem && accent.isValid() )
+            idItem->setData( Qt::UserRole, accent );
+    }
+
     SessionTableWidget->setSortingEnabled( isSortingEnabled );
 
     for ( auto & Session : MugenX::Teamserver.Sessions )
@@ -553,6 +600,31 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionMeta( const
     }
 
     SetSessionTags( AgentID, Tags );
+}
+
+void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionColor( const QString& AgentID, const QString& Color )
+{
+    for ( auto& s : MugenX::Teamserver.Sessions ) {
+        if ( s.Name == AgentID ) {
+            s.Color = Color;
+            if ( s.InteractedWidget )
+                s.InteractedWidget->SessionInfo.Color = Color;
+            break;
+        }
+    }
+
+    for ( int i = 0; i < SessionTableWidget->rowCount(); i++ ) {
+        if ( SessionTableWidget->item( i, 0 )->text() == AgentID ) {
+            auto* idItem = SessionTableWidget->item( i, 0 );
+            QColor accent = sessionAccentFromName( Color );
+            if ( accent.isValid() )
+                idItem->setData( Qt::UserRole, accent );
+            else
+                idItem->setData( Qt::UserRole, QVariant() );
+            SessionTableWidget->viewport()->update();
+            break;
+        }
+    }
 }
 
 // Query language: space-separated tokens, each "field:value" or plain text.

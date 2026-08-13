@@ -56,6 +56,7 @@ public:
     void SetSessionTags( const QString& AgentID, const QString& Tags );
     void SetSessionAlias( const QString& AgentID, const QString& Alias );
     void SetSessionMeta( const QString& AgentID, const QString& Tags, const QString& Notes );
+    void SetSessionColor( const QString& AgentID, const QString& Color );
     void updateRow();
     void applyFilter( const QString& query );
 
