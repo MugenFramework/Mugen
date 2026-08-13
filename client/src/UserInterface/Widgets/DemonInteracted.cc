@@ -30,8 +30,11 @@
 #include <QJsonDocument>
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QTextOption>
 #include <QColor>
 #include <QStyle>
+#include <QUrl>
+#include <QRegularExpression>
 
 using namespace MugenNamespace::UserInterface::Widgets;
 using namespace MugenNamespace::Util;
@@ -56,7 +59,9 @@ ConsoleTextEdit::ConsoleTextEdit(QWidget* parent)
     : QTextEdit(parent)
 {
     setReadOnly(true);
-    setLineWrapMode(QTextEdit::NoWrap);
+    setFont( QFont( "Monospace" ) );
+    setLineWrapMode( QTextEdit::WidgetWidth );
+    setWordWrapMode( QTextOption::WrapAtWordBoundaryOrAnywhere );
     viewport()->setMouseTracking(true);
 
     menuBtn = new QToolButton(viewport());
@@ -303,12 +308,28 @@ void ConsoleTextEdit::mouseMoveEvent(QMouseEvent* e)
 {
     QTextEdit::mouseMoveEvent(e);
     QTextCursor cur = cursorForPosition(e->pos());
+    if ( ! cur.charFormat().anchorHref().isEmpty() )
+        viewport()->setCursor( Qt::PointingHandCursor );
+    else
+        viewport()->setCursor( Qt::IBeamCursor );
     int blkNum = cur.block().blockNumber();
     int idx    = taskAtBlock(blkNum);
     if (idx != hoveredTask) {
         hoveredTask = idx;
         repositionBtn(idx);
     }
+}
+
+void ConsoleTextEdit::mouseReleaseEvent(QMouseEvent* e)
+{
+    if ( e->button() == Qt::LeftButton ) {
+        auto href = cursorForPosition( e->pos() ).charFormat().anchorHref();
+        if ( ! href.isEmpty() && onLink ) {
+            onLink( href );
+            return;
+        }
+    }
+    QTextEdit::mouseReleaseEvent( e );
 }
 
 void ConsoleTextEdit::leaveEvent(QEvent* e)
@@ -438,7 +459,9 @@ void DemonInteracted::setupUi( QWidget *Form )
     Console->setStyleSheet(
             "background-color: "+Util::ColorText::Colors::Hex::Background+";"
             + "color: "+Util::ColorText::Colors::Hex::Foreground+";"
+            + "font-family: monospace;"
             );
+    Console->onLink = [this]( const QString& href ) { handleConsoleLink( href ); };
 
     gridLayout->addWidget(Console, 0, 0, 1, 2);
 
@@ -809,6 +832,51 @@ void UserInterface::Widgets::DemonInteracted::AppendRaw(const QString& text)
         mirror->append( text );
 }
 
+void UserInterface::Widgets::DemonInteracted::AppendOutput( const QString& text )
+{
+    if ( text.isEmpty() )
+        return;
+
+    static const QRegularExpression lsLinkRe( R"(\{\{ls:([^}]+)\}\})" );
+
+    for ( const auto& line : text.split( '\n' ) )
+    {
+        auto match = lsLinkRe.match( line );
+        if ( ! match.hasMatch() )
+        {
+            AppendRaw( ColorText::Comment( "│ " ) + ColorText::Foreground( line ) );
+            continue;
+        }
+
+        const auto path = match.captured( 1 );
+        const auto after = line.mid( match.capturedEnd() );
+        const auto href = QString( "mugen:ls:" ) + QString( QUrl::toPercentEncoding( path ) );
+        const auto link = QString(
+            "<a href=\"%1\" style=\"color:%2; text-decoration:none;\">ls</a>&nbsp;&nbsp;&nbsp;"
+        ).arg( href, ColorText::Colors::Hex::Pink );
+
+        AppendRaw( ColorText::Comment( "│ " ) + link + ColorText::Foreground( after ) );
+    }
+}
+
+void UserInterface::Widgets::DemonInteracted::handleConsoleLink( const QString& href )
+{
+    if ( ! href.startsWith( "mugen:ls:" ) )
+        return;
+
+    auto path = QUrl::fromPercentEncoding( href.mid( 9 ).toUtf8() );
+    if ( path.isEmpty() )
+        return;
+
+    QString cmd;
+    if ( SessionInfo.MagicValue == TenguMagicValue )
+        cmd = "ls " + path;
+    else
+        cmd = QString( "ls \"%1\"" ).arg( path );
+
+    AppendText( cmd );
+}
+
 void DemonInteracted::updateTaskStatus( const QString& taskID, const QString& status )
 {
     if ( Console )
@@ -956,6 +1024,7 @@ void DemonInteracted::replayHistory( const QJsonArray& tasks )
     Console->setStyleSheet(
         "background-color: " + Util::ColorText::Colors::Hex::Background + ";"
         + "color: " + Util::ColorText::Colors::Hex::Foreground + ";"
+        + "font-family: monospace;"
     );
 
     // Restaurer le message d'initialisation de session (effacé par clear())
@@ -994,12 +1063,8 @@ void DemonInteracted::replayHistory( const QJsonArray& tasks )
         AppendRaw();            // empty separator line
         AppendRaw( prompt );    // command prompt
 
-        // Replay output line by line
         if ( !output.isEmpty() )
-        {
-            for ( const auto& line : output.split( '\n' ) )
-                AppendRaw( line.toHtmlEscaped() );
-        }
+            AppendOutput( output );
     }
 
     Console->verticalScrollBar()->setValue( Console->verticalScrollBar()->maximum() );

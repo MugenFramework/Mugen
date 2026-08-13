@@ -29,21 +29,21 @@ void DispatchOutput::MessageOutput( QString JsonString, const QString& Date = ""
 
     if ( Message.length() > 0 )
     {
+        auto safe = Message.toHtmlEscaped();
         if ( MessageType == "Error" || MessageType == "Erro" )
-            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Red( "[!]" ) + " " + opTag + Message );
+            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Red( "[!]" ) + " " + opTag + safe );
         else if ( MessageType == "Good" )
-            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Green( "[+]" ) + " " + opTag + Message );
+            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Green( "[+]" ) + " " + opTag + safe );
         else if ( MessageType == "Info" )
-            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Cyan( "[*]" ) + " " + opTag + Message );
+            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Cyan( "[*]" ) + " " + opTag + safe );
         else if ( MessageType == "Warning" || MessageType == "Warn" )
-            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Yellow( "[!]" ) + " " + opTag + Message );
+            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Yellow( "[!]" ) + " " + opTag + safe );
         else
-            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Purple( "[^]" ) + " " + opTag + Message );
+            this->DemonCommandInstance->DemonConsole->AppendRaw( Util::ColorText::Purple( "[^]" ) + " " + opTag + safe );
     }
 
     if ( ! Output.isEmpty() )
     {
-        //printf("task: %s\n", TaskID.toUtf8().constData());
         if (MugenX::callbackMessage)
         {
             PyObject *arglist = Py_BuildValue( "s", Output.toUtf8().constData() );
@@ -51,7 +51,7 @@ void DispatchOutput::MessageOutput( QString JsonString, const QString& Date = ""
             Py_XDECREF( MugenX::callbackMessage );
             MugenX::callbackMessage = NULL;
         }
-        this->DemonCommandInstance->DemonConsole->AppendRaw( Output );
+        this->DemonCommandInstance->DemonConsole->AppendOutput( Output );
     }
 
     if ( JsonDocument[ "MiscType" ].toString().compare( "" ) != 0 )
