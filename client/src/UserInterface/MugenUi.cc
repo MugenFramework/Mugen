@@ -89,15 +89,6 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
     actionListeners = new QAction( MugenWindow );
     actionListeners->setObjectName( QString::fromUtf8( "actionListeners" ) );
 
-    actionNetworking = new QAction( MugenWindow );
-    actionNetworking->setObjectName( QString::fromUtf8( "actionNetworking" ) );
-
-    actionResources = new QAction( MugenWindow );
-    actionResources->setObjectName( QString::fromUtf8( "actionResources" ) );
-
-    actionTasks = new QAction( MugenWindow );
-    actionTasks->setObjectName( QString::fromUtf8( "actionTasks" ) );
-
     actionSessionsTable = new QAction( MugenWindow );
     actionSessionsTable->setObjectName( QString::fromUtf8( "actionSessionsTable" ) );
 
@@ -212,9 +203,6 @@ void MugenNamespace::UserInterface::MugenUi::setupUi(QMainWindow *Window)
     MenuSession->addAction( actionSessionsGraph );
 
     menuView->addAction( actionListeners );
-    menuView->addAction( actionNetworking );
-    menuView->addAction( actionResources );
-    menuView->addAction( actionTasks );
     menuView->addSeparator();
     menuView->addAction( MenuSession->menuAction() );
     menuView->addAction( actionDashboard );
@@ -469,14 +457,11 @@ void MugenNamespace::UserInterface::MugenUi::retranslateUi(QMainWindow* Window )
     actionOpen_API_Reference->setText( "Open API Reference" );
     actionGithub_Repository->setText( "Github Repository" );
     actionListeners->setText( "Listeners" );
-    actionNetworking->setText( "Networking" );
-    actionResources->setText( "Resources" );
-    actionTasks->setText( "Tasks" );
     actionSessionsTable->setText( "Table" );
     actionSessionsGraph->setText( "Graph" );
     actionDashboard->setText( "Dashboard" );
     actionLogs->setText( "Event Viewer" );
-    actionLoot->setText( "Loot" );
+    actionLoot->setText( "Ops" );
     menuMugen->setTitle( "Mugen" );
     menuView->setTitle( "View" );
     menuAttack->setTitle( "Attack" );
@@ -552,78 +537,6 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
         );
     } );
 
-    QMainWindow::connect( actionNetworking, &QAction::triggered, this, [&](){
-        auto tab = MugenX::Teamserver.TabSession;
-        if ( !tab ) return;
-
-        if ( tab->NetworkingView == nullptr ) {
-            tab->NetworkingView = new Widgets::NetworkingWidget;
-            tab->NetworkingView->TeamserverName = MugenX::Teamserver.Name;
-            tab->NetworkingView->setupUi( new QWidget );
-        }
-
-        // if already open as a tab, focus it; otherwise open a new tab
-        for ( int i = 0; i < tab->tabWidget->count(); i++ )
-        {
-            if ( tab->tabWidget->tabText( i ) == "Networking" )
-            {
-                tab->tabWidget->setCurrentIndex( i );
-                tab->NetworkingView->Refresh();
-                return;
-            }
-        }
-
-        tab->NetworkingView->Refresh();
-        NewBottomTab( tab->NetworkingView->NetworkingView, "Networking" );
-    } );
-
-    QMainWindow::connect( actionResources, &QAction::triggered, this, [&](){
-        auto tab = MugenX::Teamserver.TabSession;
-        if ( !tab ) return;
-
-        if ( tab->ResourceManager == nullptr ) {
-            tab->ResourceManager = new Widgets::ResourceManagerWidget;
-            tab->ResourceManager->TeamserverName = MugenX::Teamserver.Name;
-            tab->ResourceManager->Username       = MugenX::Teamserver.User;
-            tab->ResourceManager->setupUi( new QWidget );
-        }
-
-        for ( int i = 0; i < tab->tabWidget->count(); i++ )
-        {
-            if ( tab->tabWidget->tabText( i ) == "Resources" )
-            {
-                tab->tabWidget->setCurrentIndex( i );
-                return;
-            }
-        }
-
-        NewBottomTab( tab->ResourceManager->ResourceView, "Resources" );
-    } );
-
-    QMainWindow::connect( actionTasks, &QAction::triggered, this, [&](){
-        auto tab = MugenX::Teamserver.TabSession;
-        if ( !tab ) return;
-
-        if ( tab->TasksView == nullptr ) {
-            tab->TasksView = new Widgets::TasksWidget;
-            tab->TasksView->TeamserverName = MugenX::Teamserver.Name;
-            tab->TasksView->setupUi( new QWidget );
-        }
-
-        for ( int i = 0; i < tab->tabWidget->count(); i++ )
-        {
-            if ( tab->tabWidget->tabText( i ) == "Tasks" )
-            {
-                tab->tabWidget->setCurrentIndex( i );
-                tab->TasksView->RequestSnapshot();
-                return;
-            }
-        }
-
-        tab->TasksView->RequestSnapshot();
-        NewBottomTab( tab->TasksView->TasksView, "Tasks" );
-    } );
-
     QMainWindow::connect( actionTeamserver, &QAction::triggered, this, [&](){
         if ( MugenX::Teamserver.TabSession->Teamserver == nullptr ) {
             MugenX::Teamserver.TabSession->Teamserver = new Teamserver;
@@ -680,7 +593,8 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
     } );
 
     QMainWindow::connect( actionLoot, &QAction::triggered, this, [&]() {
-        NewBottomTab( MugenX::Teamserver.TabSession->LootWidget, "Loot Collection" );
+        if ( MugenX::Teamserver.TabSession )
+            MugenX::Teamserver.TabSession->OpenOps( "screenshots" );
     } );
 
     QMainWindow::connect( actionGeneratePayload, &QAction::triggered, this, [this]() {

@@ -128,6 +128,11 @@ public:
                              const QString& Domain, const QString& Source, const QString& AgentID,
                              const QString& Timestamp );
     void LoadCredentialsFromDB( MugenNamespace::MugenSpace::DBManager* db );
+    void ShowKind( const QString& kind );
+
+private:
+    bool agentVisible( const QString& agentID ) const;
+    void refreshLootTables();
 
 private Q_SLOTS:
     void onAgentChange( const QString& text );
