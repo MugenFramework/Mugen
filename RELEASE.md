@@ -31,7 +31,7 @@
 - Actions button: quick-action menu next to the session table filter bar. Opens Beacon Builder (floating dialog), Process List, or File Explorer for any live agent via a hover submenu.
 - Session table column customization: right-click any column header to hide/show columns; drag headers to reorder; layout persists across restarts via QSettings.
 - Beacon Builder one-liner: live command generator in the payload dialog, updates on every combo change, one-click copy to clipboard (Demon Exe/Dll/Shellcode + Tengu ELF).
-- TLS fingerprint: SHA-256 digest of the teamserver certificate is logged to the Event Viewer on connect and stored in memory for reference.
+- TLS SHA-256 of the teamserver certificate is printed at server startup (not in the client Event Viewer). The client still computes it in memory for a future pin in the connection dialog.
 - Multi-select and bulk actions: Ctrl+Click or Shift+Click to select multiple agents in the session table, then right-click for a bulk menu (Shell, Sleep with delay+jitter, Set Alias, Set Tag, Mark as Dead, Kill). The Actions menu also has a Bulk Dispatch entry that opens a dialog listing all live agents with checkboxes, a free-form command input, and an Execute button.
 - Networking right-click menu: right-click any live agent to open Networking -> SOCKS5 (Start.../Stop) or Networking -> Port Forward (Add.../Remove...). SOCKS5 starts a local proxy on the teamserver; port forward binds a local port and relays through the agent.
 - SOCKS Manager and Port Forward Manager: Actions -> SOCKS Manager / Port Forward Manager open global views of all active tunnels across all agents, each with a Stop/Remove button per entry.

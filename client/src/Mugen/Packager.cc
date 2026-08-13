@@ -222,20 +222,8 @@ bool Packager::DispatchInitConnection( Util::Packager::PPackage Package )
                 }
 
                 MugenApplication->Start();
-
-                if ( !MugenX::Teamserver.TLSFingerprint.isEmpty() && MugenX::Teamserver.TabSession )
-                    MugenX::Teamserver.TabSession->SmallAppWidgets->EventViewer->AppendText(
-                        CurrentTime(),
-                        "TLS SHA-256: " + MugenX::Teamserver.TLSFingerprint
-                    );
             } else {
                 MugenApplication->MugenAppUI.NewTeamserverTab( this->TeamserverName );
-
-                if ( !MugenX::Teamserver.TLSFingerprint.isEmpty() && MugenX::Teamserver.TabSession )
-                    MugenX::Teamserver.TabSession->SmallAppWidgets->EventViewer->AppendText(
-                        CurrentTime(),
-                        "TLS SHA-256: " + MugenX::Teamserver.TLSFingerprint
-                    );
             }
 
             return true;
