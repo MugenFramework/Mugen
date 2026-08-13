@@ -538,8 +538,25 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionAlias( cons
     }
 }
 
+void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionMeta( const QString& AgentID, const QString& Tags, const QString& Notes )
+{
+    for ( auto& s : MugenX::Teamserver.Sessions ) {
+        if ( s.Name == AgentID ) {
+            s.Tags  = Tags;
+            s.Notes = Notes;
+            if ( s.InteractedWidget ) {
+                s.InteractedWidget->SessionInfo.Tags  = Tags;
+                s.InteractedWidget->SessionInfo.Notes = Notes;
+            }
+            break;
+        }
+    }
+
+    SetSessionTags( AgentID, Tags );
+}
+
 // Query language: space-separated tokens, each "field:value" or plain text.
-// Fields: type, health, user, listener, ip, id, alias, os, proc, computer
+// Fields: type, health, user, listener, ip, id, alias, tag, notes, os, proc, computer
 // All tokens must match (implicit AND).
 void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QString& query )
 {
@@ -552,11 +569,12 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QS
             return it ? it->text().toLower() : QString();
         };
 
-        QString listener, agentType;
+        QString listener, agentType, notes;
         auto id = getCol(0);
         for ( const auto& s : MugenX::Teamserver.Sessions ) {
             if ( s.Name.toLower() == id ) {
                 listener  = s.Listener.toLower();
+                notes     = s.Notes.toLower();
                 agentType = s.Name.startsWith("TU-", Qt::CaseInsensitive) ? "tu" : "dn";
                 break;
             }
@@ -581,6 +599,8 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QS
                 else if ( field == "ip"       ) matched = getCol(1).contains(val) || getCol(2).contains(val);
                 else if ( field == "id"       ) matched = getCol(0).contains(val);
                 else if ( field == "alias"    ) matched = getCol(11).contains(val);
+                else if ( field == "tag" || field == "tags" ) matched = getCol(10).contains(val);
+                else if ( field == "note" || field == "notes" ) matched = notes.contains(val);
                 else if ( field == "os"       ) matched = getCol(5).contains(val);
                 else if ( field == "proc"     ) matched = getCol(6).contains(val);
                 else if ( field == "computer" ) matched = getCol(4).contains(val);
@@ -591,7 +611,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::applyFilter( const QS
                 auto v = token.toLower();
                 for ( int c = 0; c < SessionTableWidget->columnCount(); c++ )
                     if ( getCol(c).contains(v) ) { matched = true; break; }
-                if ( !matched ) matched = listener.contains(v) || agentType.contains(v);
+                if ( !matched ) matched = listener.contains(v) || agentType.contains(v) || notes.contains(v);
             }
 
             if ( !matched ) { visible = false; break; }

@@ -37,7 +37,7 @@ func (db *DB) AgentAdd(agent *agent.Agent) error {
 	}
 
 	/* prepare some arguments to execute for the sqlite db */
-	stmt, err := db.db.Prepare("INSERT INTO TS_Agents ( AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, MagicValue, Alias) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.db.Prepare("INSERT INTO TS_Agents ( AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, MagicValue, Alias, Tags, Notes) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,9 @@ func (db *DB) AgentAdd(agent *agent.Agent) error {
 		agent.Info.FirstCallIn,
 		agent.Info.LastCallIn,
 		int64(agent.Info.MagicValue),
-		agent.Alias)
+		agent.Alias,
+		agent.Tags,
+		agent.Notes)
 	if err != nil {
 		return err
 	}
@@ -179,6 +181,22 @@ func (db *DB) AgentSetAlias(AgentID int, Alias string) error {
 	return nil
 }
 
+/* AgentSetMeta persists operator notes and tags. Empty strings clear them. */
+func (db *DB) AgentSetMeta(AgentID int, Tags, Notes string) error {
+	stmt, err := db.db.Prepare("UPDATE TS_Agents SET Tags = ?, Notes = ? WHERE AgentID = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(Tags, Notes, AgentID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (db *DB) AgentExist(AgentID int) bool {
 	// prepare some arguments to execute for the sqlite db
 	stmt, err := db.db.Prepare("SELECT COUNT(*) FROM TS_Agents WHERE AgentID = ?")
@@ -231,7 +249,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 
 	var Agents []*agent.Agent
 
-	query, err := db.db.Query("SELECT AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, COALESCE(MagicValue, 0), COALESCE(Alias, '') FROM TS_Agents WHERE Active = 1")
+	query, err := db.db.Query("SELECT AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, COALESCE(MagicValue, 0), COALESCE(Alias, ''), COALESCE(Tags, ''), COALESCE(Notes, '') FROM TS_Agents WHERE Active = 1")
 	if err != nil {
 		return nil
 	}
@@ -267,10 +285,12 @@ func (db *DB) AgentAll() []*agent.Agent {
 			LastCallIn string
 			MagicValue int64
 			Alias      string
+			Tags       string
+			Notes      string
 		)
 
 		/* read the selected items */
-		err = query.Scan(&AgentID, &Active, &Reason, &AESKey, &AESIv, &Hostname, &Username, &DomainName, &ExternalIP, &InternalIP, &ProcessName, &BaseAddress, &ProcessPID, &ProcessTID, &ProcessPPID, &ProcessArch, &Elevated, &OSVersion, &OSArch, &SleepDelay, &SleepJitter, &KillDate, &WorkingHours, &FirstCallIn, &LastCallIn, &MagicValue, &Alias)
+		err = query.Scan(&AgentID, &Active, &Reason, &AESKey, &AESIv, &Hostname, &Username, &DomainName, &ExternalIP, &InternalIP, &ProcessName, &BaseAddress, &ProcessPID, &ProcessTID, &ProcessPPID, &ProcessArch, &Elevated, &OSVersion, &OSArch, &SleepDelay, &SleepJitter, &KillDate, &WorkingHours, &FirstCallIn, &LastCallIn, &MagicValue, &Alias, &Tags, &Notes)
 		if err != nil {
 			/* at this point we failed
 			 * just return the collected agents */
@@ -291,6 +311,8 @@ func (db *DB) AgentAll() []*agent.Agent {
 
 		Agent.NameID          = fmt.Sprintf("%08x", AgentID)
 		Agent.Alias           = Alias
+		Agent.Tags            = Tags
+		Agent.Notes           = Notes
 		Agent.SessionDir      = ""
 		Agent.BackgroundCheck = false
 		Agent.TaskedOnce      = true

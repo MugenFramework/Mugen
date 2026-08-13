@@ -21,25 +21,70 @@ import (
  * readable in the client session table */
 const AliasMaxLength = 32
 
-/* SanitizeAlias strips control characters out of an operator supplied alias
- * and bounds its length. An empty result means "clear the alias". */
-func SanitizeAlias(Alias string) string {
+/* TagsMaxLength bounds the comma-separated tag string */
+const TagsMaxLength = 256
+
+/* NotesMaxLength bounds free-form session notes */
+const NotesMaxLength = 4096
+
+func sanitizeRunes(input string, allowNewline bool) string {
 	var builder strings.Builder
 
-	for _, char := range Alias {
-		if unicode.IsControl(char) || char == utf8.RuneError {
+	for _, char := range input {
+		if char == utf8.RuneError {
+			continue
+		}
+		if unicode.IsControl(char) {
+			if allowNewline && (char == '\n' || char == '\t') {
+				builder.WriteRune(char)
+			}
 			continue
 		}
 		builder.WriteRune(char)
 	}
 
-	Alias = strings.TrimSpace(builder.String())
+	return builder.String()
+}
 
-	if utf8.RuneCountInString(Alias) > AliasMaxLength {
-		Alias = string([]rune(Alias)[:AliasMaxLength])
+func truncateRunes(input string, max int) string {
+	if utf8.RuneCountInString(input) <= max {
+		return input
+	}
+	return string([]rune(input)[:max])
+}
+
+/* SanitizeAlias strips control characters out of an operator supplied alias
+ * and bounds its length. An empty result means "clear the alias". */
+func SanitizeAlias(Alias string) string {
+	return strings.TrimSpace(truncateRunes(sanitizeRunes(Alias, false), AliasMaxLength))
+}
+
+/* SanitizeTags normalises a comma-separated tag list: strips controls,
+ * trims, drops empties and duplicates. An empty result clears tags. */
+func SanitizeTags(Tags string) string {
+	seen := make(map[string]bool)
+	var parts []string
+
+	for _, raw := range strings.Split(Tags, ",") {
+		tag := strings.TrimSpace(sanitizeRunes(raw, false))
+		if tag == "" {
+			continue
+		}
+		key := strings.ToLower(tag)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		parts = append(parts, tag)
 	}
 
-	return Alias
+	return truncateRunes(strings.Join(parts, ", "), TagsMaxLength)
+}
+
+/* SanitizeNotes strips control characters (keeps newlines and tabs) and
+ * bounds length. An empty result clears notes. */
+func SanitizeNotes(Notes string) string {
+	return strings.TrimSpace(truncateRunes(sanitizeRunes(Notes, true), NotesMaxLength))
 }
 
 /* AgentSetAlias assigns a human readable name to an agent, persists it and
@@ -61,6 +106,29 @@ func (t *Teamserver) AgentSetAlias(Agent *agent.Agent, Alias string) {
 	}
 
 	t.EventAgentAlias(Agent.DisplayID, Alias)
+}
+
+/* AgentSetMeta assigns notes and tags, persists them and lets every
+ * connected operator know. Empty values clear the field. */
+func (t *Teamserver) AgentSetMeta(Agent *agent.Agent, Tags, Notes string) {
+	Tags = SanitizeTags(Tags)
+	Notes = SanitizeNotes(Notes)
+
+	Agent.Tags = Tags
+	Agent.Notes = Notes
+
+	AgentID, err := strconv.ParseInt(Agent.NameID, 16, 64)
+	if err != nil {
+		logger.Error("Could not parse agent id: " + err.Error())
+		return
+	}
+
+	if err := t.DB.AgentSetMeta(int(AgentID), Tags, Notes); err != nil {
+		logger.Error("Could not set agent notes/tags: " + err.Error())
+		return
+	}
+
+	t.EventAgentMeta(Agent.DisplayID, Tags, Notes)
 }
 
 func (t *Teamserver) AgentUpdate(agent *agent.Agent) {

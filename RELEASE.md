@@ -21,6 +21,7 @@
 - Fixed TCP, DNS, and DoH listeners not surviving a server restart. TCP config was saved to the database but the restore loop had no case for it. DNS and DoH were neither saved nor restored. All three now persist correctly across restarts.
 - Fixed `json.Marshal` panic in `ToMap()`: `TunnelSave` and `TunnelRemove` are function-type fields that `structs.Map()` includes in the serialization map. Functions are not JSON-serializable; they are now removed from the map before any marshal call, consistent with the other non-serializable fields (`Connection`, `SessionDir`, `JobQueue`, `Parent`).
 - Task history now stores `Status`, `SentAt`, and `CompletedAt`. Existing rows migrate as `completed`. Status advances as the job leaves the queue (`sent`), when output starts (`processing`), and when a result or error comes back.
+- Notes and tags are stored on the teamserver (`TS_Agents.Tags` / `Notes`), like aliases. Every operator sees the same values; they survive reconnects and server restarts. Empty save clears them. Tags are capped at 256 characters, notes at 4096.
 
 **Client**
 
@@ -37,6 +38,7 @@
 - Map view removed: the geolocation map (ip-api.com) is gone from Session View. It was unused in operations and sent the operator IP to a third party.
 - Task status: every command is tracked as queued / sent / processing / completed / error. The agent console shows a colour badge on the prompt (`[queued]`, `[sent]`, `[done]`, `[error]`). Duration is measured from queue time to completion.
 - Tasks widget: **View → Tasks** is a live table of every task across all agents (status, agent, alias, type, operator, command, time, duration). Filter with `status:queued`, `agent:TU-`, `user:alice`, or the In progress / Completed / Error dropdown. Double-click a row to open that agent's console.
+- Notes and tags: right-click → Notes_Tags is now teamserver-side. Every operator sees the same tags (session table column) and notes; they survive reconnects and restarts. The session table filter accepts `tag:` and `notes:`.
 
 ---
 

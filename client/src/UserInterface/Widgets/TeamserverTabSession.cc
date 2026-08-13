@@ -387,7 +387,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
 
     SessionMenu.addAction( ColorMenu.menuAction() );
     SessionMenu.addAction( "Set Alias" );
-    SessionMenu.addAction( "Notes & Tags" );
+    SessionMenu.addAction( "Notes_Tags" );
     SessionMenu.addAction( "Export" );
     SessionMenu.addAction( separator3 );
     SessionMenu.addAction( "Remove" );
@@ -591,20 +591,26 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                      * alias back, so every operator stays in sync */
                     MugenX::Connector->SendPackage( Package );
                 }
-                else if ( action->text().compare( "Notes & Tags" ) == 0 )
+                else if ( action->text().compare( "Notes_Tags" ) == 0 )
                 {
-                    auto dialog = new QDialog( this->window() );
-                    dialog->setWindowTitle( "Notes & Tags - " + Session.Name );
-                    dialog->setMinimumSize( 480, 320 );
+                    /* PageWidget is in the QMainWindow tree; TeamserverTabSession
+                     * itself is not. this->window() is therefore a hidden
+                     * toplevel and Hyprland tiles the dialog beside Mugen.
+                     * Same parent as Payload / Add Listener. */
+                    auto dialog = new QDialog( PageWidget->window() );
+                    dialog->setObjectName( QString::fromUtf8( "NotesTagsDialog" ) );
+                    dialog->resize( 480, 360 );
+                    dialog->setStyleSheet( FileRead( ":/stylesheets/Dialogs/BasicDialog" ) );
+                    dialog->setWindowTitle( "Notes_Tags" );
 
-                    auto layout       = new QVBoxLayout( dialog );
-                    auto labelTags    = new QLabel( "Tags (comma-separated):" );
-                    auto editTags     = new QLineEdit( Session.Tags );
-                    auto labelNotes   = new QLabel( "Notes:" );
-                    auto editNotes    = new QTextEdit( Session.Notes );
-                    auto btnLayout    = new QHBoxLayout();
-                    auto btnSave      = new QPushButton( "Save" );
-                    auto btnCancel    = new QPushButton( "Cancel" );
+                    auto* layout     = new QVBoxLayout( dialog );
+                    auto* labelTags  = new QLabel( "Tags (comma-separated):", dialog );
+                    auto* editTags   = new QLineEdit( Session.Tags, dialog );
+                    auto* labelNotes = new QLabel( "Notes:", dialog );
+                    auto* editNotes  = new QTextEdit( Session.Notes, dialog );
+                    auto* btnLayout  = new QHBoxLayout();
+                    auto* btnSave    = new QPushButton( "Save", dialog );
+                    auto* btnCancel  = new QPushButton( "Close", dialog );
 
                     editTags->setPlaceholderText( "e.g. domain-admin, web-server, pivoted" );
                     editNotes->setPlaceholderText( "Operator notes..." );
@@ -612,6 +618,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                     btnLayout->addStretch();
                     btnLayout->addWidget( btnSave );
                     btnLayout->addWidget( btnCancel );
+                    btnLayout->addStretch();
 
                     layout->addWidget( labelTags );
                     layout->addWidget( editTags );
@@ -619,26 +626,27 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                     layout->addWidget( editNotes );
                     layout->addLayout( btnLayout );
 
-                    auto agentID  = Session.Name;
-                    auto tabPtr   = this;
+                    auto agentID = Session.Name;
 
                     QObject::connect( btnSave, &QPushButton::clicked, dialog, [=]() {
-                        auto tags  = editTags->text().trimmed();
-                        auto notes = editNotes->toPlainText().trimmed();
+                        auto Package = new Util::Packager::Package;
 
-                        for ( auto& s : MugenX::Teamserver.Sessions ) {
-                            if ( s.Name == agentID ) {
-                                s.Tags  = tags;
-                                s.Notes = notes;
-                                break;
-                            }
-                        }
+                        Package->Head = Util::Packager::Head_t {
+                                .Event= Util::Packager::Session::Type,
+                                .User = MugenX::Teamserver.User.toStdString(),
+                                .Time = CurrentTime().toStdString(),
+                        };
 
-                        tabPtr->SessionTableWidget->SetSessionTags( agentID, tags );
+                        Package->Body = Util::Packager::Body_t {
+                                .SubEvent = Util::Packager::Session::SetMeta,
+                                .Info = {
+                                    { "AgentID", agentID.toStdString() },
+                                    { "Tags",    editTags->text().trimmed().toStdString() },
+                                    { "Notes",   editNotes->toPlainText().trimmed().toStdString() },
+                                }
+                        };
 
-                        if ( tabPtr->dbManager )
-                            tabPtr->dbManager->SetSessionMeta( agentID, tags, notes );
-
+                        MugenX::Connector->SendPackage( Package );
                         dialog->accept();
                     } );
 

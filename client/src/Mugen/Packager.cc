@@ -55,6 +55,7 @@ const int Util::Packager::Session::ReceiveCommand   = 0x4;
 const int Util::Packager::Session::MarkAs           = 0x5;
 const int Util::Packager::Session::UpdateSession    = 0x6;
 const int Util::Packager::Session::SetAlias         = 0x7;
+const int Util::Packager::Session::SetMeta          = 0x8;
 
 const int Util::Packager::Service::Type             = 0x9;
 const int Util::Packager::Service::AgentRegister    = 0x1;
@@ -682,6 +683,9 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
                     .WorkingHours = (uint32_t)strtoul(Package->Body.Info[ "WorkingHours" ].c_str(), NULL, 0),
             };
 
+            Agent.Tags  = Package->Body.Info[ "Tags" ].c_str();
+            Agent.Notes = Package->Body.Info[ "Notes" ].c_str();
+
             Agent.LastUTC = QDateTime::fromString(Agent.Last, "dd-MM-yyyy HH:mm:ss");
 
             if ( Agent.Marked == "true" )
@@ -698,15 +702,6 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
             for ( auto& session : MugenX::Teamserver.Sessions )
                 if ( session.Name.compare( Agent.Name ) == 0 )
                     return false;
-
-            // Load any persisted tags/notes for this agent before adding to table
-            if ( TeamserverTab->dbManager ) {
-                QString tags, notes;
-                if ( TeamserverTab->dbManager->GetSessionMeta( Agent.Name, tags, notes ) ) {
-                    Agent.Tags  = tags;
-                    Agent.Notes = notes;
-                }
-            }
 
             TeamserverTab->SessionTableWidget->NewSessionItem( Agent );
             if ( TeamserverTab->LootWidget )
@@ -1004,6 +999,17 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
             auto Alias   = QString( Package->Body.Info[ "Alias" ].c_str() );
 
             MugenX::Teamserver.TabSession->SessionTableWidget->SetSessionAlias( AgentID, Alias );
+
+            break;
+        }
+
+        case Util::Packager::Session::SetMeta:
+        {
+            auto AgentID = QString( Package->Body.Info[ "AgentID" ].c_str() );
+            auto Tags    = QString( Package->Body.Info[ "Tags" ].c_str() );
+            auto Notes   = QString( Package->Body.Info[ "Notes" ].c_str() );
+
+            MugenX::Teamserver.TabSession->SessionTableWidget->SetSessionMeta( AgentID, Tags, Notes );
 
             break;
         }

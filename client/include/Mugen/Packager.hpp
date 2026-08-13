@@ -81,6 +81,7 @@ namespace MugenNamespace::Util::Packager
         extern const int Remove;
         extern const int UpdateSession;
         extern const int SetAlias;
+        extern const int SetMeta;
     }
 
     namespace Service

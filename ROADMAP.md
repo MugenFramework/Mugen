@@ -123,7 +123,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [ ] **File transfer progress** - progress bar and size estimate for uploads and downloads
 - [x] **Agent aliasing** - assign a short human-readable name to an agent (e.g. `dc01-system`), shown in the session table alongside the ID; stored teamserver-side so every operator sees it, and it survives reconnects and server restarts
 - [x] **Alias in console tab titles** - console tabs currently show `[TU-xxxx] user/host` and ignore the alias; when an alias is set, the tab should display it (e.g. `[dc01-system] user/host`)
-- [ ] **Notes & tags teamserver-side** - notes and tags are stored in the local client SQLite today, so other operators never see them; persist them on the teamserver like aliases, shared across operators and surviving reconnects
+- [x] **Notes & tags teamserver-side** - notes and tags are stored in the local client SQLite today, so other operators never see them; persist them on the teamserver like aliases, shared across operators and surviving reconnects
 - [x] **Remove Map View** - drop the geolocation map (ip-api.com); unused in operations and leaks the operator IP to a third party
 - [ ] **Split console reuse** - split view currently creates new `DemonInteracted` widgets and only mirrors output; reuse the existing session consoles so local command history, focus, and task state stay in sync
 - [ ] **Agent timeline** - chronological view of all tasks and outputs for a single agent; useful for post-engagement reconstruction

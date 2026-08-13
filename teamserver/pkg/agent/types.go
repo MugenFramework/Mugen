@@ -142,6 +142,8 @@ type Agent struct {
 	NameID    string
 	DisplayID string // prefixed display name: "DN-XXXXXXXX" for Demon, "TU-XXXXXXXX" for Tengu
 	Alias      string // operator assigned human readable name, e.g. "dc01-system" (empty if unset)
+	Tags       string // comma-separated labels, shared across operators
+	Notes      string // free-form operator notes, shared across operators
 	JobQueue   []Job
 	Tasks      []Job
 	SessionDir string
