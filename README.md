@@ -53,6 +53,10 @@ cd Mugen
 make
 ```
 
+`make` downloads the MinGW cross-compilers into `data/` (used by the default profile). After code changes, `make rebuild` is enough — it does **not** reinstall those compilers.
+
+Do not `rm -rf data/` to reset loot or the database: that also deletes MinGW, and the teamserver will refuse to start. Wipe `data/loot/` and `data/teamserver.db` instead. If `data/` is already gone, restore the compilers with `make ts-build` (or `./teamserver/Install.sh`) then start the server.
+
 ```bash
 # Teamserver
 sudo ./mugen server --profile ./profiles/mugen.yaotl -v

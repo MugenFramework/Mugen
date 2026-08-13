@@ -138,6 +138,13 @@ type (
 			ListAll    int
 			Snapshot   int
 		}
+
+		Loot struct {
+			Type     int
+			Add      int
+			Download int
+			Remove   int
+		}
 	}
 )
 
@@ -305,4 +312,11 @@ var Type = Types{
 		ListAll    int
 		Snapshot   int
 	}{Type: 0xB, List: 0x1, SetComment: 0x2, Delete: 0x3, Sync: 0x4, Update: 0x5, ListAll: 0x6, Snapshot: 0x7},
+
+	Loot: struct {
+		Type     int
+		Add      int
+		Download int
+		Remove   int
+	}{Type: 0xC, Add: 0x1, Download: 0x2, Remove: 0x3},
 }

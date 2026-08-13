@@ -89,9 +89,6 @@ public:
     QTableWidget*   ScreenshotTable;
     QTableWidget*   DownloadTable;
 
-    QMenu*          ScreenshotMenu;
-    QAction*        ScreenshotActionDownload;
-
     QSpacerItem*    horizontalSpacer;
     QStackedWidget* StackWidget;
     QWidget*        Screenshots;
@@ -109,6 +106,9 @@ public:
     QPushButton*    BtnAddCredential;
     QPushButton*    BtnEditCredential;
     QPushButton*    BtnRemoveCredential;
+    QWidget*        FileBar;
+    QPushButton*    BtnDownloadFile;
+    QPushButton*    BtnDeleteFile;
     QSpacerItem*    horizontalSpacer_2;
 
     LootWidget();
@@ -122,17 +122,24 @@ public:
                         const QString& Secret, const QString& Domain, const QString& Source,
                         const QString& Timestamp );
 
-    void ScreenshotTableAdd( const QString& Name, const QString& Date );
-    void DownloadTableAdd( const QString& Name, const QString& Size, const QString& Date );
+    void ScreenshotTableAdd( const QString& AgentID, const QString& Name, const QString& Date );
+    void DownloadTableAdd( const QString& AgentID, const QString& Name, const QString& Size, const QString& Date );
     void CredentialTableAdd( const QString& CredType, const QString& Username, const QString& Secret,
                              const QString& Domain, const QString& Source, const QString& AgentID,
                              const QString& Timestamp );
     void LoadCredentialsFromDB( MugenNamespace::MugenSpace::DBManager* db );
     void ShowKind( const QString& kind );
+    void RemoveFile( const QString& agentID, const QString& name, int type );
 
 private:
     bool agentVisible( const QString& agentID ) const;
     void refreshLootTables();
+    bool hasLoot( int type, const QString& agentID, const QString& name ) const;
+    bool selectedFile( QString& agentID, QString& name, int& type ) const;
+    void requestFileDownload();
+    void requestFileDelete();
+    void updateFileButtons();
+    void sendLootRequest( int subEvent, const QString& agentID, const QString& name, int type );
 
 private Q_SLOTS:
     void onAgentChange( const QString& text );
@@ -140,6 +147,7 @@ private Q_SLOTS:
     void onScreenshotTableClick( const QModelIndex &index );
     void onDownloadTableClick( const QModelIndex &index );
     void onScreenshotTableCtx( const QPoint &pos );
+    void onDownloadTableCtx( const QPoint &pos );
     void onAddCredential();
     void onEditCredential();
     void onRemoveCredential();

@@ -1318,5 +1318,55 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 			}
 			t.DB.TaskDelete(taskID)
 		}
+
+	case packager.Type.Loot.Type:
+
+		if logr.LogrInstance == nil {
+			return
+		}
+
+		agentID, _ := pk.Body.Info["AgentID"].(string)
+		kind, _ := pk.Body.Info["Kind"].(string)
+		name, _ := pk.Body.Info["Name"].(string)
+		if agentID == "" || name == "" {
+			return
+		}
+
+		diskKind := ""
+		switch kind {
+		case "screenshot", logr.LootKindScreenshot:
+			diskKind = logr.LootKindScreenshot
+			kind = "screenshot"
+		case "download", logr.LootKindDownload:
+			diskKind = logr.LootKindDownload
+			kind = "download"
+		default:
+			return
+		}
+
+		nameID := t.agentLootNameID(agentID)
+
+		switch pk.Body.SubEvent {
+
+		case packager.Type.Loot.Download:
+			requestUser, _ := pk.Body.Info["RequestUser"].(string)
+			data, err := logr.LogrInstance.ReadAgentFile(nameID, diskKind, name)
+			if err != nil {
+				logger.Error("Loot.Download: " + err.Error())
+				return
+			}
+			t.EventBroadcast("", events.Loot.Download(
+				agentID, kind, name,
+				base64.StdEncoding.EncodeToString(data),
+				requestUser,
+			))
+
+		case packager.Type.Loot.Remove:
+			if err := logr.LogrInstance.RemoveAgentFile(nameID, diskKind, name); err != nil {
+				logger.Error("Loot.Remove: " + err.Error())
+				return
+			}
+			t.EventBroadcast("", events.Loot.Remove(agentID, kind, name))
+		}
 	}
 }

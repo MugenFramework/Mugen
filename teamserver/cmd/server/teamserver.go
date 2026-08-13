@@ -8,6 +8,7 @@ import (
 	"Mugen/pkg/service"
 	"Mugen/pkg/webhook"
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -29,6 +30,7 @@ import (
 	"Mugen/pkg/events"
 	"Mugen/pkg/handlers"
 	"Mugen/pkg/logger"
+	"Mugen/pkg/logr"
 	"Mugen/pkg/packager"
 	"Mugen/pkg/profile"
 	"Mugen/pkg/utils"
@@ -1000,6 +1002,59 @@ func (t *Teamserver) SendAllPackagesToNewClient(ClientID string) {
 			return
 		}
 	}
+
+	t.sendLootToClient(ClientID)
+}
+
+func (t *Teamserver) sendLootToClient(ClientID string) {
+	if logr.LogrInstance == nil {
+		return
+	}
+
+	displayOf := map[string]string{}
+	for _, a := range t.Agents.Agents {
+		if a == nil {
+			continue
+		}
+		disp := a.DisplayID
+		if disp == "" {
+			disp = a.NameID
+		}
+		displayOf[a.NameID] = disp
+	}
+
+	for _, nameID := range logr.LogrInstance.ListAgentIDs() {
+		displayID := displayOf[nameID]
+		if displayID == "" {
+			displayID = nameID
+		}
+		for _, item := range logr.LogrInstance.ListAgentLoot(nameID) {
+			data := ""
+			kind := "download"
+			if item.Kind == logr.LootKindScreenshot {
+				kind = "screenshot"
+				if raw, err := os.ReadFile(item.Path); err == nil {
+					data = base64.StdEncoding.EncodeToString(raw)
+				}
+			}
+			_ = t.SendEvent(ClientID, events.Loot.Add(displayID, kind, item.Name, item.Size, item.Date, data))
+		}
+	}
+}
+
+func (t *Teamserver) agentLootNameID(id string) string {
+	for _, a := range t.Agents.Agents {
+		if a == nil {
+			continue
+		}
+		if a.DisplayID == id || a.NameID == id {
+			return a.NameID
+		}
+	}
+	if len(id) > 3 && (strings.HasPrefix(id, "TU-") || strings.HasPrefix(id, "DN-")) {
+		return id[3:]
+	}
+	return id
 }
 
 func (t *Teamserver) FindSystemPackages() bool {

@@ -17,6 +17,7 @@ import (
 	"Mugen/pkg/common"
 	"Mugen/pkg/common/parser"
 	"Mugen/pkg/logger"
+	"Mugen/pkg/logr"
 	"golang.org/x/crypto/chacha20"
 )
 
@@ -53,23 +54,23 @@ func ParseTenguRegisterRequest(AgentID int, Parser *parser.Parser, ExternalIP st
 		Info:       new(AgentInfo),
 	}
 
-	Session.NameID               = fmt.Sprintf("%08x", AgentID)
-	Session.DisplayID            = "TU-" + Session.NameID
-	Session.Info.MagicValue      = TENGU_MAGIC_VALUE
-	Session.Info.Hostname        = Hostname
-	Session.Info.Username        = Username
-	Session.Info.InternalIP      = InternalIP
-	Session.Info.OSVersion       = OS
-	Session.Info.ProcessName     = ProcessName
-	Session.Info.ProcessPID      = PID
-	Session.Info.SleepDelay      = Sleep
-	Session.Info.SleepJitter     = Jitter
-	Session.Info.FirstCallIn     = time.Now().Format("02/01/2006 15:04:05")
-	Session.Info.LastCallIn      = time.Now().Format("02-01-2006 15:04:05")
-	Session.Info.ProcessArch     = "x64"
-	Session.Info.Elevated        = "false"
-	Session.Info.OSArch          = "x64"
-	Session.BackgroundCheck      = false
+	Session.NameID = fmt.Sprintf("%08x", AgentID)
+	Session.DisplayID = "TU-" + Session.NameID
+	Session.Info.MagicValue = TENGU_MAGIC_VALUE
+	Session.Info.Hostname = Hostname
+	Session.Info.Username = Username
+	Session.Info.InternalIP = InternalIP
+	Session.Info.OSVersion = OS
+	Session.Info.ProcessName = ProcessName
+	Session.Info.ProcessPID = PID
+	Session.Info.SleepDelay = Sleep
+	Session.Info.SleepJitter = Jitter
+	Session.Info.FirstCallIn = time.Now().Format("02/01/2006 15:04:05")
+	Session.Info.LastCallIn = time.Now().Format("02-01-2006 15:04:05")
+	Session.Info.ProcessArch = "x64"
+	Session.Info.Elevated = "false"
+	Session.Info.OSArch = "x64"
+	Session.BackgroundCheck = false
 
 	if ExternalIP != "" {
 		Session.Info.ExternalIP = ExternalIP
@@ -1015,7 +1016,7 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 					}
 					perm, _ := fm["Permissions"].(string)
 					size, _ := fm["Size"].(string)
-					mod, _  := fm["Modified"].(string)
+					mod, _ := fm["Modified"].(string)
 					name, _ := fm["Name"].(string)
 					ftype, _ := fm["Type"].(string)
 					if perm == "" {
@@ -1085,15 +1086,8 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 		filename := string(Parser.ParseBytes())
 		data := Parser.ParseBytes()
 
-		savePath := filepath.Join("downloads", a.NameID, filepath.Base(filename))
-		if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
-			teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
-				"Type":    "Error",
-				"Message": "Failed to create download directory: " + err.Error(),
-			})
-			return
-		}
-		if err := os.WriteFile(savePath, data, 0644); err != nil {
+		savePath, err := logr.LogrInstance.WriteAgentFile(a.NameID, logr.LootKindDownload, filepath.Base(filename), data)
+		if err != nil {
 			teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
 				"Type":    "Error",
 				"Message": "Failed to save file: " + err.Error(),
@@ -1116,15 +1110,7 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 		filename := string(Parser.ParseBytes())
 		data := Parser.ParseBytes()
 
-		savePath := filepath.Join("downloads", a.NameID, filename)
-		if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
-			teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
-				"Type":    "Error",
-				"Message": "Failed to create screenshot directory: " + err.Error(),
-			})
-			return
-		}
-		if err := os.WriteFile(savePath, data, 0644); err != nil {
+		if _, err := logr.LogrInstance.WriteAgentFile(a.NameID, logr.LootKindScreenshot, filepath.Base(filename), data); err != nil {
 			teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
 				"Type":    "Error",
 				"Message": "Failed to save screenshot: " + err.Error(),
@@ -1133,10 +1119,10 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 		}
 		a.RequestCompleted(RequestID)
 		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
-			"Type":     "Good",
-			"Message":  fmt.Sprintf("Screenshot captured (%d bytes)", len(data)),
-			"MiscType": "screenshot",
-			"MiscData": base64.StdEncoding.EncodeToString(data),
+			"Type":      "Good",
+			"Message":   fmt.Sprintf("Screenshot captured (%d bytes)", len(data)),
+			"MiscType":  "screenshot",
+			"MiscData":  base64.StdEncoding.EncodeToString(data),
 			"MiscData2": filename,
 		})
 
@@ -1240,7 +1226,7 @@ func TenguDecrypt(key []byte, p *parser.Parser) (*parser.Parser, bool) {
 	if len(raw) < 12 {
 		return nil, false
 	}
-	nonce      := raw[:12]
+	nonce := raw[:12]
 	ciphertext := make([]byte, len(raw)-12)
 	copy(ciphertext, raw[12:])
 
@@ -1290,7 +1276,7 @@ func TenguHandlePivotFrame(teamserver TeamServer, Header Header) []byte {
 		return nil
 	}
 
-	Command   := uint32(Header.Data.ParseInt32())
+	Command := uint32(Header.Data.ParseInt32())
 	RequestID := uint32(Header.Data.ParseInt32())
 
 	var payload []byte

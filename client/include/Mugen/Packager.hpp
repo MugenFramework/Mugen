@@ -119,11 +119,20 @@ namespace MugenNamespace::Util::Packager
         extern const int ListAll;
         extern const int Snapshot;
     }
+
+    namespace Loot
+    {
+        extern const int Type;
+        extern const int Add;
+        extern const int Download;
+        extern const int Remove;
+    }
 }
 
 auto NewPackageCommand(     const QString& Teamserver, Util::Packager::Body_t Body ) -> void;
 auto NewPackageResource(    const QString& Teamserver, Util::Packager::Body_t Body ) -> void;
 auto NewPackageTaskHistory( const QString& Teamserver, Util::Packager::Body_t Body ) -> void;
+auto NewPackageLoot(        const QString& Teamserver, Util::Packager::Body_t Body ) -> void;
 
 class MugenSpace::Packager
 {
@@ -146,6 +155,7 @@ public:
     bool DispatchTeamserver( Util::Packager::PPackage Package );
     bool DispatchResource(    Util::Packager::PPackage Package );
     bool DispatchTaskHistory( Util::Packager::PPackage Package );
+    bool DispatchLoot(        Util::Packager::PPackage Package );
 };
 
 #endif //MUGEN_PACKAGER_H

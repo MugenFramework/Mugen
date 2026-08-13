@@ -118,6 +118,8 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Task status** - each task has a status (queued / sent / processing / completed / error) with timestamp and duration, visible in the agent console and as a per-agent list; operators can see whether a command is waiting on the next beacon or already done
 - [x] **Tasks widget** - View → Ops → Tasks: live table of every task across all agents (status, agent, alias, operator, command, duration); filterable, double-click opens the agent console
 - [x] **Ops hub** - View → Ops is a single tab with an internal navbar (Screenshots, Credentials, Downloads, Resources, Tasks, Networking); replaces the separate View entries
+- [x] **Loot screenshots & downloads persistence** - stored under `data/loot/agents/`, restored to Ops when an operator connects, survive teamserver restart; timestamped folders from older runs are migrated
+- [x] **Loot Download / Delete** - Ops → Screenshots and Downloads have Download (save to the operator machine) and Delete (remove from the teamserver); also in the row context menu
 - [ ] **Operator attribution** - display which operator ran each command in a shared agent console
 - [ ] **Operator presence** - show in real time which agents other connected operators are interacting with
 - [ ] **Multi-teamserver** - connect to multiple teamservers simultaneously from a single client
