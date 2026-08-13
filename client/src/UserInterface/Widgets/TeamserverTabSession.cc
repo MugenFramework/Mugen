@@ -558,15 +558,36 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                 }
                 else if ( action->text().compare( "Set Alias" ) == 0 )
                 {
-                    bool accepted = false;
-                    auto alias    = QInputDialog::getText(
-                            this->window(),
-                            "Set Alias - " + Session.Name,
-                            "Alias (leave empty to clear):",
-                            QLineEdit::Normal,
-                            Session.Alias,
-                            &accepted
-                    ).trimmed();
+                    auto dialog = new QDialog( PageWidget->window() );
+                    dialog->setObjectName( QString::fromUtf8( "SetAliasDialog" ) );
+                    dialog->resize( 420, 140 );
+                    dialog->setStyleSheet( FileRead( ":/stylesheets/Dialogs/BasicDialog" ) );
+                    dialog->setWindowTitle( "Set Alias" );
+
+                    auto* layout    = new QVBoxLayout( dialog );
+                    auto* label     = new QLabel( "Alias (leave empty to clear):", dialog );
+                    auto* editAlias = new QLineEdit( Session.Alias, dialog );
+                    auto* btnLayout = new QHBoxLayout();
+                    auto* btnSave   = new QPushButton( "Save", dialog );
+                    auto* btnCancel = new QPushButton( "Close", dialog );
+
+                    editAlias->setPlaceholderText( "e.g. dc01-system" );
+
+                    btnLayout->addStretch();
+                    btnLayout->addWidget( btnSave );
+                    btnLayout->addWidget( btnCancel );
+                    btnLayout->addStretch();
+
+                    layout->addWidget( label );
+                    layout->addWidget( editAlias );
+                    layout->addLayout( btnLayout );
+
+                    QObject::connect( btnSave,   &QPushButton::clicked, dialog, &QDialog::accept );
+                    QObject::connect( btnCancel, &QPushButton::clicked, dialog, &QDialog::reject );
+
+                    auto accepted = dialog->exec() == QDialog::Accepted;
+                    auto alias    = editAlias->text().trimmed();
+                    delete dialog;
 
                     if ( ! accepted )
                         break;
