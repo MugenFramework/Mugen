@@ -863,6 +863,12 @@ func (t *Teamserver) EventAgentAlias(AgentID, Alias string) {
 	t.EventBroadcast("", pk)
 }
 
+func (t *Teamserver) EventAgentMeta(AgentID, Tags, Notes string) {
+	var pk = events.Demons.SetMeta(AgentID, Tags, Notes)
+
+	t.EventBroadcast("", pk)
+}
+
 func (t *Teamserver) EventListenerError(ListenerName string, Error error) {
 	var pk = events.Listener.ListenerError("", ListenerName, Error)
 

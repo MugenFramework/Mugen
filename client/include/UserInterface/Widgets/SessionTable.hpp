@@ -55,6 +55,7 @@ public:
     void SetHealthCell( const QString& agentId, const QString& text, const QColor& color );
     void SetSessionTags( const QString& AgentID, const QString& Tags );
     void SetSessionAlias( const QString& AgentID, const QString& Alias );
+    void SetSessionMeta( const QString& AgentID, const QString& Tags, const QString& Notes );
     void updateRow();
     void applyFilter( const QString& query );
 

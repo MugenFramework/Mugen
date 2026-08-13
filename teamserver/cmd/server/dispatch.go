@@ -73,6 +73,28 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 			break
 
+		case packager.Type.Session.SetMeta:
+			var AgentID string
+
+			if val, ok := pk.Body.Info["AgentID"].(string); ok {
+				AgentID = val
+			} else {
+				logger.Debug("SetMeta: no AgentID given")
+				return
+			}
+
+			Tags, _ := pk.Body.Info["Tags"].(string)
+			Notes, _ := pk.Body.Info["Notes"].(string)
+
+			for i := range t.Agents.Agents {
+				if t.Agents.Agents[i].DisplayID == AgentID {
+					t.AgentSetMeta(t.Agents.Agents[i], Tags, Notes)
+					break
+				}
+			}
+
+			break
+
 		case packager.Type.Session.Input:
 			var (
 				job       *agent.Job
