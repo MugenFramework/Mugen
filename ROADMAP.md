@@ -113,7 +113,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Payload builder UX** - live config preview, one-liner copy-paste generator
 - [x] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog
 - [x] **Multi-select sessions + bulk actions** - select multiple agents and send a command to all (shell, sleep, kill)
-- [ ] **Bulk actions expansion** - extend multi-select beyond shell / sleep / kill: set tag, set alias, mark dead, sleep with jitter
+- [x] **Bulk actions expansion** - extend multi-select beyond shell / sleep / kill: set tag, set alias, mark dead, sleep with jitter
 - [x] **Persistent task history** - all commands and their output are stored in SQLite (TS_TaskHistory), survive restart/reconnect; dedicated History tab per agent with: output search, comment, delete
 - [x] **Task status** - each task has a status (queued / sent / processing / completed / error) with timestamp and duration, visible in the agent console and as a per-agent list; operators can see whether a command is waiting on the next beacon or already done
 - [x] **Tasks widget** - View → Ops → Tasks: live table of every task across all agents (status, agent, alias, operator, command, duration); filterable, double-click opens the agent console

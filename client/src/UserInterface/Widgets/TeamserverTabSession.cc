@@ -33,6 +33,8 @@
 #include <QTextEdit>
 #include <QPushButton>
 #include <QInputDialog>
+#include <QMessageBox>
+#include <QFormLayout>
 #include <QPixmap>
 #include <Mugen/DBManager/DBManager.hpp>
 
@@ -222,6 +224,10 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         bulkMenu.addAction( "Shell" );
         bulkMenu.addAction( "Sleep" );
         bulkMenu.addSeparator();
+        bulkMenu.addAction( "Set Alias" );
+        bulkMenu.addAction( "Set Tag" );
+        bulkMenu.addAction( "Mark as Dead" );
+        bulkMenu.addSeparator();
         bulkMenu.addAction( "Kill" );
 
         auto* action = bulkMenu.exec(
@@ -239,11 +245,25 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
             }
         };
 
+        auto sendSession = [&]( int subEvent, const QString& agentID, const QMap<QString, QString>& fields ) {
+            auto Package = new Util::Packager::Package;
+            Package->Head = Util::Packager::Head_t {
+                .Event = Util::Packager::Session::Type,
+                .User  = MugenX::Teamserver.User.toStdString(),
+                .Time  = CurrentTime().toStdString(),
+            };
+            Package->Body.SubEvent = subEvent;
+            Package->Body.Info[ "AgentID" ] = agentID.toStdString();
+            for ( auto it = fields.begin(); it != fields.end(); ++it )
+                Package->Body.Info[ it.key().toStdString() ] = it.value().toStdString();
+            MugenX::Connector->SendPackage( Package );
+        };
+
         if ( action->text() == "Shell" )
         {
             bool ok = false;
             auto cmd = QInputDialog::getText(
-                this, "Bulk Shell",
+                PageWidget->window(), "Bulk Shell",
                 QString( "Command to run on %1 agents:" ).arg( selectedIDs.size() ),
                 QLineEdit::Normal, QString(), &ok
             );
@@ -258,19 +278,166 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         }
         else if ( action->text() == "Sleep" )
         {
-            bool ok = false;
-            auto val = QInputDialog::getText(
-                this, "Bulk Sleep",
-                QString( "Sleep interval for %1 agents (seconds):" ).arg( selectedIDs.size() ),
-                QLineEdit::Normal, "60", &ok
-            );
-            if ( !ok || val.trimmed().isEmpty() ) return;
+            auto dialog = new QDialog( PageWidget->window() );
+            dialog->setObjectName( QString::fromUtf8( "BulkSleepDialog" ) );
+            dialog->setStyleSheet( FileRead( ":/stylesheets/Dialogs/BasicDialog" ) );
+            dialog->setWindowTitle( "Bulk Sleep" );
 
+            auto* layout = new QVBoxLayout( dialog );
+            auto* form   = new QFormLayout();
+            auto* editDelay  = new QLineEdit( "60", dialog );
+            auto* editJitter = new QLineEdit( "0", dialog );
+            editDelay->setPlaceholderText( "seconds" );
+            editJitter->setPlaceholderText( "0-100" );
+            form->addRow( "Delay (seconds):", editDelay );
+            form->addRow( "Jitter (%):",      editJitter );
+
+            auto* btnLayout = new QHBoxLayout();
+            auto* btnOk     = new QPushButton( "Apply", dialog );
+            auto* btnCancel = new QPushButton( "Close", dialog );
+            btnLayout->addStretch();
+            btnLayout->addWidget( btnOk );
+            btnLayout->addWidget( btnCancel );
+            btnLayout->addStretch();
+
+            layout->addWidget( new QLabel(
+                QString( "Sleep interval for %1 agents:" ).arg( selectedIDs.size() ), dialog ) );
+            layout->addLayout( form );
+            layout->addLayout( btnLayout );
+
+            QObject::connect( btnOk,     &QPushButton::clicked, dialog, &QDialog::accept );
+            QObject::connect( btnCancel, &QPushButton::clicked, dialog, &QDialog::reject );
+
+            auto accepted = dialog->exec() == QDialog::Accepted;
+            auto delay    = editDelay->text().trimmed();
+            auto jitter   = editJitter->text().trimmed();
+            delete dialog;
+
+            if ( ! accepted || delay.isEmpty() )
+                return;
+
+            bool delayOk = false, jitterOk = false;
+            auto delayN  = delay.toDouble( &delayOk );
+            auto jitterN = jitter.isEmpty() ? 0.0 : jitter.toDouble( &jitterOk );
+            if ( jitter.isEmpty() )
+                jitterOk = true;
+            if ( ! delayOk || delayN < 0 || ! jitterOk || jitterN < 0 || jitterN > 100 )
+            {
+                QMessageBox::warning(
+                    PageWidget->window(), "Bulk Sleep",
+                    "Delay must be >= 0 and jitter must be between 0 and 100."
+                );
+                return;
+            }
+
+            auto cmd = QString( "sleep %1 %2" ).arg( delay ).arg( jitter.isEmpty() ? "0" : jitter );
             for ( auto& s : MugenX::Teamserver.Sessions ) {
                 if ( selectedIDs.contains( s.Name ) ) {
                     ensureWidget( s );
-                    s.InteractedWidget->AppendText( "sleep " + val.trimmed() );
+                    s.InteractedWidget->AppendText( cmd );
                 }
+            }
+        }
+        else if ( action->text() == "Set Alias" )
+        {
+            auto dialog = new QDialog( PageWidget->window() );
+            dialog->setObjectName( QString::fromUtf8( "BulkSetAliasDialog" ) );
+            dialog->resize( 420, 160 );
+            dialog->setStyleSheet( FileRead( ":/stylesheets/Dialogs/BasicDialog" ) );
+            dialog->setWindowTitle( "Bulk Set Alias" );
+
+            auto* layout    = new QVBoxLayout( dialog );
+            auto* label     = new QLabel(
+                QString( "Alias for %1 agents (leave empty to clear):" ).arg( selectedIDs.size() ), dialog );
+            auto* editAlias = new QLineEdit( dialog );
+            auto* btnLayout = new QHBoxLayout();
+            auto* btnSave   = new QPushButton( "Save", dialog );
+            auto* btnCancel = new QPushButton( "Close", dialog );
+
+            editAlias->setPlaceholderText( "e.g. dc01-system" );
+            btnLayout->addStretch();
+            btnLayout->addWidget( btnSave );
+            btnLayout->addWidget( btnCancel );
+            btnLayout->addStretch();
+            layout->addWidget( label );
+            layout->addWidget( editAlias );
+            layout->addLayout( btnLayout );
+
+            QObject::connect( btnSave,   &QPushButton::clicked, dialog, &QDialog::accept );
+            QObject::connect( btnCancel, &QPushButton::clicked, dialog, &QDialog::reject );
+
+            auto accepted = dialog->exec() == QDialog::Accepted;
+            auto alias    = editAlias->text().trimmed();
+            delete dialog;
+
+            if ( ! accepted )
+                return;
+
+            for ( auto& s : MugenX::Teamserver.Sessions ) {
+                if ( selectedIDs.contains( s.Name ) )
+                    sendSession( Util::Packager::Session::SetAlias, s.Name, { { "Alias", alias } } );
+            }
+        }
+        else if ( action->text() == "Set Tag" )
+        {
+            auto dialog = new QDialog( PageWidget->window() );
+            dialog->setObjectName( QString::fromUtf8( "BulkSetTagDialog" ) );
+            dialog->resize( 480, 160 );
+            dialog->setStyleSheet( FileRead( ":/stylesheets/Dialogs/BasicDialog" ) );
+            dialog->setWindowTitle( "Bulk Set Tag" );
+
+            auto* layout    = new QVBoxLayout( dialog );
+            auto* label     = new QLabel(
+                QString( "Tags for %1 agents (comma-separated; leave empty to clear). Notes are kept." )
+                    .arg( selectedIDs.size() ), dialog );
+            auto* editTags  = new QLineEdit( dialog );
+            auto* btnLayout = new QHBoxLayout();
+            auto* btnSave   = new QPushButton( "Save", dialog );
+            auto* btnCancel = new QPushButton( "Close", dialog );
+
+            editTags->setPlaceholderText( "e.g. domain-admin, web-server" );
+            label->setWordWrap( true );
+            btnLayout->addStretch();
+            btnLayout->addWidget( btnSave );
+            btnLayout->addWidget( btnCancel );
+            btnLayout->addStretch();
+            layout->addWidget( label );
+            layout->addWidget( editTags );
+            layout->addLayout( btnLayout );
+
+            QObject::connect( btnSave,   &QPushButton::clicked, dialog, &QDialog::accept );
+            QObject::connect( btnCancel, &QPushButton::clicked, dialog, &QDialog::reject );
+
+            auto accepted = dialog->exec() == QDialog::Accepted;
+            auto tags     = editTags->text().trimmed();
+            delete dialog;
+
+            if ( ! accepted )
+                return;
+
+            for ( auto& s : MugenX::Teamserver.Sessions ) {
+                if ( selectedIDs.contains( s.Name ) )
+                    sendSession( Util::Packager::Session::SetMeta, s.Name, {
+                        { "Tags",  tags },
+                        { "Notes", s.Notes },
+                    } );
+            }
+        }
+        else if ( action->text() == "Mark as Dead" )
+        {
+            auto ans = QMessageBox::question(
+                PageWidget->window(),
+                "Mark as Dead",
+                QString( "Mark %1 agents as dead?" ).arg( selectedIDs.size() ),
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::No
+            );
+            if ( ans != QMessageBox::Yes )
+                return;
+
+            for ( auto& s : MugenX::Teamserver.Sessions ) {
+                if ( selectedIDs.contains( s.Name ) )
+                    sendSession( Util::Packager::Session::MarkAs, s.Name, { { "Marked", "Dead" } } );
             }
         }
         else if ( action->text() == "Kill" )
