@@ -259,6 +259,7 @@ namespace MugenNamespace
             QString Health;
             QString Tags;
             QString Notes;
+            QString Color;
             u32     SleepDelay;
             u32     SleepJitter;
             u64     KillDate;

@@ -95,6 +95,27 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 			break
 
+		case packager.Type.Session.SetColor:
+			var AgentID string
+
+			if val, ok := pk.Body.Info["AgentID"].(string); ok {
+				AgentID = val
+			} else {
+				logger.Debug("SetColor: no AgentID given")
+				return
+			}
+
+			Color, _ := pk.Body.Info["Color"].(string)
+
+			for i := range t.Agents.Agents {
+				if t.Agents.Agents[i].DisplayID == AgentID {
+					t.AgentSetColor(t.Agents.Agents[i], Color)
+					break
+				}
+			}
+
+			break
+
 		case packager.Type.Session.Input:
 			var (
 				job       *agent.Job

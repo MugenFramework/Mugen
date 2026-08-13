@@ -32,6 +32,7 @@
 #include <QTextEdit>
 #include <QPushButton>
 #include <QInputDialog>
+#include <QPixmap>
 #include <Mugen/DBManager/DBManager.hpp>
 
 using namespace UserInterface::Widgets;
@@ -319,14 +320,20 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
     auto Socks5Menu         = QMenu( "SOCKS5" );
     auto PortFwdMenu        = QMenu( "Port Forward" );
 
-    ColorMenu.addAction( "Reset" );
-    ColorMenu.addAction( "Red" );
-    ColorMenu.addAction( "Blue" );
-    ColorMenu.addAction( "Yellow" );
-    ColorMenu.addAction( "Pink" );
-    ColorMenu.addAction( "Green" );
-    ColorMenu.addAction( "Purple" );
-    ColorMenu.addAction( "Orange" );
+    auto addColorAction = [&]( const QString& name, const QString& hex ) {
+        QPixmap swatch( 12, 12 );
+        swatch.fill( QColor( hex ) );
+        ColorMenu.addAction( QIcon( swatch ), name );
+    };
+
+    addColorAction( "Reset",  Util::ColorText::Colors::Hex::Comment );
+    addColorAction( "Red",    Util::ColorText::Colors::Hex::Red );
+    addColorAction( "Blue",   Util::ColorText::Colors::Hex::Cyan );
+    addColorAction( "Yellow", Util::ColorText::Colors::Hex::Yellow );
+    addColorAction( "Pink",   Util::ColorText::Colors::Hex::Pink );
+    addColorAction( "Green",  Util::ColorText::Colors::Hex::Green );
+    addColorAction( "Purple", Util::ColorText::Colors::Hex::Purple );
+    addColorAction( "Orange", Util::ColorText::Colors::Hex::Orange );
 
     ColorMenu.setStyleSheet( MenuStyle );
 
@@ -455,41 +462,29 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                         splitWidget->leftConsole->lineEdit->setFocus();
                     }
                 }
-                else if ( action->text().compare( "Red" ) == 0 || action->text().compare( "Blue" ) == 0 || action->text().compare( "Pink" ) == 0 || action->text().compare( "Yellow" ) == 0 || action->text().compare( "Green" ) == 0 || action->text().compare( "Purple" ) == 0 || action->text().compare( "Orange" ) == 0 || action->text().compare( "Reset" ) == 0 ){
+                else if ( action->text().compare( "Red" ) == 0 || action->text().compare( "Blue" ) == 0 || action->text().compare( "Pink" ) == 0 || action->text().compare( "Yellow" ) == 0 || action->text().compare( "Green" ) == 0 || action->text().compare( "Purple" ) == 0 || action->text().compare( "Orange" ) == 0 || action->text().compare( "Reset" ) == 0 )
+                {
+                    auto colorName = action->text();
+                    if ( colorName.compare( "Reset" ) == 0 )
+                        colorName = QString();
 
-                    for ( int i = 0; i < MugenX::Teamserver.TabSession->SessionTableWidget->SessionTableWidget->rowCount(); ++i ){
-                        auto AgentID = MugenX::Teamserver.TabSession->SessionTableWidget->SessionTableWidget->item(i, 0)->text();
+                    auto Package = new Util::Packager::Package;
 
-                        if(AgentID.compare( SessionID ) == 0 )
-                        {
+                    Package->Head = Util::Packager::Head_t {
+                            .Event= Util::Packager::Session::Type,
+                            .User = MugenX::Teamserver.User.toStdString(),
+                            .Time = CurrentTime().toStdString(),
+                    };
 
-                            QColor CurrentColor;
-
-                            if( action->text().compare("Red") == 0 )
-                                CurrentColor = QColor( Util::ColorText::Colors::Hex::SessionRed );
-                            else if( action->text().compare("Blue") == 0 )
-                                CurrentColor = QColor( Util::ColorText::Colors::Hex::SessionCyan );
-                            else if( action->text().compare("Pink") == 0 )
-                                CurrentColor = QColor( Util::ColorText::Colors::Hex::SessionPink );
-                            else if( action->text().compare("Yellow") == 0 )
-                                CurrentColor = QColor( Util::ColorText::Colors::Hex::SessionYellow );
-                            else if( action->text().compare("Green") == 0 )
-                                CurrentColor = QColor( Util::ColorText::Colors::Hex::SessionGreen );
-                            else if( action->text().compare("Purple") == 0 )
-                                CurrentColor = QColor( Util::ColorText::Colors::Hex::SessionPurple );
-                            else if( action->text().compare("Orange") == 0 )
-                                CurrentColor = QColor( Util::ColorText::Colors::Hex::SessionOrange );
-                            else
-                                CurrentColor = QColor( Util::ColorText::Colors::Hex::Background );
-
-                            for ( int j = 0; j < MugenX::Teamserver.TabSession->SessionTableWidget->SessionTableWidget->columnCount(); j++ )
-                            {
-                                MugenX::Teamserver.TabSession->SessionTableWidget->SessionTableWidget->item(i, j)->setBackground( CurrentColor );
+                    Package->Body = Util::Packager::Body_t {
+                            .SubEvent = Util::Packager::Session::SetColor,
+                            .Info = {
+                                { "AgentID", SessionID.toStdString() },
+                                { "Color",   colorName.toStdString() },
                             }
+                    };
 
-                        }
-                    }
-                    
+                    MugenX::Connector->SendPackage( Package );
                 }
                 else if ( action->text().compare( "Mark as Dead" ) == 0 || action->text().compare( "Mark as Alive" ) == 0 )
                 {

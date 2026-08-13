@@ -144,6 +144,7 @@ type Agent struct {
 	Alias      string // operator assigned human readable name, e.g. "dc01-system" (empty if unset)
 	Tags       string // comma-separated labels, shared across operators
 	Notes      string // free-form operator notes, shared across operators
+	Color      string // session table highlight: Red, Blue, Yellow, Pink, Green, Purple, Orange (empty if unset)
 	JobQueue   []Job
 	Tasks      []Job
 	SessionDir string

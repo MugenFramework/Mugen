@@ -869,6 +869,12 @@ func (t *Teamserver) EventAgentMeta(AgentID, Tags, Notes string) {
 	t.EventBroadcast("", pk)
 }
 
+func (t *Teamserver) EventAgentColor(AgentID, Color string) {
+	var pk = events.Demons.SetColor(AgentID, Color)
+
+	t.EventBroadcast("", pk)
+}
+
 func (t *Teamserver) EventListenerError(ListenerName string, Error error) {
 	var pk = events.Listener.ListenerError("", ListenerName, Error)
 

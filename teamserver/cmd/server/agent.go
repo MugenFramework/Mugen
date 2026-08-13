@@ -131,6 +131,59 @@ func (t *Teamserver) AgentSetMeta(Agent *agent.Agent, Tags, Notes string) {
 	t.EventAgentMeta(Agent.DisplayID, Tags, Notes)
 }
 
+/* SanitizeColor accepts a session highlight name (Red, Blue, ...) or empty/Reset
+ * to clear it. Unknown values are rejected. */
+func SanitizeColor(Color string) (string, bool) {
+	Color = strings.TrimSpace(sanitizeRunes(Color, false))
+	if Color == "" || strings.EqualFold(Color, "Reset") {
+		return "", true
+	}
+
+	switch strings.ToLower(Color) {
+	case "red":
+		return "Red", true
+	case "blue":
+		return "Blue", true
+	case "yellow":
+		return "Yellow", true
+	case "pink":
+		return "Pink", true
+	case "green":
+		return "Green", true
+	case "purple":
+		return "Purple", true
+	case "orange":
+		return "Orange", true
+	default:
+		return "", false
+	}
+}
+
+/* AgentSetColor assigns a session table highlight, persists it and lets every
+ * connected operator know. An empty Color clears it. */
+func (t *Teamserver) AgentSetColor(Agent *agent.Agent, Color string) {
+	sanitized, ok := SanitizeColor(Color)
+	if !ok {
+		logger.Debug("SetColor: unknown color " + Color)
+		return
+	}
+
+	Agent.Color = sanitized
+
+	AgentID, err := strconv.ParseInt(Agent.NameID, 16, 64)
+	if err != nil {
+		logger.Error("Could not parse agent id: " + err.Error())
+		return
+	}
+
+	if err := t.DB.AgentSetColor(int(AgentID), sanitized); err != nil {
+		logger.Error("Could not set agent color: " + err.Error())
+		return
+	}
+
+	t.EventAgentColor(Agent.DisplayID, sanitized)
+}
+
 func (t *Teamserver) AgentUpdate(agent *agent.Agent) {
 	err := t.DB.AgentUpdate(agent)
 	if err != nil {

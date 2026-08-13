@@ -56,6 +56,7 @@ const int Util::Packager::Session::MarkAs           = 0x5;
 const int Util::Packager::Session::UpdateSession    = 0x6;
 const int Util::Packager::Session::SetAlias         = 0x7;
 const int Util::Packager::Session::SetMeta          = 0x8;
+const int Util::Packager::Session::SetColor         = 0x9;
 
 const int Util::Packager::Service::Type             = 0x9;
 const int Util::Packager::Service::AgentRegister    = 0x1;
@@ -685,6 +686,7 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
 
             Agent.Tags  = Package->Body.Info[ "Tags" ].c_str();
             Agent.Notes = Package->Body.Info[ "Notes" ].c_str();
+            Agent.Color = Package->Body.Info[ "Color" ].c_str();
 
             Agent.LastUTC = QDateTime::fromString(Agent.Last, "dd-MM-yyyy HH:mm:ss");
 
@@ -1010,6 +1012,16 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
             auto Notes   = QString( Package->Body.Info[ "Notes" ].c_str() );
 
             MugenX::Teamserver.TabSession->SessionTableWidget->SetSessionMeta( AgentID, Tags, Notes );
+
+            break;
+        }
+
+        case Util::Packager::Session::SetColor:
+        {
+            auto AgentID = QString( Package->Body.Info[ "AgentID" ].c_str() );
+            auto Color   = QString( Package->Body.Info[ "Color" ].c_str() );
+
+            MugenX::Teamserver.TabSession->SessionTableWidget->SetSessionColor( AgentID, Color );
 
             break;
         }
