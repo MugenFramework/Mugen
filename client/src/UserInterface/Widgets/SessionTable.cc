@@ -206,7 +206,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
         connect( bulkAct, &QAction::triggered, this, [this]() {
             QVector<Util::SessionItem> liveSessions;
             for ( const auto& s : MugenX::Teamserver.Sessions ) {
-                if ( s.Marked != "Dead" ) liveSessions << s;
+                if ( s.Marked != "Dead" && ! s.Hidden ) liveSessions << s;
             }
             if ( liveSessions.isEmpty() ) return;
 
@@ -311,7 +311,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
         procMenu->setStyleSheet( menuStyle );
         bool anyLive = false;
         for ( auto& s : MugenX::Teamserver.Sessions ) {
-            if ( s.Marked == "Dead" ) continue;
+            if ( s.Marked == "Dead" || s.Hidden ) continue;
             anyLive = true;
             auto label = QString( "[%1]  %2 @ %3" ).arg( s.Name ).arg( s.User ).arg( s.Computer );
             auto* act = procMenu->addAction( label );
@@ -328,7 +328,7 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::setupUi(QWidget *Form
         fileMenu->setStyleSheet( menuStyle );
         anyLive = false;
         for ( auto& s : MugenX::Teamserver.Sessions ) {
-            if ( s.Marked == "Dead" ) continue;
+            if ( s.Marked == "Dead" || s.Hidden ) continue;
             anyLive = true;
             auto label = QString( "[%1]  %2 @ %3" ).arg( s.Name ).arg( s.User ).arg( s.Computer );
             auto* act = fileMenu->addAction( label );
@@ -362,107 +362,8 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::NewSessionItem( Util:
 
     MugenX::Teamserver.Sessions.push_back( item );
 
-    if ( SessionTableWidget->rowCount() < 1 ) {
-        SessionTableWidget->setRowCount( 1 );
-    } else {
-        SessionTableWidget->setRowCount( SessionTableWidget->rowCount() + 1 );
-    }
-
-    auto isSortingEnabled = SessionTableWidget->isSortingEnabled();
-
-    SessionTableWidget->setSortingEnabled( false );
-
-    auto item_ID        = new QTableWidgetItem();
-    auto item_External  = new QTableWidgetItem();
-    auto item_Internal  = new QTableWidgetItem();
-    auto item_User      = new QTableWidgetItem();
-    auto item_Computer  = new QTableWidgetItem();
-    auto item_OS        = new QTableWidgetItem();
-    auto item_Process   = new QTableWidgetItem();
-    auto item_ProcessID = new QTableWidgetItem();
-    auto item_Last      = new QTableWidgetItem();
-    auto item_Health    = new QTableWidgetItem();
-    auto Icon           = QIcon();
-
-    if ( item.Elevated.compare( "true" ) == 0 ) {
-        item_ID->setForeground( QColor( 255, 85, 85 ) );
-        Icon = WinVersionIcon( item.OS, true );
-    } else {
-        Icon = WinVersionIcon( item.OS, false );
-    }
-
-    item_ID->setText( item.Name );
-    item_ID->setIcon( Icon );
-    item_ID->setTextAlignment( Qt::AlignCenter );
-    item_ID->setFlags( item_ID->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount() - 1, 0, item_ID );
-
-    item_External->setText( item.External );
-    item_External->setTextAlignment( Qt::AlignCenter );
-    item_External->setFlags( item_External->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 1, item_External );
-
-    item_Internal->setText( item.Internal );
-    item_Internal->setTextAlignment( Qt::AlignCenter );
-    item_Internal->setFlags( item_Internal->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 2, item_Internal );
-
-    item_User->setText( item.User );
-    item_User->setTextAlignment( Qt::AlignCenter );
-    item_User->setFlags( item_User->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 3, item_User );
-
-    item_Computer->setText( item.Computer );
-    item_Computer->setTextAlignment( Qt::AlignCenter );
-    item_Computer->setFlags( item_Computer->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 4, item_Computer );
-
-    item_OS->setText( item.OS );
-    item_OS->setTextAlignment( Qt::AlignCenter );
-    item_OS->setFlags( item_OS->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 5, item_OS );
-
-    item_Process->setText( item.Process );
-    item_Process->setTextAlignment( Qt::AlignCenter );
-    item_Process->setFlags( item_Process->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 6, item_Process );
-
-    item_ProcessID->setText( item.PID );
-    item_ProcessID->setTextAlignment( Qt::AlignCenter );
-    item_ProcessID->setFlags( item_ProcessID->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 7, item_ProcessID );
-
-    item_Last->setText( item.Last );
-    item_Last->setTextAlignment( Qt::AlignCenter );
-    item_Last->setFlags( item_Last->flags() ^ Qt::ItemIsEditable );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 8, item_Last );
-
-    item_Health->setText( item.Health == "healthy" ? "● live" : "● dead" );
-    item_Health->setTextAlignment( Qt::AlignCenter );
-    item_Health->setFlags( item_Health->flags() ^ Qt::ItemIsEditable );
-    item_Health->setForeground( item.Health == "healthy" ? QColor( 0x50, 0xfa, 0x7b ) : QColor( 0xff, 0x55, 0x55 ) );
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 9, item_Health );
-
-    auto item_Tags = new QTableWidgetItem( item.Tags );
-    item_Tags->setTextAlignment( Qt::AlignCenter );
-    item_Tags->setFlags( item_Tags->flags() ^ Qt::ItemIsEditable );
-    item_Tags->setForeground( QColor( 0x50, 0xfa, 0x7b ) ); // green accent for tags
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 10, item_Tags );
-
-    auto item_Alias = new QTableWidgetItem( item.Alias );
-    item_Alias->setTextAlignment( Qt::AlignCenter );
-    item_Alias->setFlags( item_Alias->flags() ^ Qt::ItemIsEditable );
-    item_Alias->setForeground( QColor( 0xff, 0x6b, 0x9d ) ); // sakura accent for the alias
-    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 11, item_Alias );
-
-    if ( ! item.Color.isEmpty() ) {
-        auto* idItem = SessionTableWidget->item( SessionTableWidget->rowCount() - 1, 0 );
-        QColor accent = sessionAccentFromName( item.Color );
-        if ( idItem && accent.isValid() )
-            idItem->setData( Qt::UserRole, accent );
-    }
-
-    SessionTableWidget->setSortingEnabled( isSortingEnabled );
+    if ( ! item.Hidden )
+        addVisibleRow( item );
 
     for ( auto & Session : MugenX::Teamserver.Sessions )
     {
@@ -478,12 +379,14 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::NewSessionItem( Util:
             Session.InteractedWidget->TeamserverName = this->TeamserverName;
             Session.InteractedWidget->setupUi( new QWidget );
 
-            if ( item.PivotParent.size() > 0 ) {
-                PivotStream = "[Pivot: " + item.PivotParent + Util::ColorText::Cyan( "-<>-<>-" ) + item.Name + "]";
-                MugenX::Teamserver.TabSession->SessionGraphWidget->GraphPivotNodeAdd( item.PivotParent, item );
+            if ( Session.PivotParent.size() > 0 ) {
+                PivotStream = "[Pivot: " + Session.PivotParent + Util::ColorText::Cyan( "-<>-<>-" ) + Session.Name + "]";
+                if ( ! Session.Hidden )
+                    MugenX::Teamserver.TabSession->SessionGraphWidget->GraphPivotNodeAdd( Session.PivotParent, Session );
             } else {
                 PivotStream = "[Pivot: "+ Util::ColorText::Cyan( "Direct" ) +"]";
-                MugenX::Teamserver.TabSession->SessionGraphWidget->GraphNodeAdd( item );
+                if ( ! Session.Hidden )
+                    MugenX::Teamserver.TabSession->SessionGraphWidget->GraphNodeAdd( Session );
             }
 
             AgentMessageInfo =
@@ -625,6 +528,167 @@ void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionColor( cons
             break;
         }
     }
+}
+
+void MugenNamespace::UserInterface::Widgets::SessionTable::addVisibleRow( const Util::SessionItem& item ) const
+{
+    if ( SessionTableWidget->rowCount() < 1 )
+        SessionTableWidget->setRowCount( 1 );
+    else
+        SessionTableWidget->setRowCount( SessionTableWidget->rowCount() + 1 );
+
+    auto isSortingEnabled = SessionTableWidget->isSortingEnabled();
+    SessionTableWidget->setSortingEnabled( false );
+
+    auto item_ID        = new QTableWidgetItem();
+    auto item_External  = new QTableWidgetItem();
+    auto item_Internal  = new QTableWidgetItem();
+    auto item_User      = new QTableWidgetItem();
+    auto item_Computer  = new QTableWidgetItem();
+    auto item_OS        = new QTableWidgetItem();
+    auto item_Process   = new QTableWidgetItem();
+    auto item_ProcessID = new QTableWidgetItem();
+    auto item_Last      = new QTableWidgetItem();
+    auto item_Health    = new QTableWidgetItem();
+    auto Icon           = QIcon();
+
+    if ( item.Elevated.compare( "true" ) == 0 ) {
+        item_ID->setForeground( QColor( 255, 85, 85 ) );
+        Icon = WinVersionIcon( item.OS, true );
+    } else {
+        Icon = WinVersionIcon( item.OS, false );
+    }
+
+    item_ID->setText( item.Name );
+    item_ID->setIcon( Icon );
+    item_ID->setTextAlignment( Qt::AlignCenter );
+    item_ID->setFlags( item_ID->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount() - 1, 0, item_ID );
+
+    item_External->setText( item.External );
+    item_External->setTextAlignment( Qt::AlignCenter );
+    item_External->setFlags( item_External->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 1, item_External );
+
+    item_Internal->setText( item.Internal );
+    item_Internal->setTextAlignment( Qt::AlignCenter );
+    item_Internal->setFlags( item_Internal->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 2, item_Internal );
+
+    item_User->setText( item.User );
+    item_User->setTextAlignment( Qt::AlignCenter );
+    item_User->setFlags( item_User->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 3, item_User );
+
+    item_Computer->setText( item.Computer );
+    item_Computer->setTextAlignment( Qt::AlignCenter );
+    item_Computer->setFlags( item_Computer->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 4, item_Computer );
+
+    item_OS->setText( item.OS );
+    item_OS->setTextAlignment( Qt::AlignCenter );
+    item_OS->setFlags( item_OS->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 5, item_OS );
+
+    item_Process->setText( item.Process );
+    item_Process->setTextAlignment( Qt::AlignCenter );
+    item_Process->setFlags( item_Process->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 6, item_Process );
+
+    item_ProcessID->setText( item.PID );
+    item_ProcessID->setTextAlignment( Qt::AlignCenter );
+    item_ProcessID->setFlags( item_ProcessID->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 7, item_ProcessID );
+
+    item_Last->setText( item.Last );
+    item_Last->setTextAlignment( Qt::AlignCenter );
+    item_Last->setFlags( item_Last->flags() ^ Qt::ItemIsEditable );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 8, item_Last );
+
+    item_Health->setText( item.Health == "healthy" ? "● live" : "● dead" );
+    item_Health->setTextAlignment( Qt::AlignCenter );
+    item_Health->setFlags( item_Health->flags() ^ Qt::ItemIsEditable );
+    item_Health->setForeground( item.Health == "healthy" ? QColor( 0x50, 0xfa, 0x7b ) : QColor( 0xff, 0x55, 0x55 ) );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 9, item_Health );
+
+    auto item_Tags = new QTableWidgetItem( item.Tags );
+    item_Tags->setTextAlignment( Qt::AlignCenter );
+    item_Tags->setFlags( item_Tags->flags() ^ Qt::ItemIsEditable );
+    item_Tags->setForeground( QColor( 0x50, 0xfa, 0x7b ) );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 10, item_Tags );
+
+    auto item_Alias = new QTableWidgetItem( item.Alias );
+    item_Alias->setTextAlignment( Qt::AlignCenter );
+    item_Alias->setFlags( item_Alias->flags() ^ Qt::ItemIsEditable );
+    item_Alias->setForeground( QColor( 0xff, 0x6b, 0x9d ) );
+    SessionTableWidget->setItem( SessionTableWidget->rowCount()-1, 11, item_Alias );
+
+    if ( ! item.Color.isEmpty() ) {
+        auto* idItem = SessionTableWidget->item( SessionTableWidget->rowCount() - 1, 0 );
+        QColor accent = sessionAccentFromName( item.Color );
+        if ( idItem && accent.isValid() )
+            idItem->setData( Qt::UserRole, accent );
+    }
+
+    SessionTableWidget->setSortingEnabled( isSortingEnabled );
+}
+
+void MugenNamespace::UserInterface::Widgets::SessionTable::RemoveSessionRow( const QString& AgentID )
+{
+    for ( int i = 0; i < SessionTableWidget->rowCount(); i++ ) {
+        if ( SessionTableWidget->item( i, 0 ) && SessionTableWidget->item( i, 0 )->text() == AgentID ) {
+            SessionTableWidget->removeRow( i );
+            return;
+        }
+    }
+}
+
+void MugenNamespace::UserInterface::Widgets::SessionTable::SetSessionHidden( const QString& AgentID, bool Hidden )
+{
+    Util::SessionItem* found = nullptr;
+    for ( auto& s : MugenX::Teamserver.Sessions ) {
+        if ( s.Name == AgentID ) {
+            s.Hidden = Hidden;
+            if ( s.InteractedWidget )
+                s.InteractedWidget->SessionInfo.Hidden = Hidden;
+            found = &s;
+            break;
+        }
+    }
+    if ( ! found )
+        return;
+
+    auto* graph = MugenX::Teamserver.TabSession ? MugenX::Teamserver.TabSession->SessionGraphWidget : nullptr;
+
+    if ( Hidden )
+    {
+        RemoveSessionRow( AgentID );
+        if ( graph )
+            graph->GraphNodeRemove( *found );
+    }
+    else
+    {
+        bool hasRow = false;
+        for ( int i = 0; i < SessionTableWidget->rowCount(); i++ ) {
+            if ( SessionTableWidget->item( i, 0 ) && SessionTableWidget->item( i, 0 )->text() == AgentID ) {
+                hasRow = true;
+                break;
+            }
+        }
+        if ( ! hasRow )
+            addVisibleRow( *found );
+
+        if ( graph && ! graph->GraphNodeGet( AgentID ) )
+        {
+            if ( found->PivotParent.size() > 0 )
+                graph->GraphPivotNodeAdd( found->PivotParent, *found );
+            else
+                graph->GraphNodeAdd( *found );
+        }
+    }
+
+    if ( MugenX::Teamserver.TabSession && MugenX::Teamserver.TabSession->CallbacksView )
+        MugenX::Teamserver.TabSession->CallbacksView->Refresh();
 }
 
 // Query language: space-separated tokens, each "field:value" or plain text.

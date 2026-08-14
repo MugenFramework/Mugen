@@ -42,6 +42,7 @@ void OpsWidget::setupUi()
     Buttons = new QButtonGroup( this );
     Buttons->setExclusive( true );
 
+    navLayout->addWidget( addNavButton( "callbacks",    "Callbacks" ) );
     navLayout->addWidget( addNavButton( "screenshots",  "Screenshots" ) );
     navLayout->addWidget( addNavButton( "credentials",  "Credentials" ) );
     navLayout->addWidget( addNavButton( "downloads",    "Downloads" ) );

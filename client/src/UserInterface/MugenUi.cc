@@ -594,7 +594,7 @@ void MugenNamespace::UserInterface::MugenUi::ConnectEvents()
 
     QMainWindow::connect( actionLoot, &QAction::triggered, this, [&]() {
         if ( MugenX::Teamserver.TabSession )
-            MugenX::Teamserver.TabSession->OpenOps( "screenshots" );
+            MugenX::Teamserver.TabSession->OpenOps( "callbacks" );
     } );
 
     QMainWindow::connect( actionGeneratePayload, &QAction::triggered, this, [this]() {

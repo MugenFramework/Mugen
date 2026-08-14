@@ -184,6 +184,25 @@ func (t *Teamserver) AgentSetColor(Agent *agent.Agent, Color string) {
 	t.EventAgentColor(Agent.DisplayID, sanitized)
 }
 
+/* AgentSetHidden parks an agent out of the session table (or restores it).
+ * The implant is untouched; Ops → Callbacks still lists it. */
+func (t *Teamserver) AgentSetHidden(Agent *agent.Agent, Hidden bool) {
+	Agent.Hidden = Hidden
+
+	AgentID, err := strconv.ParseInt(Agent.NameID, 16, 64)
+	if err != nil {
+		logger.Error("Could not parse agent id: " + err.Error())
+		return
+	}
+
+	if err := t.DB.AgentSetHidden(int(AgentID), Hidden); err != nil {
+		logger.Error("Could not set agent hidden: " + err.Error())
+		return
+	}
+
+	t.EventAgentHidden(Agent.DisplayID, Hidden)
+}
+
 func (t *Teamserver) AgentUpdate(agent *agent.Agent) {
 	err := t.DB.AgentUpdate(agent)
 	if err != nil {

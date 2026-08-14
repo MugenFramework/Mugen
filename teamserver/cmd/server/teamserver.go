@@ -876,6 +876,12 @@ func (t *Teamserver) EventAgentColor(AgentID, Color string) {
 	t.EventBroadcast("", pk)
 }
 
+func (t *Teamserver) EventAgentHidden(AgentID string, Hidden bool) {
+	var pk = events.Demons.SetHidden(AgentID, Hidden)
+
+	t.EventBroadcast("", pk)
+}
+
 func (t *Teamserver) EventListenerError(ListenerName string, Error error) {
 	var pk = events.Listener.ListenerError("", ListenerName, Error)
 

@@ -83,6 +83,7 @@ type (
 			SetAlias      int
 			SetMeta       int
 			SetColor      int
+			SetHidden     int
 		}
 
 		Gate struct {
@@ -233,6 +234,7 @@ var Type = Types{
 		SetAlias      int
 		SetMeta       int
 		SetColor      int
+		SetHidden     int
 	}{
 		Type:          0x7,
 		NewSession:    0x1,
@@ -244,6 +246,7 @@ var Type = Types{
 		SetAlias:      0x7,
 		SetMeta:       0x8,
 		SetColor:      0x9,
+		SetHidden:     0xa,
 	},
 
 	Gate: struct {

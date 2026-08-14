@@ -11,6 +11,7 @@
 #include <UserInterface/Widgets/NetworkingWidget.hpp>
 #include <UserInterface/Widgets/ResourceManagerWidget.hpp>
 #include <UserInterface/Widgets/TasksWidget.hpp>
+#include <UserInterface/Widgets/CallbacksWidget.hpp>
 #include <UserInterface/Widgets/OpsWidget.hpp>
 
 class DashboardWidget;
@@ -49,6 +50,7 @@ public:
     Widgets::NetworkingWidget*        NetworkingView      = {};
     Widgets::ResourceManagerWidget*   ResourceManager     = {};
     Widgets::TasksWidget*             TasksView           = {};
+    Widgets::CallbacksWidget*         CallbacksView       = {};
     Widgets::OpsWidget*               OpsHub              = {};
     Widgets::PythonScriptInterpreter* PythonScriptWidget  = {};
     Widgets::ScriptManager*           ScriptManagerWidget = {};

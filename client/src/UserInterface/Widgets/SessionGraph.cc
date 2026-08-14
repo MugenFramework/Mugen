@@ -598,13 +598,16 @@ void Node::contextMenuEvent( QGraphicsSceneContextMenuEvent* event )
         SessionMenu.addAction( separator2 );
     }
 
+    SessionMenu.addAction( "Export" );
+    SessionMenu.addAction( separator3 );
+
     if ( Agent.Marked.compare( "Dead" ) != 0 )
         SessionMenu.addAction( "Mark as Dead" );
     else
         SessionMenu.addAction( "Mark as Alive" );
 
-    SessionMenu.addAction( "Export" );
-    SessionMenu.addAction( separator3 );
+    SessionMenu.addAction( "Hide" );
+    SessionMenu.addAction( separator4 );
     SessionMenu.addAction( "Remove" );
 
     if ( Agent.MagicValue == DemonMagicValue )
@@ -656,6 +659,23 @@ void Node::contextMenuEvent( QGraphicsSceneContextMenuEvent* event )
                     auto Marked = QString();
                     Marked = "Alive";
                     MugenApplication->MugenAppUI.MarkSessionAs( Session, Marked );
+                }
+                else if ( action->text().compare( "Hide" ) == 0 )
+                {
+                    auto Package = new Util::Packager::Package;
+                    Package->Head = Util::Packager::Head_t {
+                        .Event = Util::Packager::Session::Type,
+                        .User  = MugenX::Teamserver.User.toStdString(),
+                        .Time  = CurrentTime().toStdString(),
+                    };
+                    Package->Body = Util::Packager::Body_t {
+                        .SubEvent = Util::Packager::Session::SetHidden,
+                        .Info = {
+                            { "AgentID", NodeID.toStdString() },
+                            { "Hidden",  "true" },
+                        }
+                    };
+                    MugenX::Connector->SendPackage( Package );
                 }
                 else if ( action->text().compare( "Mark as Dead" ) == 0 || action->text().compare( "Mark as Alive" ) == 0 )
                 {

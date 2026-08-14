@@ -83,6 +83,7 @@ namespace MugenNamespace::Util::Packager
         extern const int SetAlias;
         extern const int SetMeta;
         extern const int SetColor;
+        extern const int SetHidden;
     }
 
     namespace Service

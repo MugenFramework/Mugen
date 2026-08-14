@@ -58,6 +58,7 @@ const int Util::Packager::Session::UpdateSession    = 0x6;
 const int Util::Packager::Session::SetAlias         = 0x7;
 const int Util::Packager::Session::SetMeta          = 0x8;
 const int Util::Packager::Session::SetColor         = 0x9;
+const int Util::Packager::Session::SetHidden        = 0xa;
 
 const int Util::Packager::Service::Type             = 0x9;
 const int Util::Packager::Service::AgentRegister    = 0x1;
@@ -684,6 +685,10 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
             Agent.Tags  = Package->Body.Info[ "Tags" ].c_str();
             Agent.Notes = Package->Body.Info[ "Notes" ].c_str();
             Agent.Color = Package->Body.Info[ "Color" ].c_str();
+            {
+                auto hid = Package->Body.Info[ "Hidden" ];
+                Agent.Hidden = ( hid == "true" || hid == "1" );
+            }
 
             Agent.LastUTC = QDateTime::fromString(Agent.Last, "dd-MM-yyyy HH:mm:ss");
 
@@ -705,9 +710,11 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
             TeamserverTab->SessionTableWidget->NewSessionItem( Agent );
             if ( TeamserverTab->LootWidget )
                 TeamserverTab->LootWidget->AddSessionSection( Agent.Name );
+            if ( TeamserverTab->CallbacksView )
+                TeamserverTab->CallbacksView->Refresh();
 
             // Desktop notification for new agent check-in
-            if ( Agent.Marked.compare( "Alive" ) == 0 )
+            if ( Agent.Marked.compare( "Alive" ) == 0 && ! Agent.Hidden )
             {
                 auto ui = MugenX::MugenUserInterface;
                 if ( ui && ui->TrayIcon )
@@ -727,7 +734,7 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
 
             MugenX::Teamserver.TabSession->SmallAppWidgets->EventViewer->AppendText( Time, Message );
 
-            if ( Agent.Marked.compare( "Alive" ) == 0 )
+            if ( Agent.Marked.compare( "Alive" ) == 0 && ! Agent.Hidden )
             {
                 for ( auto& Callback : MugenX::Teamserver.RegisteredCallbacks )
                 {
@@ -881,6 +888,9 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
                 }
             }
 
+            if ( MugenX::Teamserver.TabSession && MugenX::Teamserver.TabSession->CallbacksView )
+                MugenX::Teamserver.TabSession->CallbacksView->Refresh();
+
             break;
         }
 
@@ -945,6 +955,9 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
                     break;
                 }
             }
+
+            if ( MugenX::Teamserver.TabSession && MugenX::Teamserver.TabSession->CallbacksView )
+                MugenX::Teamserver.TabSession->CallbacksView->Refresh();
 
             break;
         }
@@ -1019,6 +1032,17 @@ bool Packager::DispatchSession( Util::Packager::PPackage Package )
             auto Color   = QString( Package->Body.Info[ "Color" ].c_str() );
 
             MugenX::Teamserver.TabSession->SessionTableWidget->SetSessionColor( AgentID, Color );
+
+            break;
+        }
+
+        case Util::Packager::Session::SetHidden:
+        {
+            auto AgentID = QString( Package->Body.Info[ "AgentID" ].c_str() );
+            auto hid     = Package->Body.Info[ "Hidden" ];
+            bool hidden  = ( hid == "true" || hid == "1" );
+
+            MugenX::Teamserver.TabSession->SessionTableWidget->SetSessionHidden( AgentID, hidden );
 
             break;
         }

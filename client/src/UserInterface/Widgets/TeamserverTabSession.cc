@@ -233,6 +233,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         bulkMenu.addAction( "Set Alias" );
         bulkMenu.addAction( "Set Tag" );
         bulkMenu.addAction( "Mark as Dead" );
+        bulkMenu.addAction( "Hide" );
         bulkMenu.addSeparator();
         bulkMenu.addAction( "Kill" );
 
@@ -441,6 +442,13 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                     sendSession( Util::Packager::Session::MarkAs, s.Name, { { "Marked", "Dead" } } );
             }
         }
+        else if ( action->text() == "Hide" )
+        {
+            for ( auto& s : MugenX::Teamserver.Sessions ) {
+                if ( selectedIDs.contains( s.Name ) )
+                    sendSession( Util::Packager::Session::SetHidden, s.Name, { { "Hidden", "true" } } );
+            }
+        }
         else if ( action->text() == "Kill" )
         {
             for ( auto& s : MugenX::Teamserver.Sessions ) {
@@ -533,7 +541,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
     // populate "Split with..." with all other live sessions
     for ( const auto& s : MugenX::Teamserver.Sessions )
     {
-        if ( s.Name != SessionID && s.Marked != "Dead" )
+        if ( s.Name != SessionID && s.Marked != "Dead" && ! s.Hidden )
             SplitMenu.addAction( "[" + s.Name + "] " + s.User + "/" + s.Computer );
     }
     SplitMenu.setStyleSheet( MenuStyle );
@@ -556,16 +564,19 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         SessionMenu.addAction( separator2 );
     }
 
-    if ( Agent.Marked.compare( "Dead" ) != 0 )
-        SessionMenu.addAction( "Mark as Dead" );
-    else
-        SessionMenu.addAction( "Mark as Alive" );
-
     SessionMenu.addAction( ColorMenu.menuAction() );
     SessionMenu.addAction( "Set Alias" );
     SessionMenu.addAction( "Notes_Tags" );
     SessionMenu.addAction( "Export" );
     SessionMenu.addAction( separator3 );
+
+    if ( Agent.Marked.compare( "Dead" ) != 0 )
+        SessionMenu.addAction( "Mark as Dead" );
+    else
+        SessionMenu.addAction( "Mark as Alive" );
+
+    SessionMenu.addAction( "Hide" );
+    SessionMenu.addAction( separator4 );
     SessionMenu.addAction( "Remove" );
 
     if ( Agent.MagicValue == DemonMagicValue )
@@ -715,6 +726,23 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                             MugenX::Connector->SendPackage( Package );
                         }
                     }
+                }
+                else if ( action->text().compare( "Hide" ) == 0 )
+                {
+                    auto Package = new Util::Packager::Package;
+                    Package->Head = Util::Packager::Head_t {
+                        .Event = Util::Packager::Session::Type,
+                        .User  = MugenX::Teamserver.User.toStdString(),
+                        .Time  = CurrentTime().toStdString(),
+                    };
+                    Package->Body = Util::Packager::Body_t {
+                        .SubEvent = Util::Packager::Session::SetHidden,
+                        .Info = {
+                            { "AgentID", SessionID.toStdString() },
+                            { "Hidden",  "true" },
+                        }
+                    };
+                    MugenX::Connector->SendPackage( Package );
                 }
                 else if ( action->text().compare( "Export" ) == 0 )
                 {
@@ -1255,8 +1283,16 @@ void UserInterface::Widgets::TeamserverTabSession::OpenOps( const QString& page 
                 TasksView->RequestSnapshot();
             else if ( id == "networking" && NetworkingView )
                 NetworkingView->Refresh();
+            else if ( id == "callbacks" && CallbacksView )
+                CallbacksView->Refresh();
         } );
     }
+
+    if ( CallbacksView == nullptr ) {
+        CallbacksView = new Widgets::CallbacksWidget;
+        CallbacksView->setupUi( new QWidget );
+    }
+    OpsHub->Attach( "callbacks", CallbacksView->CallbacksView );
 
     if ( LootWidget == nullptr )
         LootWidget = new ::LootWidget;
