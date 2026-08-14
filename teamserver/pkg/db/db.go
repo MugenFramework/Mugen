@@ -65,7 +65,7 @@ func (db *DB) init() error {
 		return err
 	}
 
-	_, err = db.db.Exec(`CREATE TABLE "TS_Agents" ("AgentID" int, "Active" int, "Reason" string, "AESKey" string, "AESIv" string, "Hostname" string, "Username" string, "DomainName" string, "ExternalIP" string, "InternalIP" string, "ProcessName" string, BaseAddress int, "ProcessPID" int, "ProcessTID" int, "ProcessPPID" int, "ProcessArch" string, "Elevated" string, "OSVersion" string, "OSArch" string, "SleepDelay" int, "SleepJitter" int, "KillDate" int, "WorkingHours" int, "FirstCallIn" string, "LastCallIn" string, "MagicValue" int DEFAULT 0, "Alias" text DEFAULT '', "Tags" text DEFAULT '', "Notes" text DEFAULT '', "Color" text DEFAULT '', "Hidden" int DEFAULT 0);`)
+	_, err = db.db.Exec(`CREATE TABLE "TS_Agents" ("AgentID" int, "Active" int, "Reason" string, "AESKey" string, "AESIv" string, "ChaCha20Key" string, "Hostname" string, "Username" string, "DomainName" string, "ExternalIP" string, "InternalIP" string, "ProcessName" string, BaseAddress int, "ProcessPID" int, "ProcessTID" int, "ProcessPPID" int, "ProcessArch" string, "Elevated" string, "OSVersion" string, "OSArch" string, "SleepDelay" int, "SleepJitter" int, "KillDate" int, "WorkingHours" int, "FirstCallIn" string, "LastCallIn" string, "MagicValue" int DEFAULT 0, "Alias" text DEFAULT '', "Tags" text DEFAULT '', "Notes" text DEFAULT '', "Color" text DEFAULT '', "Hidden" int DEFAULT 0);`)
 	if err != nil {
 		return err
 	}
@@ -103,6 +103,8 @@ func (db *DB) migrate() {
 	db.db.Exec(`ALTER TABLE TS_Agents ADD COLUMN "Notes" text DEFAULT ''`)
 	db.db.Exec(`ALTER TABLE TS_Agents ADD COLUMN "Color" text DEFAULT ''`)
 	db.db.Exec(`ALTER TABLE TS_Agents ADD COLUMN "Hidden" int DEFAULT 0`)
+	// Tengu session key: without this, check-ins update health after a restart but jobs never decrypt
+	db.db.Exec(`ALTER TABLE TS_Agents ADD COLUMN "ChaCha20Key" text DEFAULT ''`)
 	// add TS_Tunnels table if this is an existing DB without it
 	db.db.Exec(`CREATE TABLE IF NOT EXISTS "TS_Tunnels" ("AgentID" text, "Type" text, "BindPort" int, "RemoteHost" text, "RemotePort" int)`)
 	// add TS_Resources table if this is an existing DB without it

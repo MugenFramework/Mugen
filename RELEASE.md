@@ -24,6 +24,7 @@
 - Notes and tags are stored on the teamserver (`TS_Agents.Tags` / `Notes`), like aliases. Every operator sees the same values; they survive reconnects and server restarts. Empty save clears them. Tags are capped at 256 characters, notes at 4096.
 - Screenshots and downloads are stored under a stable `data/loot/agents/` tree (no more per-boot timestamped folder). Connecting operators receive the existing files so Ops → Screenshots / Downloads is not empty after a restart.
 - Opening `data/teamserver.db` creates the `data/` directory if it is missing (no more panic after a wipe). MinGW still lives under `data/` — `make rebuild` does not restore it; use `make ts-build` or `./teamserver/Install.sh`. Do not `rm -rf data/` to reset loot.
+- Tengu ChaCha20 session key is stored on the teamserver (`TS_Agents.ChaCha20Key`), like Demon's AES key. Restarting the teamserver while a Tengu implant is still running used to keep the session "alive" (HTTP AgentID still matched, health kept updating) while jobs never decrypted — console commands went nowhere. The key is now restored with the agent. Health only advances after a check-in that actually parses.
 
 **Client**
 

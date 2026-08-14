@@ -37,7 +37,7 @@ func (db *DB) AgentAdd(agent *agent.Agent) error {
 	}
 
 	/* prepare some arguments to execute for the sqlite db */
-	stmt, err := db.db.Prepare("INSERT INTO TS_Agents ( AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, MagicValue, Alias, Tags, Notes, Color, Hidden) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.db.Prepare("INSERT INTO TS_Agents ( AgentID, Active, Reason, AESKey, AESIv, ChaCha20Key, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, MagicValue, Alias, Tags, Notes, Color, Hidden) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
@@ -49,6 +49,7 @@ func (db *DB) AgentAdd(agent *agent.Agent) error {
 		"",
 		base64.StdEncoding.EncodeToString(agent.Encryption.AESKey),
 		base64.StdEncoding.EncodeToString(agent.Encryption.AESIv),
+		base64.StdEncoding.EncodeToString(agent.Encryption.ChaCha20Key),
 		agent.Info.Hostname,
 		agent.Info.Username,
 		agent.Info.DomainName,
@@ -101,7 +102,7 @@ func (db *DB) AgentUpdate(agent *agent.Agent) error {
 	}
 
 	/* prepare some arguments to execute for the sqlite db */
-	stmt, err := db.db.Prepare("UPDATE TS_Agents SET Active = ?, Reason = ?, AESKey = ?, AESIv = ?, Hostname = ?, Username = ?, DomainName = ?, ExternalIP = ?, InternalIP = ?, ProcessName = ?, BaseAddress = ?, ProcessPID = ?, ProcessTID = ?, ProcessPPID = ?, ProcessArch = ?, Elevated = ?, OSVersion = ?, OSArch = ?, SleepDelay = ?, SleepJitter = ?, KillDate = ?, WorkingHours = ?, FirstCallIn = ?, LastCallIn = ? WHERE AgentID = ?")
+	stmt, err := db.db.Prepare("UPDATE TS_Agents SET Active = ?, Reason = ?, AESKey = ?, AESIv = ?, ChaCha20Key = ?, Hostname = ?, Username = ?, DomainName = ?, ExternalIP = ?, InternalIP = ?, ProcessName = ?, BaseAddress = ?, ProcessPID = ?, ProcessTID = ?, ProcessPPID = ?, ProcessArch = ?, Elevated = ?, OSVersion = ?, OSArch = ?, SleepDelay = ?, SleepJitter = ?, KillDate = ?, WorkingHours = ?, FirstCallIn = ?, LastCallIn = ? WHERE AgentID = ?")
 	if err != nil {
 		return err
 	}
@@ -118,6 +119,7 @@ func (db *DB) AgentUpdate(agent *agent.Agent) error {
 		agent.Reason,
 		base64.StdEncoding.EncodeToString(agent.Encryption.AESKey),
 		base64.StdEncoding.EncodeToString(agent.Encryption.AESIv),
+		base64.StdEncoding.EncodeToString(agent.Encryption.ChaCha20Key),
 		agent.Info.Hostname,
 		agent.Info.Username,
 		agent.Info.DomainName,
@@ -290,7 +292,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 
 	var Agents []*agent.Agent
 
-	query, err := db.db.Query("SELECT AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, COALESCE(MagicValue, 0), COALESCE(Alias, ''), COALESCE(Tags, ''), COALESCE(Notes, ''), COALESCE(Color, ''), COALESCE(Hidden, 0) FROM TS_Agents WHERE Active = 1")
+	query, err := db.db.Query("SELECT AgentID, Active, Reason, AESKey, AESIv, COALESCE(ChaCha20Key, ''), Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, COALESCE(MagicValue, 0), COALESCE(Alias, ''), COALESCE(Tags, ''), COALESCE(Notes, ''), COALESCE(Color, ''), COALESCE(Hidden, 0) FROM TS_Agents WHERE Active = 1")
 	if err != nil {
 		return nil
 	}
@@ -304,6 +306,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 			Reason string
 			AESKey string
 			AESIv string
+			ChaCha20Key string
 			Hostname string
 			Username string
 			DomainName string
@@ -333,7 +336,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 		)
 
 		/* read the selected items */
-		err = query.Scan(&AgentID, &Active, &Reason, &AESKey, &AESIv, &Hostname, &Username, &DomainName, &ExternalIP, &InternalIP, &ProcessName, &BaseAddress, &ProcessPID, &ProcessTID, &ProcessPPID, &ProcessArch, &Elevated, &OSVersion, &OSArch, &SleepDelay, &SleepJitter, &KillDate, &WorkingHours, &FirstCallIn, &LastCallIn, &MagicValue, &Alias, &Tags, &Notes, &Color, &Hidden)
+		err = query.Scan(&AgentID, &Active, &Reason, &AESKey, &AESIv, &ChaCha20Key, &Hostname, &Username, &DomainName, &ExternalIP, &InternalIP, &ProcessName, &BaseAddress, &ProcessPID, &ProcessTID, &ProcessPPID, &ProcessArch, &Elevated, &OSVersion, &OSArch, &SleepDelay, &SleepJitter, &KillDate, &WorkingHours, &FirstCallIn, &LastCallIn, &MagicValue, &Alias, &Tags, &Notes, &Color, &Hidden)
 		if err != nil {
 			/* at this point we failed
 			 * just return the collected agents */
@@ -342,6 +345,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 
 		BytesAESKey, _ := base64.StdEncoding.DecodeString(AESKey)
 		BytesAESIv,  _ := base64.StdEncoding.DecodeString(AESIv)
+		BytesChaCha, _ := base64.StdEncoding.DecodeString(ChaCha20Key)
 
 		var Agent = &agent.Agent{
 			Active:     Active == 1,
@@ -349,8 +353,9 @@ func (db *DB) AgentAll() []*agent.Agent {
 			SessionDir: "",
 			Info:       new(agent.AgentInfo),
 		}
-		Agent.Encryption.AESKey = BytesAESKey
-		Agent.Encryption.AESIv  = BytesAESIv
+		Agent.Encryption.AESKey      = BytesAESKey
+		Agent.Encryption.AESIv       = BytesAESIv
+		Agent.Encryption.ChaCha20Key = BytesChaCha
 
 		Agent.NameID          = fmt.Sprintf("%08x", AgentID)
 		Agent.Alias           = Alias
