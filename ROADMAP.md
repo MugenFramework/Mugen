@@ -125,7 +125,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Alias in console tab titles** - console tabs currently show `[TU-xxxx] user/host` and ignore the alias; when an alias is set, the tab should display it (e.g. `[dc01-system] user/host`)
 - [x] **Notes & tags teamserver-side** - notes and tags are stored in the local client SQLite today, so other operators never see them; persist them on the teamserver like aliases, shared across operators and surviving reconnects
 - [x] **Remove Map View** - drop the geolocation map (ip-api.com); unused in operations and leaks the operator IP to a third party
-- [ ] **Split console reuse** - split view currently creates new `DemonInteracted` widgets and only mirrors output; reuse the existing session consoles so local command history, focus, and task state stay in sync
+- [x] **Split console reuse** - split view reuses the existing session consoles so local command history, focus, and task state stay in sync
 
 ### Networking (agent right-click)
 

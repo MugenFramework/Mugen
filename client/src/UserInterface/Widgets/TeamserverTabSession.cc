@@ -142,11 +142,17 @@ void MugenNamespace::UserInterface::Widgets::TeamserverTabSession::setupUi( QWid
         if ( index == -1 )
             return;
 
-        // if closing a split view tab, unregister mirrors before removing
+        // Reparent session consoles out of the split before the tab goes away.
         if ( auto* split = dynamic_cast<UserInterface::Widgets::SplitConsoleWidget*>( tabWidget->widget( index ) ) )
+        {
             split->cleanup();
-
-        tabWidget->removeTab( index );
+            tabWidget->removeTab( index );
+            split->deleteLater();
+        }
+        else
+        {
+            tabWidget->removeTab( index );
+        }
 
         if ( tabWidget->count() == 0 )
         {
@@ -237,12 +243,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         if ( !action ) return;
 
         auto ensureWidget = [&]( Util::SessionItem& s ) {
-            if ( s.InteractedWidget == nullptr ) {
-                s.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
-                s.InteractedWidget->SessionInfo    = s;
-                s.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
-                s.InteractedWidget->setupUi( new QWidget );
-            }
+            EnsureInteractedWidget( s );
         };
 
         auto sendSession = [&]( int subEvent, const QString& agentID, const QMap<QString, QString>& fields ) {
@@ -585,13 +586,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
         for ( auto& Session : MugenX::Teamserver.Sessions )
         {
             // TODO: make that on Session receive
-            if ( Session.InteractedWidget == nullptr )
-            {
-                Session.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
-                Session.InteractedWidget->SessionInfo    = Session;
-                Session.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
-                Session.InteractedWidget->setupUi( new QWidget );
-            }
+            EnsureInteractedWidget( Session );
 
             if ( Session.Name.compare( SessionID ) == 0 )
             {
@@ -608,13 +603,7 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
                     {
                         if ( s.Name == secondID )
                         {
-                            if ( s.InteractedWidget == nullptr )
-                            {
-                                s.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
-                                s.InteractedWidget->SessionInfo    = s;
-                                s.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
-                                s.InteractedWidget->setupUi( new QWidget );
-                            }
+                            EnsureInteractedWidget( s );
                             secondSession = &s;
                             break;
                         }
@@ -622,12 +611,24 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
 
                     if ( secondSession )
                     {
-                        auto* splitWidget = new UserInterface::Widgets::SplitConsoleWidget;
-                        splitWidget->setupUi( Session, *secondSession, MugenX::Teamserver.Name );
+                        int existing = FindSplitTabIndex( Session.InteractedWidget, secondSession->InteractedWidget );
+                        if ( existing >= 0 )
+                        {
+                            tabWidget->setCurrentIndex( existing );
+                            Session.InteractedWidget->lineEdit->setFocus();
+                        }
+                        else
+                        {
+                            EvacuateConsole( Session.InteractedWidget );
+                            EvacuateConsole( secondSession->InteractedWidget );
 
-                        auto splitTabName = QString( "Split [%1] [%2]" ).arg( Session.Name ).arg( secondSession->Name );
-                        MugenX::Teamserver.TabSession->NewBottomTab( splitWidget, splitTabName.toStdString() );
-                        splitWidget->leftConsole->lineEdit->setFocus();
+                            auto* splitWidget = new UserInterface::Widgets::SplitConsoleWidget;
+                            splitWidget->setupUi( Session, *secondSession );
+
+                            auto splitTabName = QString( "Split [%1] [%2]" ).arg( Session.Name ).arg( secondSession->Name );
+                            NewBottomTab( splitWidget, splitTabName.toStdString() );
+                            Session.InteractedWidget->lineEdit->setFocus();
+                        }
                     }
                 }
                 else if ( action->text().compare( "Red" ) == 0 || action->text().compare( "Blue" ) == 0 || action->text().compare( "Pink" ) == 0 || action->text().compare( "Yellow" ) == 0 || action->text().compare( "Green" ) == 0 || action->text().compare( "Purple" ) == 0 || action->text().compare( "Orange" ) == 0 || action->text().compare( "Reset" ) == 0 )
@@ -1020,6 +1021,69 @@ void UserInterface::Widgets::TeamserverTabSession::handleDemonContextMenu( const
 }
 
 
+void UserInterface::Widgets::TeamserverTabSession::EnsureInteractedWidget( Util::SessionItem& session ) const
+{
+    if ( session.InteractedWidget )
+        return;
+
+    session.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
+    session.InteractedWidget->SessionInfo    = session;
+    session.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
+    session.InteractedWidget->setupUi( new QWidget );
+}
+
+int UserInterface::Widgets::TeamserverTabSession::FindSplitTabIndex(
+    UserInterface::Widgets::DemonInteracted* a,
+    UserInterface::Widgets::DemonInteracted* b ) const
+{
+    if ( ! a )
+        return -1;
+
+    for ( int i = 0; i < tabWidget->count(); ++i )
+    {
+        auto* split = dynamic_cast<UserInterface::Widgets::SplitConsoleWidget*>( tabWidget->widget( i ) );
+        if ( ! split || ! split->hosts( a ) )
+            continue;
+        if ( ! b || split->hosts( b ) )
+            return i;
+    }
+
+    return -1;
+}
+
+void UserInterface::Widgets::TeamserverTabSession::EvacuateConsole(
+    UserInterface::Widgets::DemonInteracted* console ) const
+{
+    if ( ! console || ! console->DemonInteractedWidget )
+        return;
+
+    auto* w = console->DemonInteractedWidget;
+
+    int idx = tabWidget->indexOf( w );
+    if ( idx >= 0 )
+    {
+        tabWidget->removeTab( idx );
+        w->hide();
+        w->setParent( const_cast<TeamserverTabSession*>( this ) );
+        return;
+    }
+
+    idx = FindSplitTabIndex( console );
+    if ( idx < 0 )
+        return;
+
+    auto* split    = static_cast<UserInterface::Widgets::SplitConsoleWidget*>( tabWidget->widget( idx ) );
+    auto* leftover = split->otherOf( console );
+
+    split->cleanup();
+    tabWidget->removeTab( idx );
+    split->deleteLater();
+
+    if ( leftover && leftover->DemonInteractedWidget )
+        NewBottomTab( leftover->DemonInteractedWidget,
+                      leftover->SessionInfo.ConsoleTabTitle().toStdString() );
+}
+
 void UserInterface::Widgets::TeamserverTabSession::OpenConsoleTab( const Util::SessionItem& Session ) const
 {
     if ( ! Session.InteractedWidget )
@@ -1033,12 +1097,20 @@ void UserInterface::Widgets::TeamserverTabSession::OpenConsoleTab( const Util::S
     {
         tabWidget->setTabText( idx, title );
         tabWidget->setCurrentIndex( idx );
-    }
-    else
-    {
-        NewBottomTab( console, title.toStdString() );
+        Session.InteractedWidget->lineEdit->setFocus();
+        return;
     }
 
+    // Already embedded in a split tab: focus that tab instead of tearing it apart.
+    idx = FindSplitTabIndex( Session.InteractedWidget );
+    if ( idx >= 0 )
+    {
+        tabWidget->setCurrentIndex( idx );
+        Session.InteractedWidget->lineEdit->setFocus();
+        return;
+    }
+
+    NewBottomTab( console, title.toStdString() );
     Session.InteractedWidget->lineEdit->setFocus();
 }
 
@@ -1098,12 +1170,7 @@ void UserInterface::Widgets::TeamserverTabSession::OpenProcessList( const QStrin
     {
         if ( Session.Name != sessionID ) continue;
 
-        if ( Session.InteractedWidget == nullptr ) {
-            Session.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
-            Session.InteractedWidget->SessionInfo    = Session;
-            Session.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
-            Session.InteractedWidget->setupUi( new QWidget );
-        }
+        EnsureInteractedWidget( Session );
 
         auto tabName = QString( "[%1] Process List" ).arg( sessionID );
 
@@ -1134,12 +1201,7 @@ void UserInterface::Widgets::TeamserverTabSession::OpenFileBrowser( const QStrin
     {
         if ( Session.Name != sessionID ) continue;
 
-        if ( Session.InteractedWidget == nullptr ) {
-            Session.InteractedWidget                 = new UserInterface::Widgets::DemonInteracted;
-            Session.InteractedWidget->SessionInfo    = Session;
-            Session.InteractedWidget->TeamserverName = MugenX::Teamserver.Name;
-            Session.InteractedWidget->setupUi( new QWidget );
-        }
+        EnsureInteractedWidget( Session );
 
         auto tabName = QString( "[%1] File Explorer" ).arg( sessionID );
 
