@@ -111,7 +111,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Actions button** - quick-action menu next to the session table filter (Beacon Builder, Process List, File Explorer)
 - [x] **Session table column customization** - hide/reorder columns, persist layout
 - [x] **Payload builder UX** - live config preview, one-liner copy-paste generator
-- [ ] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog (the teamserver already logs `TLS SHA-256` at startup)
+- [x] **Certificate pin viewer** - display teamserver TLS fingerprint in the connection dialog (the teamserver already logs `TLS SHA-256` at startup)
 - [x] **Multi-select sessions + bulk actions** - select multiple agents and send a command to all (shell, sleep, kill)
 - [x] **Bulk actions expansion** - extend multi-select beyond shell / sleep / kill: set tag, set alias, mark dead, sleep with jitter
 - [x] **Persistent task history** - all commands and their output are stored in SQLite (TS_TaskHistory), survive restart/reconnect; dedicated History tab per agent with: output search, comment, delete
@@ -120,16 +120,12 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Ops hub** - View → Ops is a single tab with an internal navbar (Screenshots, Credentials, Downloads, Resources, Tasks, Networking); replaces the separate View entries
 - [x] **Loot screenshots & downloads persistence** - stored under `data/loot/agents/`, restored to Ops when an operator connects, survive teamserver restart; timestamped folders from older runs are migrated
 - [x] **Loot Download / Delete** - Ops → Screenshots and Downloads have Download (save to the operator machine) and Delete (remove from the teamserver); also in the row context menu
-- [ ] **Operator attribution** - display which operator ran each command in a shared agent console
-- [ ] **Operator presence** - show in real time which agents other connected operators are interacting with
-- [ ] **Multi-teamserver** - connect to multiple teamservers simultaneously from a single client
-- [ ] **File transfer progress** - progress bar and size estimate for uploads and downloads
+- [x] **File transfer progress** - progress bar and size estimate for uploads and downloads
 - [x] **Agent aliasing** - assign a short human-readable name to an agent (e.g. `dc01-system`), shown in the session table alongside the ID; stored teamserver-side so every operator sees it, and it survives reconnects and server restarts
 - [x] **Alias in console tab titles** - console tabs currently show `[TU-xxxx] user/host` and ignore the alias; when an alias is set, the tab should display it (e.g. `[dc01-system] user/host`)
 - [x] **Notes & tags teamserver-side** - notes and tags are stored in the local client SQLite today, so other operators never see them; persist them on the teamserver like aliases, shared across operators and surviving reconnects
 - [x] **Remove Map View** - drop the geolocation map (ip-api.com); unused in operations and leaks the operator IP to a third party
 - [ ] **Split console reuse** - split view currently creates new `DemonInteracted` widgets and only mirrors output; reuse the existing session consoles so local command history, focus, and task state stay in sync
-- [ ] **Agent timeline** - chronological view of all tasks and outputs for a single agent; useful for post-engagement reconstruction
 
 ### Networking (agent right-click)
 

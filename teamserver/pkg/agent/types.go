@@ -1,9 +1,9 @@
 package agent
 
 import (
-	"sync"
 	"net"
 	"os"
+	"sync"
 
 	"Mugen/pkg/common/parser"
 	"Mugen/pkg/packager"
@@ -139,8 +139,8 @@ type SocksServer struct {
 
 // TODO: maybe change this to type map[string]any instead of struct
 type Agent struct {
-	NameID    string
-	DisplayID string // prefixed display name: "DN-XXXXXXXX" for Demon, "TU-XXXXXXXX" for Tengu
+	NameID     string
+	DisplayID  string // prefixed display name: "DN-XXXXXXXX" for Demon, "TU-XXXXXXXX" for Tengu
 	Alias      string // operator assigned human readable name, e.g. "dc01-system" (empty if unset)
 	Tags       string // comma-separated labels, shared across operators
 	Notes      string // free-form operator notes, shared across operators
@@ -166,6 +166,8 @@ type Agent struct {
 	SocksCliMtx sync.Mutex
 	SocksSvr    []*SocksServer
 	SocksSvrMtx sync.Mutex
+	MemUploads  map[uint32]*MemFileXfer
+	TenguXfers  map[uint32]*tenguXfer
 
 	Encryption struct {
 		AESKey      []byte
@@ -173,7 +175,6 @@ type Agent struct {
 		ChaCha20Key []byte // Tengu application-layer encryption key (32B)
 	}
 	TaskedOnce bool
-
 
 	TenguSocks5   *TenguSocks5
 	TenguRportfwd *TenguRportfwd

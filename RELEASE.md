@@ -45,6 +45,7 @@
 - Ops hub: **View → Ops** is a single bottom tab with an internal navbar (Screenshots, Credentials, Downloads, Resources, Tasks, Networking). The old separate View entries for Loot / Resources / Tasks / Networking are gone. Tengu `download` now shows up in Downloads like Demon.
 - Screenshots and downloads persist on the teamserver (`data/loot/agents/<id>/`). They survive a server restart and are restored to Ops when an operator connects. Timestamped loot folders from previous runs are migrated automatically.
 - Screenshots and Downloads: **Download** pulls the file from the teamserver onto the operator machine (save dialog; only the requester receives the bytes). **Delete** removes it from disk and from every operator's Ops view. Same actions in the row context menu. Clicking a Downloads row no longer jumps to Screenshots.
+- File transfer progress: downloads and uploads show an in-place console bar (`↓ file  [====>    ]  45%  1.2 MB / 2.7 MB`). Demon updates it on every chunk; Tengu shows start then 100% when the file lands (one-shot transfer). Ops → Downloads size cell tracks the same numbers.
 - Notes and tags: right-click → Notes_Tags is now teamserver-side. Every operator sees the same tags (session table column) and notes; they survive reconnects and restarts. The session table filter accepts `tag:` and `notes:`.
 - Session color: right-click → Color tints the row (left accent bar). The highlight is stored on the teamserver, shared by every operator, and survives reconnects and server restarts. Reset clears it.
 

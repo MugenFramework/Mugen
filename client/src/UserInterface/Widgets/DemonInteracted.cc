@@ -3,6 +3,7 @@
 #include <UserInterface/Widgets/SessionTable.hpp>
 #include <UserInterface/Widgets/NetworkingWidget.hpp>
 #include <UserInterface/Widgets/TeamserverTabSession.h>
+#include <UserInterface/Widgets/LootWidget.h>
 #include <Mugen/Service.hpp>
 #include <Mugen/Packager.hpp>
 #include <Util/ColorText.h>
@@ -35,6 +36,8 @@
 #include <QStyle>
 #include <QUrl>
 #include <QRegularExpression>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 using namespace MugenNamespace::UserInterface::Widgets;
 using namespace MugenNamespace::Util;
@@ -97,6 +100,7 @@ void ConsoleTextEdit::resetBlocks()
 {
     taskBlocks.clear();
     statusEpoch.clear();
+    transferBlocks.clear();
     hoveredTask = -1;
     menuBtn->hide();
     clear();
@@ -110,6 +114,27 @@ void ConsoleTextEdit::updateComment(const QString& taskID, const QString& commen
             break;
         }
     }
+}
+
+void ConsoleTextEdit::upsertProgressLine( const QString& id, const QString& html )
+{
+    if ( id.isEmpty() || html.isEmpty() )
+        return;
+
+    if ( transferBlocks.contains( id ) ) {
+        QTextBlock blk = document()->findBlockByNumber( transferBlocks[ id ] );
+        if ( blk.isValid() ) {
+            QTextCursor cur( blk );
+            cur.movePosition( QTextCursor::StartOfBlock );
+            cur.movePosition( QTextCursor::EndOfBlock, QTextCursor::KeepAnchor );
+            cur.insertHtml( html );
+            return;
+        }
+    }
+
+    moveCursor( QTextCursor::End );
+    append( html );
+    transferBlocks[ id ] = document()->blockCount() - 1;
 }
 
 void ConsoleTextEdit::updateStatus(const QString& taskID, const QString& status)
@@ -881,6 +906,45 @@ void DemonInteracted::updateTaskStatus( const QString& taskID, const QString& st
 {
     if ( Console )
         Console->updateStatus( taskID, status );
+}
+
+void DemonInteracted::updateTransferProgress( const QString& json )
+{
+    if ( ! Console || json.isEmpty() )
+        return;
+
+    auto doc = QJsonDocument::fromJson( json.toUtf8() );
+    if ( ! doc.isObject() )
+        return;
+
+    auto ev    = doc.object();
+    auto id    = ev[ "id" ].toString();
+    auto dir   = ev[ "dir" ].toString();
+    auto name  = ev[ "name" ].toString().toHtmlEscaped();
+    auto bar   = ev[ "bar" ].toString().toHtmlEscaped();
+    auto state = ev[ "state" ].toString();
+    bar.replace( QLatin1Char( ' ' ), QStringLiteral( "&nbsp;" ) );
+
+    auto arrow = ( dir == "up" ) ? QString( "↑" ) : QString( "↓" );
+    auto color = ColorText::Colors::Hex::Cyan;
+    if ( state == "done" )
+        color = ColorText::Colors::Hex::Green;
+    else if ( state == "error" )
+        color = ColorText::Colors::Hex::Red;
+
+    auto html = QString( "<span style=\"color:%1;\">%2 %3&nbsp;&nbsp;%4</span>" )
+                    .arg( color, arrow, name, bar );
+    Console->upsertProgressLine( id, html );
+
+    if ( dir != "up" && MugenX::Teamserver.TabSession && MugenX::Teamserver.TabSession->LootWidget )
+    {
+        auto pretty = ev[ "bar" ].toString();
+        int cut = pretty.lastIndexOf( ']' );
+        if ( cut >= 0 && cut + 1 < pretty.size() )
+            pretty = pretty.mid( cut + 1 ).trimmed();
+        MugenX::Teamserver.TabSession->LootWidget->UpdateDownloadProgress(
+            SessionInfo.Name, ev[ "name" ].toString(), pretty );
+    }
 }
 
 void DemonInteracted::AddMirror( QTextEdit* c )

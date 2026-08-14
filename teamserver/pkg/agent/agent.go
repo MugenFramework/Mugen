@@ -11,10 +11,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
-	"reflect"
 
 	"Mugen/pkg/common"
 	"Mugen/pkg/common/crypt"
@@ -147,7 +147,7 @@ func BuildPayloadMessage(Jobs []Job, AesKey []byte, AesIv []byte) []byte {
 				} else {
 					binary.LittleEndian.PutUint32(boolean, 0)
 				}
-				
+
 				DataPayload = append(DataPayload, boolean...)
 
 				break
@@ -223,7 +223,7 @@ func RegisterInfoToInstance(Header Header, RegisterInfo map[string]any) *Agent {
 		err error
 	)
 
-	agent.NameID    = fmt.Sprintf("%08x", Header.AgentID)
+	agent.NameID = fmt.Sprintf("%08x", Header.AgentID)
 	agent.DisplayID = agent.NameID // service agents keep plain hex; set prefix after if needed
 	agent.Info.MagicValue = Header.MagicValue
 
@@ -299,7 +299,7 @@ func RegisterInfoToInstance(Header Header, RegisterInfo map[string]any) *Agent {
 	if val, ok := RegisterInfo["OS Arch"]; ok {
 		agent.Info.OSArch = val.(string)
 	}
-	
+
 	if val, ok := RegisterInfo["SleepDelay"]; ok {
 		switch v := val.(type) {
 		case float64:
@@ -316,12 +316,10 @@ func RegisterInfoToInstance(Header Header, RegisterInfo map[string]any) *Agent {
 			agent.Info.SleepDelay = 0
 		}
 	}
-	
 
 	agent.Info.FirstCallIn = time.Now().Format("02/01/2006 15:04:05")
-	
+
 	agent.Info.LastCallIn = time.Now().Format("02-01-2006 15:04:05")
-	
 
 	agent.BackgroundCheck = false
 	agent.Active = true
@@ -389,7 +387,7 @@ func ParseDemonRegisterRequest(AgentID int, Parser *parser.Parser, ExternalIP st
 			Info:       new(AgentInfo),
 		}
 		Session.Encryption.AESKey = Parser.ParseAtLeastBytes(32)
-		Session.Encryption.AESIv  = Parser.ParseAtLeastBytes(16)
+		Session.Encryption.AESIv = Parser.ParseAtLeastBytes(16)
 
 		// check if there is aes key/iv.
 		if bytes.Compare(Session.Encryption.AESKey, AesKeyEmpty) != 0 {
@@ -428,8 +426,8 @@ func ParseDemonRegisterRequest(AgentID int, Parser *parser.Parser, ExternalIP st
 				Hostname, Username, DomainName, InternalIP, ExternalIP))
 
 			ProcessName = Parser.ParseUTF16String()
-			ProcessPID  = Parser.ParseInt32()
-			ProcessTID  = Parser.ParseInt32()
+			ProcessPID = Parser.ParseInt32()
+			ProcessTID = Parser.ParseInt32()
 			ProcessPPID = Parser.ParseInt32()
 			ProcessArch = Parser.ParseInt32()
 			Elevated = Parser.ParseInt32()
@@ -461,7 +459,7 @@ func ParseDemonRegisterRequest(AgentID int, Parser *parser.Parser, ExternalIP st
 
 			Session.Active = true
 
-			Session.NameID    = fmt.Sprintf("%08x", DemonID)
+			Session.NameID = fmt.Sprintf("%08x", DemonID)
 			Session.DisplayID = "DN-" + Session.NameID
 			Session.Info.MagicValue = MagicValue
 			Session.Info.FirstCallIn = time.Now().Format("02/01/2006 15:04:05")
@@ -526,8 +524,8 @@ func ParseDemonRegisterRequest(AgentID int, Parser *parser.Parser, ExternalIP st
 			process := strings.Split(ProcessName, "\\")
 
 			Session.Info.ProcessName = process[len(process)-1]
-			Session.Info.ProcessPID  = ProcessPID
-			Session.Info.ProcessTID  = ProcessTID
+			Session.Info.ProcessPID = ProcessPID
+			Session.Info.ProcessTID = ProcessTID
 			Session.Info.ProcessPPID = ProcessPPID
 			Session.Info.ProcessPath = ProcessName
 			Session.Info.BaseAddress = BaseAddress
@@ -643,7 +641,7 @@ func (a *Agent) RequestCompleted(RequestID uint32) {
 }
 
 func (a *Agent) AddJobToQueue(job Job) []Job {
-	// store the RequestID									
+	// store the RequestID
 	a.AddRequest(job)
 	// if it's a pivot agent then add the job to the parent
 	if a.Pivots.Parent != nil {
@@ -818,7 +816,7 @@ func (a *Agent) DownloadAdd(FileID int, FilePath string, FileSize int64) error {
 			FileID:    FileID,
 			FilePath:  FilePath,
 			TotalSize: FileSize,
-			Progress:  FileSize,
+			Progress:  0,
 			State:     DOWNLOAD_STATE_RUNNING,
 		}
 
@@ -860,27 +858,26 @@ func (a *Agent) DownloadAdd(FileID int, FilePath string, FileSize int64) error {
 	return nil
 }
 
-func (a *Agent) DownloadWrite(FileID int, data []byte) error {
+func (a *Agent) DownloadWrite(FileID int, data []byte) (*Download, error) {
 	for i := range a.Downloads {
 		if a.Downloads[i].FileID == FileID {
 			_, err := a.Downloads[i].File.Write(data)
 			if err != nil {
 				a.Downloads[i].File, err = os.Create(a.Downloads[i].LocalFile)
 				if err != nil {
-					return errors.New("Failed to create file: " + err.Error())
+					return nil, errors.New("Failed to create file: " + err.Error())
 				}
 
 				_, err = a.Downloads[i].File.Write(data)
 				if err != nil {
-					return errors.New("Failed to write to file [" + a.Downloads[i].LocalFile + "]: " + err.Error())
+					return nil, errors.New("Failed to write to file [" + a.Downloads[i].LocalFile + "]: " + err.Error())
 				}
-
-				a.Downloads[i].Progress += int64(len(data))
 			}
-			return nil
+			a.Downloads[i].Progress += int64(len(data))
+			return a.Downloads[i], nil
 		}
 	}
-	return errors.New(fmt.Sprintf("FileID not found: %x", FileID))
+	return nil, errors.New(fmt.Sprintf("FileID not found: %x", FileID))
 }
 
 func (a *Agent) DownloadClose(FileID int) {
@@ -906,6 +903,57 @@ func (a *Agent) DownloadGet(FileID int) *Download {
 	return nil
 }
 
+func (a *Agent) TrackMemUpload(id uint32, name string, total int64, chunks, chunkSize int) {
+	if a.MemUploads == nil {
+		a.MemUploads = make(map[uint32]*MemFileXfer)
+	}
+	a.MemUploads[id] = &MemFileXfer{
+		ID:        id,
+		Name:      name,
+		Total:     total,
+		Chunks:    chunks,
+		ChunkSize: chunkSize,
+	}
+}
+
+func (a *Agent) AckMemUpload(id uint32) (done, total int64, name string, ok bool) {
+	x, exists := a.MemUploads[id]
+	if !exists {
+		return 0, 0, "", false
+	}
+	x.Acked++
+	done = int64(x.Acked) * int64(x.ChunkSize)
+	if done > x.Total {
+		done = x.Total
+	}
+	return done, x.Total, x.Name, true
+}
+
+func (a *Agent) FinishMemUpload(id uint32) (name string, total int64, ok bool) {
+	x, exists := a.MemUploads[id]
+	if !exists {
+		return "", 0, false
+	}
+	delete(a.MemUploads, id)
+	return x.Name, x.Total, true
+}
+
+func (a *Agent) TrackTenguXfer(reqID uint32, id, direction, name string, total int64) {
+	if a.TenguXfers == nil {
+		a.TenguXfers = make(map[uint32]*tenguXfer)
+	}
+	a.TenguXfers[reqID] = &tenguXfer{ID: id, Direction: direction, Name: name, Total: total}
+}
+
+func (a *Agent) TakeTenguXfer(reqID uint32) *tenguXfer {
+	x, ok := a.TenguXfers[reqID]
+	if !ok {
+		return nil
+	}
+	delete(a.TenguXfers, reqID)
+	return x
+}
+
 func (a *Agent) PortFwdNew(SocketID, LclAddr, LclPort, FwdAddr, FwdPort int, Target string) {
 	var portfwd = &PortFwd{
 		Conn:    nil,
@@ -918,7 +966,7 @@ func (a *Agent) PortFwdNew(SocketID, LclAddr, LclPort, FwdAddr, FwdPort int, Tar
 	}
 
 	a.PortFwdsMtx.Lock()
-	
+
 	a.PortFwds = append(a.PortFwds, portfwd)
 
 	a.PortFwdsMtx.Unlock()
@@ -1041,7 +1089,7 @@ func (a *Agent) PortFwdClose(SocketID int) {
 			/* remove the socket from the array */
 			a.PortFwds = append(a.PortFwds[:i], a.PortFwds[i+1:]...)
 
-			break;
+			break
 		}
 
 	}
@@ -1052,12 +1100,12 @@ func (a *Agent) SocksClientAdd(SocketID int32, conn net.Conn, ATYP byte, IpDomai
 
 	var client = new(SocksClient)
 
-	client.SocketID  = SocketID
-	client.Conn      = conn
+	client.SocketID = SocketID
+	client.Conn = conn
 	client.Connected = false
-	client.ATYP      = ATYP
-	client.IpDomain  = IpDomain
-	client.Port      = Port
+	client.ATYP = ATYP
+	client.IpDomain = IpDomain
+	client.Port = Port
 
 	a.SocksCliMtx.Lock()
 
@@ -1093,8 +1141,8 @@ func (a *Agent) SocksClientGet(SocketID int) *SocksClient {
 
 func (a *Agent) SocksClientRead(client *SocksClient) ([]byte, error) {
 	var (
-		data  = make([]byte, 0x10000)
-		read  []byte
+		data = make([]byte, 0x10000)
+		read []byte
 	)
 
 	if client != nil {
@@ -1178,7 +1226,7 @@ func (a *Agent) SocksServerRemove(Addr string) {
 			/* remove the socket from the array */
 			a.SocksSvr = append(a.SocksSvr[:i], a.SocksSvr[i+1:]...)
 
-			break;
+			break
 		}
 
 	}

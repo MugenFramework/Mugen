@@ -664,6 +664,22 @@ void LootWidget::ScreenshotTableAdd( const QString &AgentID, const QString &Name
     ScreenshotTable->setItem( ScreenshotTable->rowCount() - 1, 1, item_Date );
 }
 
+void LootWidget::UpdateDownloadProgress( const QString& AgentID, const QString& Name, const QString& Size )
+{
+    for ( int i = 0; i < DownloadTable->rowCount(); i++ )
+    {
+        auto* it = DownloadTable->item( i, 0 );
+        if ( ! it || it->data( Qt::UserRole ).toString() != AgentID )
+            continue;
+        auto rowName = it->text();
+        if ( rowName != Name && ! rowName.endsWith( "/" + Name ) && ! rowName.endsWith( "\\" + Name ) )
+            continue;
+        if ( auto* sizeItem = DownloadTable->item( i, 1 ) )
+            sizeItem->setText( Size );
+        return;
+    }
+}
+
 void LootWidget::DownloadTableAdd( const QString &AgentID, const QString &Name, const QString &Size, const QString &Date )
 {
     for ( int i = 0; i < DownloadTable->rowCount(); i++ )

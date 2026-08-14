@@ -295,7 +295,10 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 			return nil
 		}
 		path := strings.Join(parts[1:], " ")
-		Console(a.NameID, map[string]string{"Type": "Info", "Message": "Tasked Tengu to download: " + path})
+		msg := map[string]string{"Type": "Info", "Message": "Tasked Tengu to download: " + path}
+		mergeTransfer(msg, transferProgressMap("t-"+TaskIDStr, "down", path, "run", 0, 0))
+		Console(a.NameID, msg)
+		a.TrackTenguXfer(reqID, "t-"+TaskIDStr, "down", path, 0)
 		job = &Job{
 			Command:     TENGU_DOWNLOAD,
 			RequestID:   reqID,
@@ -317,10 +320,11 @@ func (a *Agent) TenguTeamserverTaskPrepare(Command string, TaskIDStr string, Con
 			Console(a.NameID, map[string]string{"Type": "Error", "Message": "Failed to read local file: " + err.Error()})
 			return nil
 		}
-		Console(a.NameID, map[string]string{
-			"Type":    "Info",
-			"Message": fmt.Sprintf("Tasked Tengu to upload %d bytes -> %s", len(data), remotePath),
-		})
+		up := transferProgressMap("t-"+TaskIDStr, "up", remotePath, "run", 0, int64(len(data)))
+		up["Type"] = "Info"
+		up["Message"] = fmt.Sprintf("Tasked Tengu to upload %d bytes -> %s", len(data), remotePath)
+		Console(a.NameID, up)
+		a.TrackTenguXfer(reqID, "t-"+TaskIDStr, "up", remotePath, int64(len(data)))
 		job = &Job{
 			Command:     TENGU_UPLOAD,
 			RequestID:   reqID,
@@ -1016,10 +1020,14 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 			}
 		}
 
-		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
+		out := map[string]string{
 			"Type":   "Good",
 			"Output": output,
-		})
+		}
+		if x := a.TakeTenguXfer(RequestID); x != nil {
+			mergeTransfer(out, transferProgressMap(x.ID, x.Direction, x.Name, "done", x.Total, x.Total))
+		}
+		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, out)
 
 	case TENGU_WHOAMI:
 		var username string
@@ -1043,10 +1051,14 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 			output = string(Parser.ParseBytes())
 		}
 		a.RequestCompleted(RequestID)
-		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
+		errOut := map[string]string{
 			"Type":    "Error",
 			"Message": output,
-		})
+		}
+		if x := a.TakeTenguXfer(RequestID); x != nil {
+			mergeTransfer(errOut, transferProgressMap(x.ID, x.Direction, x.Name, "error", 0, x.Total))
+		}
+		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, errOut)
 
 	case COMMAND_EXIT:
 		teamserver.Died(a)
@@ -1073,12 +1085,18 @@ func (a *Agent) TenguTaskDispatch(RequestID uint32, CommandID uint32, Parser *pa
 			return
 		}
 		a.RequestCompleted(RequestID)
-		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, map[string]string{
+		dl := map[string]string{
 			"Type":      "Good",
 			"Message":   fmt.Sprintf("Downloaded %d bytes -> %s", len(data), savePath),
 			"MiscType":  "download",
 			"MiscData2": base64.StdEncoding.EncodeToString([]byte(filepath.Base(filename))) + ";" + common.ByteCountSI(int64(len(data))),
-		})
+		}
+		xferID := fmt.Sprintf("t-%08x", RequestID)
+		if x := a.TakeTenguXfer(RequestID); x != nil {
+			xferID = x.ID
+		}
+		dl["MiscData"] = transferProgressJSON(xferID, "down", filename, "done", int64(len(data)), int64(len(data)))
+		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, dl)
 
 	case TENGU_SCREENSHOT:
 		if !Parser.CanIRead([]parser.ReadType{parser.ReadBytes, parser.ReadBytes}) {

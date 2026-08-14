@@ -74,6 +74,14 @@ void DispatchOutput::MessageOutput( QString JsonString, const QString& Date = ""
 
             if ( MugenX::Teamserver.TabSession->LootWidget )
                 MugenX::Teamserver.TabSession->LootWidget->AddDownload( DemonCommandInstance->DemonID, Name, Size, Date, nullptr );
+
+            auto progress = JsonDocument[ "MiscData" ].toString();
+            if ( progress.startsWith( '{' ) )
+                this->DemonCommandInstance->DemonConsole->updateTransferProgress( progress );
+        }
+        else if ( Type.compare( "transfer_progress" ) == 0 )
+        {
+            this->DemonCommandInstance->DemonConsole->updateTransferProgress( Data );
         }
         else if ( Type.compare( "ProcessUI" ) == 0 )
         {
