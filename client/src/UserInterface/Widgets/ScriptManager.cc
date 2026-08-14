@@ -6,8 +6,9 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHeaderView>
-#include <QFileDialog>
 #include <QTableWidgetItem>
+#include <QMessageBox>
+#include <Util/Base.hpp>
 
 using namespace MugenNamespace::UserInterface::Widgets;
 
@@ -160,32 +161,19 @@ void ScriptManager::AddScriptTable( QString Path )
 
 void ScriptManager::b_LoadScript()
 {
-    auto FileDialog = QFileDialog();
-    auto Filename   = QUrl();
-    auto Style      = FileRead( ":/stylesheets/Dialogs/FileDialog" ).toStdString();
+    auto Filename = ThemedOpenFileDialog( "Load Script" );
+    if ( Filename.isEmpty() )
+        return;
 
-    Style.erase( std::remove( Style.begin(), Style.end(), '\n'), Style.end() );
-
-    FileDialog.setStyleSheet( Style.c_str() );
-    FileDialog.setDirectory( QDir::homePath() );
-
-    if ( FileDialog.exec() == QFileDialog::Accepted )
-    {
-        Filename = FileDialog.selectedUrls().value( 0 ).toLocalFile();
-        if ( ! Filename.toString().isNull() )
-        {
-            if ( AddScript( Filename.toString() ) ) {
-                AddScriptTable( Filename.toString() );
-            } else {
-                auto messageBox = QMessageBox(  );
-                messageBox.setWindowTitle( "Failed to import script" );
-                messageBox.setText( "The script " + Filename.toString() + " could not be imported due to an error." );
-                messageBox.setIcon( QMessageBox::Critical );
-                messageBox.setStyleSheet( FileRead( ":/stylesheets/MessageBox" ) );
-                // messageBox.setMaximumSize( QSize( 500, 500 ) );
-                messageBox.exec();
-            }
-        }
+    if ( AddScript( Filename ) ) {
+        AddScriptTable( Filename );
+    } else {
+        auto messageBox = QMessageBox();
+        messageBox.setWindowTitle( "Failed to import script" );
+        messageBox.setText( "The script " + Filename + " could not be imported due to an error." );
+        messageBox.setIcon( QMessageBox::Critical );
+        messageBox.setStyleSheet( FileRead( ":/stylesheets/MessageBox" ) );
+        messageBox.exec();
     }
 }
 

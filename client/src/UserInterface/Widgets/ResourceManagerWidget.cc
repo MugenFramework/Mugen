@@ -11,7 +11,6 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QSpacerItem>
-#include <QFileDialog>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -262,10 +261,7 @@ void ResourceManagerWidget::setupUi( QWidget* widget )
     } );
 
     connect( UploadButton, &QPushButton::clicked, this, [this]() {
-        auto path = QFileDialog::getOpenFileName(
-            nullptr, "Upload Resource", QDir::homePath(),
-            "All files (*.*)"
-        );
+        auto path = ThemedOpenFileDialog( "Upload Resource", "All files (*.*)" );
         if ( path.isEmpty() ) return;
 
         QFile f( path );

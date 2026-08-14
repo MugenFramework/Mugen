@@ -7,7 +7,6 @@
 #include <Util/ColorText.h>
 
 #include <QIODevice>
-#include <QFileDialog>
 #include <QJsonArray>
 #include <QHeaderView>
 #include <vector>
@@ -287,46 +286,29 @@ void Payload::buttonGenerate()
 
 auto Payload::ReceivedImplantAndSave( QString FileName, QByteArray ImplantArray ) -> void
 {
-    auto FileDialog = QFileDialog();
-    auto Filename   = QUrl();
-    auto Style      = FileRead( ":/stylesheets/Dialogs/FileDialog" ).toStdString();
+    auto savePath = ThemedSaveFileDialog( "Save Payload", FileName );
+    if ( savePath.isEmpty() )
+        return;
 
-    Style.erase( std::remove( Style.begin(), Style.end(), '\n' ), Style.end() );
+    auto file       = QFile( savePath );
+    auto messageBox = QMessageBox();
 
-    FileDialog.setStyleSheet( Style.c_str() );
-    FileDialog.setAcceptMode( QFileDialog::AcceptSave );
-    FileDialog.setDirectory( QDir::homePath() );
-    FileDialog.selectFile( FileName );
-
-    if ( FileDialog.exec() == QFileDialog::Accepted )
-    {
-        Filename = FileDialog.selectedUrls().value( 0 ).toLocalFile();
-
-        if ( ! Filename.toString().isNull() )
-        {
-            // Save to file
-            auto file       = QFile( Filename.toString() );
-            auto messageBox = QMessageBox(  );
-
-            if ( file.open( QIODevice::WriteOnly | QIODevice::Truncate ) ) {
-                file.write( ImplantArray );
-            } else {
-                auto name = Filename.toString().toStdString();
-                spdlog::error( "Couldn't write to file {}", name );
-            }
-
-            file.close();
-
-            messageBox.setWindowTitle( "Payload Generator" );
-            messageBox.setText( "Payload saved under: " + Filename.toString() );
-            messageBox.setIcon( QMessageBox::Information );
-            messageBox.setStyleSheet( FileRead( ":/stylesheets/MessageBox" ) );
-            messageBox.setMaximumSize( QSize(500, 500 ) );
-            messageBox.exec();
-
-            PayloadDialog->done( 0 );
-        }
+    if ( file.open( QIODevice::WriteOnly | QIODevice::Truncate ) ) {
+        file.write( ImplantArray );
+    } else {
+        spdlog::error( "Couldn't write to file {}", savePath.toStdString() );
     }
+
+    file.close();
+
+    messageBox.setWindowTitle( "Payload Generator" );
+    messageBox.setText( "Payload saved under: " + savePath );
+    messageBox.setIcon( QMessageBox::Information );
+    messageBox.setStyleSheet( FileRead( ":/stylesheets/MessageBox" ) );
+    messageBox.setMaximumSize( QSize(500, 500 ) );
+    messageBox.exec();
+
+    PayloadDialog->done( 0 );
 }
 
 auto Payload::addConsoleLog( QString MsgType, QString Message ) -> void

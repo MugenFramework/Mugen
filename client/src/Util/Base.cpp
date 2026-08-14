@@ -1,5 +1,10 @@
 #include <Util/Base.hpp>
 
+#include <algorithm>
+#include <QApplication>
+#include <QFileDialog>
+#include <QDir>
+
 auto FileRead( const QString& FilePath ) -> QByteArray
 {
     auto Content = QByteArray( );
@@ -24,6 +29,60 @@ auto FileRead( const QString& FilePath ) -> QByteArray
     File.close();
 
     return Content;
+}
+
+static void applyFileDialogStyle( QFileDialog& dialog )
+{
+    dialog.setOption( QFileDialog::DontUseNativeDialog, true );
+
+    auto Style = FileRead( ":/stylesheets/Dialogs/FileDialog" ).toStdString();
+    Style.erase( std::remove( Style.begin(), Style.end(), '\n' ), Style.end() );
+    dialog.setStyleSheet( Style.c_str() );
+
+    dialog.setWindowFlags(
+        Qt::Dialog
+        | Qt::WindowTitleHint
+        | Qt::WindowSystemMenuHint
+        | Qt::WindowCloseButtonHint
+        | Qt::WindowStaysOnTopHint
+    );
+    dialog.setWindowModality( Qt::WindowModal );
+    dialog.resize( 760, 520 );
+}
+
+auto ThemedSaveFileDialog( const QString& Title, const QString& SuggestedName ) -> QString
+{
+    QFileDialog dialog( QApplication::activeWindow() );
+    applyFileDialogStyle( dialog );
+    dialog.setAcceptMode( QFileDialog::AcceptSave );
+    dialog.setWindowTitle( Title );
+    dialog.setDirectory( QDir::homePath() );
+    if ( ! SuggestedName.isEmpty() )
+        dialog.selectFile( SuggestedName );
+
+    if ( dialog.exec() != QFileDialog::Accepted )
+        return {};
+
+    auto files = dialog.selectedFiles();
+    return files.isEmpty() ? QString() : files.first();
+}
+
+auto ThemedOpenFileDialog( const QString& Title, const QString& Filter ) -> QString
+{
+    QFileDialog dialog( QApplication::activeWindow() );
+    applyFileDialogStyle( dialog );
+    dialog.setAcceptMode( QFileDialog::AcceptOpen );
+    dialog.setFileMode( QFileDialog::ExistingFile );
+    dialog.setWindowTitle( Title );
+    dialog.setDirectory( QDir::homePath() );
+    if ( ! Filter.isEmpty() )
+        dialog.setNameFilter( Filter );
+
+    if ( dialog.exec() != QFileDialog::Accepted )
+        return {};
+
+    auto files = dialog.selectedFiles();
+    return files.isEmpty() ? QString() : files.first();
 }
 
 auto MessageBox( QString Title, QString Text, QMessageBox::Icon Icon ) -> void

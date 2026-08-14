@@ -14,6 +14,16 @@ auto FileRead(
     const QString& FilePath
 ) -> QByteArray;
 
+auto ThemedSaveFileDialog(
+    const QString& Title,
+    const QString& SuggestedName
+) -> QString;
+
+auto ThemedOpenFileDialog(
+    const QString& Title,
+    const QString& Filter = QString()
+) -> QString;
+
 auto MessageBox(
     QString           Title,
     QString           Text,
