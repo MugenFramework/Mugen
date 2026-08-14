@@ -853,8 +853,6 @@ QString DemonInteracted::TaskError( const QString &text ) const
 void UserInterface::Widgets::DemonInteracted::AppendRaw(const QString& text)
 {
     this->Console->append( text );
-    for ( auto* mirror : MirrorConsoles )
-        mirror->append( text );
 }
 
 void UserInterface::Widgets::DemonInteracted::AppendOutput( const QString& text )
@@ -945,17 +943,6 @@ void DemonInteracted::updateTransferProgress( const QString& json )
         MugenX::Teamserver.TabSession->LootWidget->UpdateDownloadProgress(
             SessionInfo.Name, ev[ "name" ].toString(), pretty );
     }
-}
-
-void DemonInteracted::AddMirror( QTextEdit* c )
-{
-    if ( c && ! MirrorConsoles.contains( c ) )
-        MirrorConsoles.append( c );
-}
-
-void DemonInteracted::RemoveMirror( QTextEdit* c )
-{
-    MirrorConsoles.removeAll( c );
 }
 
 void DemonInteracted::AppendNoNL( const QString &text )

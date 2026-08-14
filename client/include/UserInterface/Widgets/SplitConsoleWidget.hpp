@@ -3,7 +3,6 @@
 
 #include <global.hpp>
 #include <UserInterface/Widgets/DemonInteracted.h>
-#include <QSplitter>
 
 namespace MugenNamespace::UserInterface::Widgets
 {
@@ -13,8 +12,25 @@ namespace MugenNamespace::UserInterface::Widgets
         DemonInteracted* leftConsole  = nullptr;
         DemonInteracted* rightConsole = nullptr;
 
-        void setupUi( Util::SessionItem& left, Util::SessionItem& right, const QString& teamserver );
+        ~SplitConsoleWidget() override;
+
+        void setupUi( Util::SessionItem& left, Util::SessionItem& right );
         void cleanup();
+
+        bool hosts( const DemonInteracted* console ) const
+        {
+            return console && ( console == leftConsole || console == rightConsole );
+        }
+
+        DemonInteracted* otherOf( const DemonInteracted* console ) const
+        {
+            if ( console == leftConsole )  return rightConsole;
+            if ( console == rightConsole ) return leftConsole;
+            return nullptr;
+        }
+
+    private:
+        void park( DemonInteracted* panel );
     };
 }
 

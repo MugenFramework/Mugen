@@ -66,6 +66,10 @@ public:
     void NewWidgetTab( QWidget* TabWidget, const std::string& TitleName ) const;
     void OpenConsoleTab( const Util::SessionItem& Session ) const;
     void UpdateConsoleTabTitle( const Util::SessionItem& Session ) const;
+    void EnsureInteractedWidget( Util::SessionItem& session ) const;
+    void EvacuateConsole( UserInterface::Widgets::DemonInteracted* console ) const;
+    int  FindSplitTabIndex( UserInterface::Widgets::DemonInteracted* a,
+                            UserInterface::Widgets::DemonInteracted* b = nullptr ) const;
 
     void OpenProcessList( const QString& sessionID );
     void OpenFileBrowser( const QString& sessionID );
