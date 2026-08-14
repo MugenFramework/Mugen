@@ -49,6 +49,7 @@ func (demons) NewDemon(Agent *agent.Agent) packager.Package {
 		"Tags": Agent.Tags,
 		"Notes": Agent.Notes,
 		"Color": Agent.Color,
+		"Hidden": fmt.Sprintf("%v", Agent.Hidden),
 		"OSArch": Agent.Info.OSArch,
 		"OSBuild": Agent.Info.OSBuild,
 		"OSVersion": Agent.Info.OSVersion,
@@ -179,6 +180,21 @@ func (demons) SetColor(AgentID, Color string) packager.Package {
 
 	Package.Body.Info["AgentID"] = AgentID
 	Package.Body.Info["Color"]   = Color
+
+	return Package
+}
+
+func (demons) SetHidden(AgentID string, Hidden bool) packager.Package {
+	var Package packager.Package
+
+	Package.Head.Event = packager.Type.Session.Type
+	Package.Head.Time = time.Now().Format("02/01/2006 15:04:05")
+
+	Package.Body.SubEvent = packager.Type.Session.SetHidden
+	Package.Body.Info = make(map[string]interface{})
+
+	Package.Body.Info["AgentID"] = AgentID
+	Package.Body.Info["Hidden"]  = fmt.Sprintf("%v", Hidden)
 
 	return Package
 }

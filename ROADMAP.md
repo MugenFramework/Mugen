@@ -126,6 +126,7 @@ This document tracks planned features, improvements, and long-term goals for the
 - [x] **Notes & tags teamserver-side** - notes and tags are stored in the local client SQLite today, so other operators never see them; persist them on the teamserver like aliases, shared across operators and surviving reconnects
 - [x] **Remove Map View** - drop the geolocation map (ip-api.com); unused in operations and leaks the operator IP to a third party
 - [x] **Split console reuse** - split view reuses the existing session consoles so local command history, focus, and task state stay in sync
+- [x] **Hide callback** - right-click Hide parks an agent out of the session table and graph without killing it; **View → Ops → Callbacks** lists every agent (including hidden) and can Show it again
 
 ### Networking (agent right-click)
 

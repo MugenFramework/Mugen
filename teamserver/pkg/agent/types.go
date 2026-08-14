@@ -145,6 +145,7 @@ type Agent struct {
 	Tags       string // comma-separated labels, shared across operators
 	Notes      string // free-form operator notes, shared across operators
 	Color      string // session table highlight: Red, Blue, Yellow, Pink, Green, Purple, Orange (empty if unset)
+	Hidden     bool   // parked out of the session table; still in Ops → Callbacks
 	JobQueue   []Job
 	Tasks      []Job
 	SessionDir string

@@ -37,7 +37,7 @@ func (db *DB) AgentAdd(agent *agent.Agent) error {
 	}
 
 	/* prepare some arguments to execute for the sqlite db */
-	stmt, err := db.db.Prepare("INSERT INTO TS_Agents ( AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, MagicValue, Alias, Tags, Notes, Color) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.db.Prepare("INSERT INTO TS_Agents ( AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, MagicValue, Alias, Tags, Notes, Color, Hidden) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,8 @@ func (db *DB) AgentAdd(agent *agent.Agent) error {
 		agent.Alias,
 		agent.Tags,
 		agent.Notes,
-		agent.Color)
+		agent.Color,
+		boolToInt(agent.Hidden))
 	if err != nil {
 		return err
 	}
@@ -214,6 +215,29 @@ func (db *DB) AgentSetColor(AgentID int, Color string) error {
 	return nil
 }
 
+func boolToInt(v bool) int {
+	if v {
+		return 1
+	}
+	return 0
+}
+
+/* AgentSetHidden parks (1) or restores (0) an agent in the session table. */
+func (db *DB) AgentSetHidden(AgentID int, Hidden bool) error {
+	stmt, err := db.db.Prepare("UPDATE TS_Agents SET Hidden = ? WHERE AgentID = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(boolToInt(Hidden), AgentID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (db *DB) AgentExist(AgentID int) bool {
 	// prepare some arguments to execute for the sqlite db
 	stmt, err := db.db.Prepare("SELECT COUNT(*) FROM TS_Agents WHERE AgentID = ?")
@@ -266,7 +290,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 
 	var Agents []*agent.Agent
 
-	query, err := db.db.Query("SELECT AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, COALESCE(MagicValue, 0), COALESCE(Alias, ''), COALESCE(Tags, ''), COALESCE(Notes, ''), COALESCE(Color, '') FROM TS_Agents WHERE Active = 1")
+	query, err := db.db.Query("SELECT AgentID, Active, Reason, AESKey, AESIv, Hostname, Username, DomainName, ExternalIP, InternalIP, ProcessName, BaseAddress, ProcessPID, ProcessTID, ProcessPPID, ProcessArch, Elevated, OSVersion, OSArch, SleepDelay, SleepJitter, KillDate, WorkingHours, FirstCallIn, LastCallIn, COALESCE(MagicValue, 0), COALESCE(Alias, ''), COALESCE(Tags, ''), COALESCE(Notes, ''), COALESCE(Color, ''), COALESCE(Hidden, 0) FROM TS_Agents WHERE Active = 1")
 	if err != nil {
 		return nil
 	}
@@ -305,10 +329,11 @@ func (db *DB) AgentAll() []*agent.Agent {
 			Tags       string
 			Notes      string
 			Color      string
+			Hidden     int
 		)
 
 		/* read the selected items */
-		err = query.Scan(&AgentID, &Active, &Reason, &AESKey, &AESIv, &Hostname, &Username, &DomainName, &ExternalIP, &InternalIP, &ProcessName, &BaseAddress, &ProcessPID, &ProcessTID, &ProcessPPID, &ProcessArch, &Elevated, &OSVersion, &OSArch, &SleepDelay, &SleepJitter, &KillDate, &WorkingHours, &FirstCallIn, &LastCallIn, &MagicValue, &Alias, &Tags, &Notes, &Color)
+		err = query.Scan(&AgentID, &Active, &Reason, &AESKey, &AESIv, &Hostname, &Username, &DomainName, &ExternalIP, &InternalIP, &ProcessName, &BaseAddress, &ProcessPID, &ProcessTID, &ProcessPPID, &ProcessArch, &Elevated, &OSVersion, &OSArch, &SleepDelay, &SleepJitter, &KillDate, &WorkingHours, &FirstCallIn, &LastCallIn, &MagicValue, &Alias, &Tags, &Notes, &Color, &Hidden)
 		if err != nil {
 			/* at this point we failed
 			 * just return the collected agents */
@@ -332,6 +357,7 @@ func (db *DB) AgentAll() []*agent.Agent {
 		Agent.Tags            = Tags
 		Agent.Notes           = Notes
 		Agent.Color           = Color
+		Agent.Hidden          = Hidden == 1
 		Agent.SessionDir      = ""
 		Agent.BackgroundCheck = false
 		Agent.TaskedOnce      = true

@@ -135,6 +135,7 @@ namespace MugenNamespace
             class NetworkingWidget;
             class ResourceManagerWidget;
             class TasksWidget;
+            class CallbacksWidget;
             class OpsWidget;
         }
 
@@ -261,6 +262,7 @@ namespace MugenNamespace
             QString Tags;
             QString Notes;
             QString Color;
+            bool    Hidden = false;
             u32     SleepDelay;
             u32     SleepJitter;
             u64     KillDate;

@@ -57,12 +57,15 @@ public:
     void SetSessionAlias( const QString& AgentID, const QString& Alias );
     void SetSessionMeta( const QString& AgentID, const QString& Tags, const QString& Notes );
     void SetSessionColor( const QString& AgentID, const QString& Color );
+    void SetSessionHidden( const QString& AgentID, bool Hidden );
+    void RemoveSessionRow( const QString& AgentID );
     void updateRow();
     void applyFilter( const QString& query );
 
 private:
     void saveColumnLayout();
     void restoreColumnLayout();
+    void addVisibleRow( const Util::SessionItem& item ) const;
 };
 
 #endif

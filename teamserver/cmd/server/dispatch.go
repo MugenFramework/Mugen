@@ -95,6 +95,28 @@ func (t *Teamserver) DispatchEvent(pk packager.Package) {
 
 			break
 
+		case packager.Type.Session.SetHidden:
+			var AgentID string
+
+			if val, ok := pk.Body.Info["AgentID"].(string); ok {
+				AgentID = val
+			} else {
+				logger.Debug("SetHidden: no AgentID given")
+				return
+			}
+
+			hiddenStr, _ := pk.Body.Info["Hidden"].(string)
+			hidden := hiddenStr == "true" || hiddenStr == "1"
+
+			for i := range t.Agents.Agents {
+				if t.Agents.Agents[i].DisplayID == AgentID {
+					t.AgentSetHidden(t.Agents.Agents[i], hidden)
+					break
+				}
+			}
+
+			break
+
 		case packager.Type.Session.SetColor:
 			var AgentID string
 
