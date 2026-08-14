@@ -23,21 +23,28 @@ func handleTenguAgent(Teamserver agent.TeamServer, Header agent.Header, External
 
 	if Teamserver.AgentExist(Header.AgentID) {
 		Agent = Teamserver.AgentInstance(Header.AgentID)
-		Agent.UpdateLastCallback(Teamserver)
 
 		// Decrypt incoming body if the agent has a ChaCha20 key.
+		// The key is persisted in SQLite; after a teamserver restart a missing key
+		// used to skip decrypt, fail the parse, and still refresh health — so the
+		// session looked alive while jobs never reached COMMAND_GET_JOB.
 		if len(Agent.Encryption.ChaCha20Key) == 32 {
 			decrypted, ok := agent.TenguDecrypt(Agent.Encryption.ChaCha20Key, Header.Data)
 			if !ok {
-				logger.Error("Tengu: failed to decrypt incoming packet")
+				logger.Error(fmt.Sprintf("Tengu %s: failed to decrypt check-in", Agent.DisplayID))
 				return Response, false
 			}
 			Header.Data = decrypted
 		}
 
 		if !Header.Data.CanIRead([]parser.ReadType{parser.ReadInt32, parser.ReadInt32}) {
+			if len(Agent.Encryption.ChaCha20Key) != 32 {
+				logger.Error(fmt.Sprintf("Tengu %s: missing ChaCha20Key after restore, cannot decrypt check-in", Agent.DisplayID))
+			}
 			return Response, false
 		}
+
+		Agent.UpdateLastCallback(Teamserver)
 
 		Command   := uint32(Header.Data.ParseInt32())
 		RequestID := uint32(Header.Data.ParseInt32())
