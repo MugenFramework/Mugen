@@ -124,6 +124,7 @@ public:
 
     void ScreenshotTableAdd( const QString& AgentID, const QString& Name, const QString& Date );
     void DownloadTableAdd( const QString& AgentID, const QString& Name, const QString& Size, const QString& Date );
+    void UpdateDownloadProgress( const QString& AgentID, const QString& Name, const QString& Size );
     void CredentialTableAdd( const QString& CredType, const QString& Username, const QString& Secret,
                              const QString& Domain, const QString& Source, const QString& AgentID,
                              const QString& Timestamp );

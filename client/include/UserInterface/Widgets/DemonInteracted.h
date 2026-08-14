@@ -38,6 +38,9 @@ public:
     // Replace the status badge on the live prompt ([queued] → [sent] → [done] / [error])
     void updateStatus(const QString& taskID, const QString& status);
 
+    // In-place upload/download progress line
+    void upsertProgressLine( const QString& id, const QString& html );
+
     // Callbacks set by DemonInteracted
     std::function<void()>                                    onSearch;
     std::function<void(const QString& taskID, const QString& current)> onComment;
@@ -63,6 +66,7 @@ private:
     void applyStatusBadge(const QString& taskID, const QString& status);
 
     QHash<QString, int> statusEpoch;
+    QHash<QString, int> transferBlocks;
 };
 
 // ── DemonInteracted ──────────────────────────────────────────────────────────
@@ -128,6 +132,7 @@ namespace MugenNamespace::UserInterface::Widgets
         void handleConsoleLink( const QString& href );
         void replayHistory( const QJsonArray& tasks );
         void updateTaskStatus( const QString& taskID, const QString& status );
+        void updateTransferProgress( const QString& json );
 
         QString TaskInfo( bool Show, QString TaskID, const QString& text ) const;
         QString TaskError( const QString& text ) const;

@@ -28,7 +28,7 @@ import (
 )
 
 // we upload heavy files to the implant in chunks, so SMB agents can handle the size
-func (a *Agent) UploadMemFileInChunks(FileData []byte) uint32 {
+func (a *Agent) UploadMemFileInChunks(FileData []byte) (uint32, int) {
 	var ID uint32
 	var chunkSize = DEMON_MAX_RESPONSE_LENGTH
 
@@ -36,11 +36,10 @@ func (a *Agent) UploadMemFileInChunks(FileData []byte) uint32 {
 	ID = rand.Uint32()
 
 	FileSize := len(FileData)
-	// split the file in chunks of DEMON_MAX_RESPONSE_LENGTH
+	chunks := 0
 	for start := 0; start <= FileSize; start += chunkSize {
 		end := start + chunkSize
 
-		// necessary check to avoid slicing beyond FileData capacity
 		if end > FileSize {
 			end = FileSize
 		}
@@ -56,9 +55,10 @@ func (a *Agent) UploadMemFileInChunks(FileData []byte) uint32 {
 		}
 
 		a.AddJobToQueue(MemFileJob)
+		chunks++
 	}
 
-	return ID
+	return ID, chunks
 }
 
 func (a *Agent) TeamserverTaskPrepare(Command string, Console func(AgentID string, Message map[string]string)) error {
@@ -212,17 +212,17 @@ func (a *Agent) TaskPrepare(Command int, Info any, Message *map[string]string, C
 			SubCommand = 1
 
 			var (
-				SubDirs int
+				SubDirs   int
 				FilesOnly int
-				DirsOnly int
-				ListOnly int
+				DirsOnly  int
+				ListOnly  int
 			)
 
-			ArgArray  := strings.Split(Arguments, ";")
-			Path      := ArgArray[0]
-			Starts    := ArgArray[5];
-			Contains  := ArgArray[6];
-			Ends      := ArgArray[7];
+			ArgArray := strings.Split(Arguments, ";")
+			Path := ArgArray[0]
+			Starts := ArgArray[5]
+			Contains := ArgArray[6]
+			Ends := ArgArray[7]
 
 			if ArgArray[1] == "true" {
 				SubDirs = win32.TRUE
@@ -251,7 +251,7 @@ func (a *Agent) TaskPrepare(Command int, Info any, Message *map[string]string, C
 			if strings.HasPrefix(Path, "\\\\") {
 				uncIndex := strings.Index(Path[2:], "\\")
 				if uncIndex != -1 && strings.Index(Path[uncIndex+3:], "\\") == -1 {
-					Path += "\\" 
+					Path += "\\"
 				}
 			}
 
@@ -352,7 +352,13 @@ func (a *Agent) TaskPrepare(Command int, Info any, Message *map[string]string, C
 				return nil, err
 			}
 
-			MemFileId = a.UploadMemFileInChunks(Content)
+			var chunks int
+			MemFileId, chunks = a.UploadMemFileInChunks(Content)
+			pathName := ""
+			if val, err := base64.StdEncoding.DecodeString(ArgArray[0]); err == nil {
+				pathName = string(val)
+			}
+			a.TrackMemUpload(MemFileId, pathName, int64(len(Content)), chunks, DEMON_MAX_RESPONSE_LENGTH)
 
 			SubCommand = 3
 			job.Data = []interface{}{
@@ -417,36 +423,36 @@ func (a *Agent) TaskPrepare(Command int, Info any, Message *map[string]string, C
 
 			break
 
-                case "mv":
-                        SubCommand = 8
+		case "mv":
+			SubCommand = 8
 
-                        var Paths = strings.Split(Arguments, ";")
-                        if len(Paths) >= 2 {
-                                var (
-                                        PathFrom []byte
-                                        PathTo   []byte
-                                )
+			var Paths = strings.Split(Arguments, ";")
+			if len(Paths) >= 2 {
+				var (
+					PathFrom []byte
+					PathTo   []byte
+				)
 
-                                if val, err := base64.StdEncoding.DecodeString(Paths[0]); err == nil {
-                                        PathFrom = []byte(common.EncodeUTF16(string(val)))
-                                } else {
-                                        return nil, err
-                                }
+				if val, err := base64.StdEncoding.DecodeString(Paths[0]); err == nil {
+					PathFrom = []byte(common.EncodeUTF16(string(val)))
+				} else {
+					return nil, err
+				}
 
-                                if val, err := base64.StdEncoding.DecodeString(Paths[1]); err == nil {
-                                        PathTo = []byte(common.EncodeUTF16(string(val)))
-                                } else {
-                                        return nil, err
-                                }
+				if val, err := base64.StdEncoding.DecodeString(Paths[1]); err == nil {
+					PathTo = []byte(common.EncodeUTF16(string(val)))
+				} else {
+					return nil, err
+				}
 
-                                job.Data = []interface{}{
-                                        SubCommand,
-                                        PathFrom,
-                                        PathTo,
-                                }
-                        }
+				job.Data = []interface{}{
+					SubCommand,
+					PathFrom,
+					PathTo,
+				}
+			}
 
-                        break
+			break
 
 		case "pwd":
 			SubCommand = 9
@@ -692,9 +698,9 @@ func (a *Agent) TaskPrepare(Command int, Info any, Message *map[string]string, C
 			}
 		}
 
-		BofFileId    = a.UploadMemFileInChunks(ObjectFile)
+		BofFileId, _ = a.UploadMemFileInChunks(ObjectFile)
 		// a BOF can have an entire PE in its parameters, so chunk them
-		ParamsFileId = a.UploadMemFileInChunks(Parameters)
+		ParamsFileId, _ = a.UploadMemFileInChunks(Parameters)
 
 		if FunctionName, ok = Optional["FunctionName"].(string); !ok {
 			return nil, errors.New("CoffeeLdr: FunctionName not defined")
@@ -742,7 +748,7 @@ func (a *Agent) TaskPrepare(Command int, Info any, Message *map[string]string, C
 			MemFileId        uint32
 		)
 
-		MemFileId = a.UploadMemFileInChunks(binaryDecoded)
+		MemFileId, _ = a.UploadMemFileInChunks(binaryDecoded)
 
 		job.Data = []interface{}{
 			PipePath,
@@ -2002,7 +2008,7 @@ func (a *Agent) TaskPrepare(Command int, Info any, Message *map[string]string, C
 			if Message != nil {
 				if !Socks.Failed {
 
-					var(
+					var (
 						msg string
 					)
 
@@ -2314,7 +2320,6 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 		return
 	}
 
-
 	switch CommandID {
 
 	case COMMAND_GET_JOB:
@@ -2481,8 +2486,8 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 				process := strings.Split(ProcessName, "\\")
 
 				a.Info.ProcessName = process[len(process)-1]
-				a.Info.ProcessPID  = ProcessPID
-				a.Info.ProcessTID  = ProcessTID
+				a.Info.ProcessPID = ProcessPID
+				a.Info.ProcessTID = ProcessTID
 				a.Info.ProcessPPID = ProcessPPID
 				a.Info.ProcessPath = ProcessName
 				a.Info.BaseAddress = BaseAddress
@@ -2856,18 +2861,18 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 				if Parser.CanIRead([]parser.ReadType{parser.ReadBool, parser.ReadBool, parser.ReadBytes, parser.ReadBool}) {
 
 					var (
-						Explorer  = Parser.ParseBool()
-						ListOnly  = Parser.ParseBool()
-						StartPath = Parser.ParseUTF16String()
-						Success   = Parser.ParseBool()
-						ReadOne   = false
-						Dir       string
-						DirMap    = make(map[string]any)
-						DirArr    []map[string]string
+						Explorer   = Parser.ParseBool()
+						ListOnly   = Parser.ParseBool()
+						StartPath  = Parser.ParseUTF16String()
+						Success    = Parser.ParseBool()
+						ReadOne    = false
+						Dir        string
+						DirMap     = make(map[string]any)
+						DirArr     []map[string]string
 						WhatToRead []parser.ReadType
 					)
 
-					if ! Success {
+					if !Success {
 						Output["Type"] = "Error"
 						Output["Message"] = "Failed to enumerate files/folders at specified path: " + StartPath
 					} else {
@@ -2879,17 +2884,17 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 						}
 						for Parser.CanIRead(WhatToRead) {
 							var (
-									RootDirPath   = Parser.ParseUTF16String()
-									NumFiles      = Parser.ParseInt32()
-									NumDirs       = Parser.ParseInt32()
-									TotalFileSize int64 = 0
-									ItemsLeft     = NumFiles + NumDirs
-								)
+								RootDirPath         = Parser.ParseUTF16String()
+								NumFiles            = Parser.ParseInt32()
+								NumDirs             = Parser.ParseInt32()
+								TotalFileSize int64 = 0
+								ItemsLeft           = NumFiles + NumDirs
+							)
 							if !ListOnly {
 								TotalFileSize = Parser.ParseInt64()
 							}
 
-							if !ListOnly && !Explorer && NumFiles + NumDirs > 0 {
+							if !ListOnly && !Explorer && NumFiles+NumDirs > 0 {
 								if IsFirst {
 									IsFirst = false
 									Dir += fmt.Sprintf(" Directory of %s:\n\n", RootDirPath)
@@ -2908,18 +2913,18 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 								}
 							}
 
-							for (ItemsLeft > 0 && ((ListOnly && Parser.CanIRead([]parser.ReadType{parser.ReadBytes})) || (!ListOnly && Parser.CanIRead([]parser.ReadType{parser.ReadBytes, parser.ReadBool, parser.ReadInt64, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32})))) {
+							for ItemsLeft > 0 && ((ListOnly && Parser.CanIRead([]parser.ReadType{parser.ReadBytes})) || (!ListOnly && Parser.CanIRead([]parser.ReadType{parser.ReadBytes, parser.ReadBool, parser.ReadInt64, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32, parser.ReadInt32}))) {
 
 								var (
-									FileName         = Parser.ParseUTF16String()
-									IsDir            = false
+									FileName               = Parser.ParseUTF16String()
+									IsDir                  = false
 									FileSize         int64 = 0
-									LastAccessDay    = 0
-									LastAccessMonth  = 0
-									LastAccessYear   = 0
-									LastAccessMinute = 0
-									LastAccessHour   = 0
-									Attributes       = 0
+									LastAccessDay          = 0
+									LastAccessMonth        = 0
+									LastAccessYear         = 0
+									LastAccessMinute       = 0
+									LastAccessHour         = 0
+									Attributes             = 0
 
 									Size         string
 									Type         string
@@ -2927,14 +2932,14 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 								)
 
 								if !ListOnly {
-									IsDir            = Parser.ParseBool()
-									FileSize         = Parser.ParseInt64()
-									LastAccessDay    = Parser.ParseInt32()
-									LastAccessMonth  = Parser.ParseInt32()
-									LastAccessYear   = Parser.ParseInt32()
+									IsDir = Parser.ParseBool()
+									FileSize = Parser.ParseInt64()
+									LastAccessDay = Parser.ParseInt32()
+									LastAccessMonth = Parser.ParseInt32()
+									LastAccessYear = Parser.ParseInt32()
 									LastAccessMinute = Parser.ParseInt32()
-									LastAccessHour   = Parser.ParseInt32()
-									Attributes       = Parser.ParseInt32()
+									LastAccessHour = Parser.ParseInt32()
+									Attributes = Parser.ParseInt32()
 								}
 
 								ReadOne = true
@@ -2945,11 +2950,26 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 									LastModified = fmt.Sprintf("%02d/%02d/%d  %02d:%02d", LastAccessDay, LastAccessMonth, LastAccessYear, LastAccessHour, LastAccessMinute)
 
 									// Attributs Windows: d=Directory r=ReadOnly h=Hidden s=System a=Archive
-									attrD := '-'; if Attributes & 0x10 != 0 { attrD = 'd' }
-									attrR := '-'; if Attributes & 0x01 != 0 { attrR = 'r' }
-									attrH := '-'; if Attributes & 0x02 != 0 { attrH = 'h' }
-									attrS := '-'; if Attributes & 0x04 != 0 { attrS = 's' }
-									attrA := '-'; if Attributes & 0x20 != 0 { attrA = 'a' }
+									attrD := '-'
+									if Attributes&0x10 != 0 {
+										attrD = 'd'
+									}
+									attrR := '-'
+									if Attributes&0x01 != 0 {
+										attrR = 'r'
+									}
+									attrH := '-'
+									if Attributes&0x02 != 0 {
+										attrH = 'h'
+									}
+									attrS := '-'
+									if Attributes&0x04 != 0 {
+										attrS = 's'
+									}
+									attrA := '-'
+									if Attributes&0x20 != 0 {
+										attrA = 'a'
+									}
 									AttrStr := fmt.Sprintf("%c%c%c%c%c", attrD, attrR, attrH, attrS, attrA)
 
 									if IsDir {
@@ -2983,7 +3003,7 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 								ItemsLeft -= 1
 							}
 
-							if NumFiles + NumDirs > 0 && !Explorer && !ListOnly {
+							if NumFiles+NumDirs > 0 && !Explorer && !ListOnly {
 								Dir += fmt.Sprintf("               %d File(s)     %s\n", NumFiles, common.ByteCountSI(TotalFileSize))
 								Dir += fmt.Sprintf("               %d Folder(s)", NumDirs)
 							}
@@ -3069,6 +3089,9 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 							} else {
 								Output["MiscType"] = "download"
 								Output["MiscData2"] = base64.StdEncoding.EncodeToString([]byte(FileName)) + ";" + Size
+								Output["MiscData"] = transferProgressJSON(
+									fmt.Sprintf("d-%08x", FileID), "down", FileName, "run", 0, FileSize,
+								)
 							}
 						} else {
 							logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_FS - DEMON_COMMAND_FS_DOWNLOAD, Invalid packet", AgentID))
@@ -3082,7 +3105,11 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 						if Parser.CanIRead([]parser.ReadType{parser.ReadBytes}) {
 							var FileChunk = Parser.ParseBytes()
 
-							a.DownloadWrite(FileID, FileChunk)
+							if dl, err := a.DownloadWrite(FileID, FileChunk); err == nil && dl != nil {
+								mergeTransfer(Output, transferProgressMap(
+									fmt.Sprintf("d-%08x", FileID), "down", dl.FilePath, "run", dl.Progress, dl.TotalSize,
+								))
+							}
 						} else {
 							logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_FS - DEMON_COMMAND_FS_DOWNLOAD, Invalid packet", AgentID))
 						}
@@ -3107,11 +3134,19 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 								if Reason == 0x0 {
 									Output["Type"] = "Good"
 									Output["Message"] = fmt.Sprintf("Finished download of file: %v", FileName)
+									if download != nil {
+										mergeTransfer(Output, transferProgressMap(
+											fmt.Sprintf("d-%08x", FileID), "down", FileName, "done", download.TotalSize, download.TotalSize,
+										))
+									}
 
 									a.DownloadClose(FileID)
 								} else if Reason == 0x1 {
 									Output["Type"] = "Info"
 									Output["Message"] = fmt.Sprintf("Download has been removed: %v", FileName)
+									mergeTransfer(Output, transferProgressMap(
+										fmt.Sprintf("d-%08x", FileID), "down", FileName, "error", 0, 0,
+									))
 
 									a.DownloadClose(FileID)
 								}
@@ -3148,6 +3183,15 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 
 					Output["Type"] = "Info"
 					Output["Message"] = fmt.Sprintf("Uploaded file: %v (%v)", FileName, FileSize)
+					for id, x := range a.MemUploads {
+						if transferBaseName(x.Name) == transferBaseName(FileName) || x.Name == FileName {
+							mergeTransfer(Output, transferProgressMap(
+								fmt.Sprintf("u-%08x", id), "up", x.Name, "done", x.Total, x.Total,
+							))
+							delete(a.MemUploads, id)
+							break
+						}
+					}
 					a.RequestCompleted(RequestID)
 				} else {
 					logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_FS - DEMON_COMMAND_FS_UPLOAD, Invalid packet", AgentID))
@@ -3237,30 +3281,29 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 
 				break
 
-                        case DEMON_COMMAND_FS_MOVE:
-                                if Parser.CanIRead([]parser.ReadType{parser.ReadInt32, parser.ReadBytes, parser.ReadBytes}) {
-                                        var (
-                                                Success  = Parser.ParseInt32()
-                                                PathFrom = Parser.ParseUTF16String()
-                                                PathTo   = Parser.ParseUTF16String()
-                                        )
+			case DEMON_COMMAND_FS_MOVE:
+				if Parser.CanIRead([]parser.ReadType{parser.ReadInt32, parser.ReadBytes, parser.ReadBytes}) {
+					var (
+						Success  = Parser.ParseInt32()
+						PathFrom = Parser.ParseUTF16String()
+						PathTo   = Parser.ParseUTF16String()
+					)
 
-                                        logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_FS - DEMON_COMMAND_FS_MOVE, Success: %d, PathFrom: %v, PathTo: %v", AgentID, Success, PathFrom, PathTo))
+					logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_FS - DEMON_COMMAND_FS_MOVE, Success: %d, PathFrom: %v, PathTo: %v", AgentID, Success, PathFrom, PathTo))
 
-                                        if Success == win32.TRUE {
-                                                Output["Type"] = "Good"
-                                                Output["Message"] = fmt.Sprintf("Successful moved file %v to %v", PathFrom, PathTo)
-                                        } else {
-                                                Output["Type"] = "Error"
-                                                Output["Message"] = fmt.Sprintf("Failed to moved file %v to %v", PathFrom, PathTo)
-                                        }
-                                        a.RequestCompleted(RequestID)
-                                } else {
-                                        logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_FS - DEMON_COMMAND_FS_MOVE, Invalid packet", AgentID))
-                                }
+					if Success == win32.TRUE {
+						Output["Type"] = "Good"
+						Output["Message"] = fmt.Sprintf("Successful moved file %v to %v", PathFrom, PathTo)
+					} else {
+						Output["Type"] = "Error"
+						Output["Message"] = fmt.Sprintf("Failed to moved file %v to %v", PathFrom, PathTo)
+					}
+					a.RequestCompleted(RequestID)
+				} else {
+					logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_FS - DEMON_COMMAND_FS_MOVE, Invalid packet", AgentID))
+				}
 
-                                break
-
+				break
 
 			case DEMON_COMMAND_FS_GET_PWD:
 
@@ -3530,6 +3573,9 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 						} else {
 							Output["MiscType"] = "download"
 							Output["MiscData2"] = base64.StdEncoding.EncodeToString([]byte(FileName)) + ";" + common.ByteCountSI(int64(FileLength))
+							Output["MiscData"] = transferProgressJSON(
+								fmt.Sprintf("d-%08x", FileID), "down", FileName, "run", 0, FileLength,
+							)
 						}
 						teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, Output)
 					} else {
@@ -3550,12 +3596,16 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 						var FileID = int(binary.BigEndian.Uint32(Data[0:4]))
 						var FileChunk = Data[4:]
 
-						var err = a.DownloadWrite(FileID, FileChunk)
+						dl, err := a.DownloadWrite(FileID, FileChunk)
 						if err != nil {
 							var Output = make(map[string]string)
 							Output["Type"] = "Error"
 							Output["Message"] = err.Error()
 							teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, Output)
+						} else if dl != nil {
+							teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, transferProgressMap(
+								fmt.Sprintf("d-%08x", FileID), "down", dl.FilePath, "run", dl.Progress, dl.TotalSize,
+							))
 						}
 					} else {
 						logger.Debug(fmt.Sprintf("Agent: %x, Command: BEACON_OUTPUT - CALLBACK_FILE_WRITE, Invalid packet", AgentID))
@@ -3579,6 +3629,9 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 							var Output = make(map[string]string)
 							Output["Type"] = "Good"
 							Output["Message"] = fmt.Sprintf("Finished download of file: %v", download.FilePath)
+							mergeTransfer(Output, transferProgressMap(
+								fmt.Sprintf("d-%08x", FileID), "down", download.FilePath, "done", download.TotalSize, download.TotalSize,
+							))
 							teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, Output)
 						} else {
 							logger.Debug("download == nil")
@@ -5377,7 +5430,6 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 						Message["MiscType"] = "disconnect"
 						Message["MiscData"] = fmt.Sprintf("%08x", AgentID)
 
-
 						AgentInstance := teamserver.AgentInstance(AgentID)
 						if AgentInstance != nil {
 							teamserver.LinkRemove(a, AgentInstance, true)
@@ -5413,9 +5465,9 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 
 								// while we can read a command and request id, parse new packages
 								first_iter := true
-								for (AgentHdr.Data.CanIRead(([]parser.ReadType{parser.ReadInt32, parser.ReadInt32}))) {
-									var Command   = uint32(AgentHdr.Data.ParseInt32())
-									var Request   = uint32(AgentHdr.Data.ParseInt32())
+								for AgentHdr.Data.CanIRead(([]parser.ReadType{parser.ReadInt32, parser.ReadInt32})) {
+									var Command = uint32(AgentHdr.Data.ParseInt32())
+									var Request = uint32(AgentHdr.Data.ParseInt32())
 
 									if first_iter {
 										first_iter = false
@@ -5611,8 +5663,8 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 			case DEMON_PIVOT_TCP_DISCONNECT:
 				if Parser.CanIRead([]parser.ReadType{parser.ReadInt32, parser.ReadInt32}) {
 					var (
-						Success     = Parser.ParseInt32()
-						TcpAgentID  = Parser.ParseInt32()
+						Success    = Parser.ParseInt32()
+						TcpAgentID = Parser.ParseInt32()
 					)
 
 					if Success == win32.TRUE {
@@ -5649,8 +5701,8 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 
 								first_iter := true
 								for AgentHdr.Data.CanIRead([]parser.ReadType{parser.ReadInt32, parser.ReadInt32}) {
-									var Command   = uint32(AgentHdr.Data.ParseInt32())
-									var Request   = uint32(AgentHdr.Data.ParseInt32())
+									var Command = uint32(AgentHdr.Data.ParseInt32())
+									var Request = uint32(AgentHdr.Data.ParseInt32())
 
 									if first_iter {
 										first_iter = false
@@ -6007,7 +6059,7 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 					)
 
 					SocktID = Parser.ParseInt32()
-					Type    = Parser.ParseInt32()
+					Type = Parser.ParseInt32()
 					LclAddr = Parser.ParseInt32()
 					LclPort = Parser.ParseInt32()
 					FwdAddr = Parser.ParseInt32()
@@ -6127,7 +6179,7 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 
 					if Success == win32.TRUE {
 						if Parser.CanIRead([]parser.ReadType{parser.ReadBytes}) {
-							var(
+							var (
 								Data = Parser.ParseBytes()
 							)
 							// avoid too much spam
@@ -6146,8 +6198,8 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 								if opened == false {
 									err := a.PortFwdOpen(SocktID)
 									if err != nil {
-										logger.Debug(fmt.Sprintf("Failed to open rportfwd: %v", err))	
-									a.Console(teamserver.AgentConsole, "Erro", fmt.Sprintf("Failed to open reverse port forward host: %v", err), "")
+										logger.Debug(fmt.Sprintf("Failed to open rportfwd: %v", err))
+										a.Console(teamserver.AgentConsole, "Erro", fmt.Sprintf("Failed to open reverse port forward host: %v", err), "")
 										return
 									}
 								}
@@ -6676,20 +6728,30 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 				Success   = Parser.ParseInt32()
 			)
 
-			// TODO: don't ignore this packet?
-			//       if this fails, then inline-execute, dotnet, or upload will show the error
-
 			logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_MEM_FILE, Success: %d, MemFileID: %x", AgentID, Success, MemFileID))
 			a.RequestCompleted(RequestID)
+
+			if Success == win32.FALSE {
+				if name, total, ok := a.FinishMemUpload(uint32(MemFileID)); ok {
+					out := transferProgressMap(fmt.Sprintf("u-%08x", MemFileID), "up", name, "error", 0, total)
+					out["Type"] = "Error"
+					out["Message"] = "Upload chunk failed: " + name
+					teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, out)
+				}
+			} else if done, total, name, ok := a.AckMemUpload(uint32(MemFileID)); ok {
+				teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, transferProgressMap(
+					fmt.Sprintf("u-%08x", MemFileID), "up", name, "run", done, total,
+				))
+			}
 		} else {
 			logger.Debug(fmt.Sprintf("Agent: %x, Command: COMMAND_MEM_FILE, Invalid packet", AgentID))
 		}
 
-		break;
+		break
 
 	case COMMAND_PACKAGE_DROPPED:
 		var (
-			Message    map[string]string
+			Message map[string]string
 		)
 		if Parser.CanIRead([]parser.ReadType{parser.ReadInt32, parser.ReadInt32}) {
 			var (
@@ -6712,7 +6774,7 @@ func (a *Agent) TaskDispatch(RequestID uint32, CommandID uint32, Parser *parser.
 
 		teamserver.AgentConsole(a.DisplayID, MUGEN_CONSOLE_MESSAGE, Message)
 
-		break;
+		break
 
 	default:
 		logger.Debug(fmt.Sprintf("Agent: %x, Command: UNKNOWN (%d))", AgentID, CommandID))
