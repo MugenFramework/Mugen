@@ -11,8 +11,6 @@ var CobraClient = &cobra.Command{
 	Short:        "client command",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		startMenu()
-
 		client := exec.Command("client/Mugen", args...)
 		client.Stdout = os.Stdout
 		client.Stderr = os.Stderr

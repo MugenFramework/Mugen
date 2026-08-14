@@ -59,8 +59,15 @@ func teamserverFunc(cmd *cobra.Command, args []string) error {
 }
 
 func startMenu() {
-	fmt.Println(colors.Red("    __  __ _   _  ____ _____ _   _ \n   |  \\/  | | | |/ ___| ____| \\ | |\n   | |\\/| | | | | |  _|  _| |  \\| |\n   | |  | | |_| | |_| | |___| |\\  |\n   |_|  |_|\\___/ \\____|_____|_| \\_|"))
+	fmt.Println(colors.Pink(`     _______           _______  _______  _
+    (       )│\     /│(  ____ \(  ____ \( (    /│
+    │ () () ││ )   ( ││ (    \/│ (    \/│  \  ( │
+    │ ││ ││ ││ │   │ ││ │      │ (__    │   \ │ │
+    │ │(_)│ ││ │   │ ││ │ ____ │  __)   │ (\ \) │
+    │ │   │ ││ │   │ ││ │ \_  )│ (      │ │ \   │
+    │ )   ( ││ (___) ││ (___) ││ (____/\│ )  \  │
+    │/     \│(_______)(_______)(_______/│/    )_)`))
 	fmt.Println()
-	fmt.Println("  	", colors.Red("無限"), "-", colors.Blue("infinite"), "- open source, no limits")
+	fmt.Println("  \t", colors.Pink("無限"), "-", colors.Blue("infinite"), "- open source, no limits")
 	fmt.Println()
 }
