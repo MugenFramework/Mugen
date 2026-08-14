@@ -22,7 +22,6 @@
 #include <QJsonArray>
 #include <QDir>
 #include <QFile>
-#include <QFileDialog>
 #include <QFileInfo>
 
 const int Util::Packager::InitConnection::Type      = 0x1;
@@ -1201,9 +1200,7 @@ bool Packager::DispatchResource( Util::Packager::PPackage Package )
             auto name    = QString( Package->Body.Info[ "Name"    ].c_str() );
             auto content = QString( Package->Body.Info[ "Content" ].c_str() );
 
-            auto savePath = QFileDialog::getSaveFileName(
-                nullptr, "Save Resource", QDir::homePath() + "/" + name
-            );
+            auto savePath = ThemedSaveFileDialog( "Save Resource", name );
             if ( savePath.isEmpty() ) break;
 
             auto data = QByteArray::fromBase64( content.toUtf8() );
@@ -1321,9 +1318,7 @@ bool Packager::DispatchLoot( Util::Packager::PPackage Package )
 
             auto content  = QString( Package->Body.Info[ "Content" ].c_str() );
             auto saveName = QFileInfo( name ).fileName();
-            auto savePath = QFileDialog::getSaveFileName(
-                nullptr, "Save Loot", QDir::homePath() + "/" + saveName
-            );
+            auto savePath = ThemedSaveFileDialog( "Save Loot", saveName );
             if ( savePath.isEmpty() )
                 break;
 

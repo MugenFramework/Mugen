@@ -3,7 +3,7 @@
 
 #include <Mugen/Connector.hpp>
 
-#include <QFileDialog>
+#include <QFile>
 
 using namespace std;
 using namespace MugenNamespace;
@@ -44,67 +44,50 @@ std::string Util::gen_random( const int len )
 
 void Util::SessionItem::Export()
 {
-    auto FileDialog = QFileDialog();
-    auto Filename   = QUrl();
-    auto Style      = FileRead( ":/stylesheets/Dialogs/FileDialog" ).toStdString();
+    auto savePath = ThemedSaveFileDialog( "Export Session", "Session_data_" + Name + ".json" );
+    if ( savePath.isEmpty() )
+        return;
 
-    Style.erase( std::remove( Style.begin(), Style.end(), '\n' ), Style.end() );
+    auto file       = QFile( savePath );
+    auto messageBox = QMessageBox();
 
-    FileDialog.setStyleSheet( Style.c_str() );
-    FileDialog.setAcceptMode( QFileDialog::AcceptSave );
-    FileDialog.setDirectory( QDir::homePath() );
-    FileDialog.selectFile( "Session_data_" + Name + ".json" );
+    if ( file.open( QIODevice::ReadWrite ) ) {
+        auto SessionData = QJsonObject();
 
-    if ( FileDialog.exec() == QFileDialog::Accepted )
-    {
-        Filename = FileDialog.selectedUrls().value( 0 ).toLocalFile();
+        SessionData.insert( "AgentID",          QJsonValue::fromVariant( Name ) );
+        SessionData.insert( "Alias",            QJsonValue::fromVariant( Alias ) );
+        SessionData.insert( "Tags",             QJsonValue::fromVariant( Tags ) );
+        SessionData.insert( "Notes",            QJsonValue::fromVariant( Notes ) );
+        SessionData.insert( "Color",            QJsonValue::fromVariant( Color ) );
+        SessionData.insert( "MagicValue",       QJsonValue::fromVariant( (int) MagicValue ) );
+        SessionData.insert( "ExternalIP",       QJsonValue::fromVariant( External ) );
+        SessionData.insert( "InternalIP",       QJsonValue::fromVariant( Internal ) );
+        SessionData.insert( "Listener",         QJsonValue::fromVariant( Listener ) );
+        SessionData.insert( "User",             QJsonValue::fromVariant( User ) );
+        SessionData.insert( "Computer",         QJsonValue::fromVariant( Computer ) );
+        SessionData.insert( "Domain",           QJsonValue::fromVariant( Domain ) );
+        SessionData.insert( "OS",               QJsonValue::fromVariant( OS ) );
+        SessionData.insert( "OSBuild",          QJsonValue::fromVariant( OSBuild ) );
+        SessionData.insert( "OSArch",           QJsonValue::fromVariant( OSArch ) );
+        SessionData.insert( "ProcessName",      QJsonValue::fromVariant( Process ) );
+        SessionData.insert( "ProcessID",        QJsonValue::fromVariant( PID ) );
+        SessionData.insert( "ProcessArch",      QJsonValue::fromVariant( Arch ) );
+        SessionData.insert( "ProcessElevated",  QJsonValue::fromVariant( Elevated ) );
+        SessionData.insert( "PivotParent",      QJsonValue::fromVariant( PivotParent ) );
+        SessionData.insert( "First Callback",   QJsonValue::fromVariant( First ) );
+        SessionData.insert( "Last Callback",    QJsonValue::fromVariant( Last ) );
 
-        if ( ! Filename.toString().isNull() )
-        {
-            auto file       = QFile( Filename.toString() );
-            auto messageBox = QMessageBox(  );
-
-            if ( file.open( QIODevice::ReadWrite ) ) {
-                auto SessionData = QJsonObject();
-
-                SessionData.insert( "AgentID",          QJsonValue::fromVariant( Name ) );
-                SessionData.insert( "Alias",            QJsonValue::fromVariant( Alias ) );
-                SessionData.insert( "Tags",             QJsonValue::fromVariant( Tags ) );
-                SessionData.insert( "Notes",            QJsonValue::fromVariant( Notes ) );
-                SessionData.insert( "Color",            QJsonValue::fromVariant( Color ) );
-                SessionData.insert( "MagicValue",       QJsonValue::fromVariant( (int) MagicValue ) );
-                SessionData.insert( "ExternalIP",       QJsonValue::fromVariant( External ) );
-                SessionData.insert( "InternalIP",       QJsonValue::fromVariant( Internal ) );
-                SessionData.insert( "Listener",         QJsonValue::fromVariant( Listener ) );
-                SessionData.insert( "User",             QJsonValue::fromVariant( User ) );
-                SessionData.insert( "Computer",         QJsonValue::fromVariant( Computer ) );
-                SessionData.insert( "Domain",           QJsonValue::fromVariant( Domain ) );
-                SessionData.insert( "OS",               QJsonValue::fromVariant( OS ) );
-                SessionData.insert( "OSBuild",          QJsonValue::fromVariant( OSBuild ) );
-                SessionData.insert( "OSArch",           QJsonValue::fromVariant( OSArch ) );
-                SessionData.insert( "ProcessName",      QJsonValue::fromVariant( Process ) );
-                SessionData.insert( "ProcessID",        QJsonValue::fromVariant( PID ) );
-                SessionData.insert( "ProcessArch",      QJsonValue::fromVariant( Arch ) );
-                SessionData.insert( "ProcessElevated",  QJsonValue::fromVariant( Elevated ) );
-                SessionData.insert( "PivotParent",      QJsonValue::fromVariant( PivotParent ) );
-                SessionData.insert( "First Callback",   QJsonValue::fromVariant( First ) );
-                SessionData.insert( "Last Callback",    QJsonValue::fromVariant( Last ) );
-
-                file.write( QJsonDocument( SessionData ).toJson( QJsonDocument::Indented ) );
-            }
-            else {
-                auto path = Filename.toString().toStdString();
-                spdlog::error("Couldn't write to file {}", path );
-            }
-
-            file.close();
-
-            messageBox.setWindowTitle( "Session Exported" );
-            messageBox.setText( "Path: " + Filename.toString() );
-            messageBox.setIcon( QMessageBox::Information );
-            messageBox.setStyleSheet( FileRead( ":/stylesheets/MessageBox" ) );
-            // messageBox.setMaximumSize( QSize( 500, 500 ) );
-            messageBox.exec();
-        }
+        file.write( QJsonDocument( SessionData ).toJson( QJsonDocument::Indented ) );
     }
+    else {
+        spdlog::error("Couldn't write to file {}", savePath.toStdString() );
+    }
+
+    file.close();
+
+    messageBox.setWindowTitle( "Session Exported" );
+    messageBox.setText( "Path: " + savePath );
+    messageBox.setIcon( QMessageBox::Information );
+    messageBox.setStyleSheet( FileRead( ":/stylesheets/MessageBox" ) );
+    messageBox.exec();
 }
