@@ -27,6 +27,10 @@
 - Tengu ChaCha20 session key is stored on the teamserver (`TS_Agents.ChaCha20Key`), like Demon's AES key. Restarting the teamserver while a Tengu implant is still running used to keep the session "alive" (HTTP AgentID still matched, health kept updating) while jobs never decrypted — console commands went nowhere. The key is now restored with the agent. Health only advances after a check-in that actually parses.
 - Startup splash uses the Epic FIGlet `MUGEN` banner in sakura pink (`#ff6b9d`) instead of the short `standard` font.
 
+**Build**
+
+- Client compile defaults to 4 parallel jobs instead of `nproc` (16 on a typical desktop), so the machine stays usable. Override with `make client-compile JOBS=$(nproc)`.
+
 **Client**
 
 - Split console view: open two agent consoles side by side in a single tab. Each pane is the real session console (same history, task badges, and input), not a mirrored clone.

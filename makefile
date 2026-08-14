@@ -3,7 +3,9 @@ ifndef VERBOSE
 endif
 
 COMMIT := $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
-JOBS   ?= $(shell nproc 2>/dev/null || echo 4)
+# Keep the desktop usable while compiling the Qt client (Havoc/VibeHavoc use 4).
+# Faster: make client-compile JOBS=$(nproc)
+JOBS   ?= 4
 
 # ── main targets ──────────────────────────────────────────────────────────────
 
