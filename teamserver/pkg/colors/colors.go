@@ -1,10 +1,21 @@
 package colors
 
-import "github.com/fatih/color"
+import (
+	"fmt"
+
+	"github.com/fatih/color"
+)
+
+func rgbSprint(r, g, b int) func(a ...interface{}) string {
+	return func(a ...interface{}) string {
+		return fmt.Sprintf("\x1b[38;2;%d;%d;%dm%s\x1b[0m", r, g, b, fmt.Sprint(a...))
+	}
+}
 
 var (
 	Blue   = color.New(color.FgBlue).SprintFunc()
 	Red    = color.New(color.FgRed).SprintFunc()
+	Pink   = rgbSprint(255, 107, 157)
 	Green  = color.New(color.FgGreen).SprintFunc()
 	Yellow = color.New(color.FgYellow).SprintFunc()
 	White  = color.New(color.FgHiWhite).SprintFunc()

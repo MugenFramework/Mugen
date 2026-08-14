@@ -25,6 +25,7 @@
 - Screenshots and downloads are stored under a stable `data/loot/agents/` tree (no more per-boot timestamped folder). Connecting operators receive the existing files so Ops → Screenshots / Downloads is not empty after a restart.
 - Opening `data/teamserver.db` creates the `data/` directory if it is missing (no more panic after a wipe). MinGW still lives under `data/` — `make rebuild` does not restore it; use `make ts-build` or `./teamserver/Install.sh`. Do not `rm -rf data/` to reset loot.
 - Tengu ChaCha20 session key is stored on the teamserver (`TS_Agents.ChaCha20Key`), like Demon's AES key. Restarting the teamserver while a Tengu implant is still running used to keep the session "alive" (HTTP AgentID still matched, health kept updating) while jobs never decrypted — console commands went nowhere. The key is now restored with the agent. Health only advances after a check-in that actually parses.
+- Startup splash uses the Epic FIGlet `MUGEN` banner in sakura pink (`#ff6b9d`) instead of the short `standard` font.
 
 **Client**
 
@@ -50,6 +51,7 @@
 - Notes and tags: right-click → Notes_Tags is now teamserver-side. Every operator sees the same tags (session table column) and notes; they survive reconnects and restarts. The session table filter accepts `tag:` and `notes:`.
 - Session color: right-click → Color tints the row (left accent bar). The highlight is stored on the teamserver, shared by every operator, and survives reconnects and server restarts. Reset clears it.
 - Hide callback: right-click → Hide (or bulk Hide) removes the agent from the session table and graph without marking it dead or sending exit. **Ops → Callbacks** is the full inventory; hidden rows are dimmed. Right-click → Show puts it back. Shared across operators and persisted on the teamserver.
+- Startup banner: Epic FIGlet `MUGEN` in sakura pink (`#ff6b9d`), same font as Havoc's splash, plus the `無限 - infinite` tagline. Printed when the Qt client starts (and still on `./mugen` / `./mugen server`). `./mugen client` no longer double-prints it.
 
 ---
 
