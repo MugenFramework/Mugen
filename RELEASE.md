@@ -2,7 +2,9 @@
 
 ## Mugen
 
-### v0.2 | *My Dress-Up Darling* (in progress)
+### v0.2-rc1 | *My Dress-Up Darling*
+
+First pre-release of v0.2. Shared teamserver state, Hide vs Dead vs Exit, an Ops hub, and persistence that survives a restart. Rebuild teamserver *and* client together — an old client will not see hidden agents, aliases, or loot the same way as the operator next to you.
 
 **Resource Manager**
 
@@ -26,6 +28,11 @@
 - Opening `data/teamserver.db` creates the `data/` directory if it is missing (no more panic after a wipe). MinGW still lives under `data/` — `make rebuild` does not restore it; use `make ts-build` or `./teamserver/Install.sh`. Do not `rm -rf data/` to reset loot.
 - Tengu ChaCha20 session key is stored on the teamserver (`TS_Agents.ChaCha20Key`), like Demon's AES key. Restarting the teamserver while a Tengu implant is still running used to keep the session "alive" (HTTP AgentID still matched, health kept updating) while jobs never decrypted — console commands went nowhere. The key is now restored with the agent. Health only advances after a check-in that actually parses.
 - Startup splash uses the Epic FIGlet `MUGEN` banner in sakura pink (`#ff6b9d`) instead of the short `standard` font.
+- Discord webhooks skip empty username/avatar fields and log send errors instead of failing silently.
+
+**Tengu**
+
+- HTTP URI rotation and custom request headers, configurable per profile (same malleable-style knobs Demon already had).
 
 **Build**
 
