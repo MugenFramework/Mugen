@@ -4,7 +4,7 @@ This document tracks planned features, improvements, and long-term goals for the
 
 ---
 
-## v0.1 - *The Fragrant Flower Blooms With Dignity* (in progress)
+## v0.1 - *The Fragrant Flower Blooms With Dignity* (released)
 
 > Initial release. Establishes the framework foundation: full Havoc rebrand, new Linux agent, loot manager, Python API, Mugen UI.
 
@@ -205,5 +205,5 @@ Mugen release names are titles of romance manga.
 | Version | Name | Status |
 |---------|------|--------|
 | v0.1 | *The Fragrant Flower Blooms With Dignity* | Released |
-| v0.2 | TBD | In progress |
+| v0.2 | *My Dress-Up Darling* | RC1 |
 | v0.3 | TBD | Planned |
