@@ -63,15 +63,36 @@ This document tracks planned features, improvements, and long-term goals for the
 ### Network evasion (high priority)
 
 - [x] **Malleable C2 profile for Tengu** - configurable HTTP headers, URIs, user-agent per profile (like Demon)
-- [ ] **JA3/JA3S fingerprint randomization** - rotate TLS client hello parameters to avoid static signatures
-- [ ] **Domain fronting** - `Host:` header override per profile, for Demon and Tengu
+- [ ] **JA3/JA3S fingerprint randomization** - rotate TLS client hello parameters to avoid static signatures. Tengu uses libcurl: this is a TLS-stack project, not a new implant command.
+- [ ] **Domain fronting** - first-class `Host:` override in the profile UX. Tengu already sends custom HTTP headers; a `Host:` line in the profile is the agent-side knob. Remaining work is Demon + builder UX.
 
 ### Tengu (Linux agent)
 
-- [ ] **ELF BOF toolkit** - Linux equivalents of SituationalAwareness BOFs (advanced /proc enumeration, capability dump, who)
-- [ ] **Advanced persistence** - `LD_PRELOAD`, `/etc/profile.d` (cron/systemd/bash already done in v0.1)
-- [ ] **Lateral movement** - SSH key harvesting + spray, pivot over existing SSH session
-- [ ] **Container awareness** - cgroup namespace detection, Docker socket exposure, escape primitives
+The implant stays small: C2, filesystem, exec, pivot. New Linux tricks are ELF BOFs in **MugenFramework/Modules** (`TenguSA`), same layout as Demon's `SituationalAwareness`: Python command + `ObjectFiles/*.o`. Operators type `nsdetect`, not `bof nsdetect.x64.o`. Do not add persist / privesc / escape variants to `tengu.h`. Do not clone `whoami` / `ps` / `harvest` as BOFs.
+
+**TenguSA (Modules)**
+
+- [x] **TenguSA module** - `RegisterTenguCommand` + ELF BOFs. Already ships `sysinfo`, `who`, `lsmod`, `suidscan`, `capsdump`, `nsdetect`, `sshagent`.
+- [x] **`ssh-list`** - inventory of `~/.ssh` (names, perms, `authorized_keys` comments, `known_hosts` hosts). Does not dump private keys (`harvest`) and does not scan agent sockets (`sshagent`).
+- [x] **`cron-list`** - user crontab, `/etc/crontab`, `/etc/cron.d`, systemd user timers. Does not install persist (`persist cron`).
+- [ ] **More TenguSA BOFs** as gaps show up (SSH spray, persist helpers, container escapes). Not clones of existing commands.
+
+**Operator gaps (implant)**
+
+- [ ] **PTY / interactive shell** - `shell` is `popen` today: no TTY, no `su` / `sudo` / `passwd`. Real PTY with stdin.
+- [ ] **Long-running jobs** - a BOF or `portscan` must not freeze the beacon loop. Fork-and-run (or equivalent) so check-ins continue.
+- [x] **Tengu as TCP pivot parent** - `pivot tcp listen <port>` already starts a Linux parent. Polish is docs / graph, not a new protocol.
+
+**Lateral and persist (BOFs / first-class jump, not new `TENGU_*` persist commands)**
+
+- [ ] **SSH jump** - use a harvested key (or agent) to drop a Tengu on another host and get a new session in the table. This is the Linux psexec. Spray stays a BOF, not a core command.
+- [ ] **SSH spray BOF** - try keys/users against a list; prints hits. Does not register a session.
+- [ ] **Persistence BOFs** - `LD_PRELOAD`, `/etc/profile.d`, XDG autostart. cron / systemd / bash stay in the implant (v0.1). Do not add more persist methods to `tengu.h`.
+- [ ] **Container escape BOFs** - optional, separate from detection. Not in the implant (CVEs rot).
+
+**Deploy**
+
+- [ ] **Minimal ELF stager** - small HTTP(S) dropper that pulls the full Tengu. Today the operator drops the whole implant. (Cross-platform stager in v0.3 can reuse this.)
 
 ### Demon (Windows agent)
 
@@ -89,7 +110,7 @@ This document tracks planned features, improvements, and long-term goals for the
 
 ### Python API / Modules
 
-- [ ] **Linux module collection** - SituationalAwareness, persistence, privesc helpers in Python via Tengu BOF API
+- [x] **TenguSA** - Linux situational awareness in `MugenFramework/Modules` (Python + ELF BOFs), same pattern as Demon's SituationalAwareness. Further Linux tools land there, not as a second Python collection.
 - [ ] **`mugen.AgentInfo(agent_id)`** - expose full session metadata to scripts
 - [ ] **`mugen.OnTaskComplete(agent_id, callback)`** - callback triggered when a task completes
 - [ ] **`mugen.AddContextMenu(label, handler)`** - add right-click entries from a script
