@@ -33,6 +33,7 @@ First pre-release of v0.2. Shared teamserver state, Hide vs Dead vs Exit, an Ops
 **Tengu**
 
 - HTTP URI rotation and custom request headers, configurable per profile (same malleable-style knobs Demon already had).
+- TenguSA (`MugenFramework/Modules`): `ssh-list` (inventory of `~/.ssh`, no key dump) and `cron-list` (crons/timers, no persist install). Same pattern as Demon SituationalAwareness — console commands, not files in `payloads/`.
 
 **Build**
 
