@@ -141,7 +141,7 @@ auto TenguCommands::DispatchCommand( bool Send, QString TaskID, const QString& c
         TenguConsole->Console->append( row( "rm",             "Command", "remove file or directory" ) );
         TenguConsole->Console->append( row( "route",          "Command", "show routing table" ) );
         TenguConsole->Console->append( row( "screenshot",     "Command", "capture screen (scrot/grim)" ) );
-        TenguConsole->Console->append( row( "shell",          "Command", "execute a shell command" ) );
+        TenguConsole->Console->append( row( "shell",          "Command", "execute a command on a PTY (isatty, stderr, 120s cap)" ) );
         TenguConsole->Console->append( row( "harvest",         "Command", "collect credentials: SSH keys, history, cloud tokens, etc." ) );
         TenguConsole->Console->append( row( "keylog",          "Command", "capture keystrokes for N seconds (default 30)" ) );
         TenguConsole->Console->append( row( "memfd",           "Command", "execute ELF in-memory via memfd_create (no disk write)" ) );
