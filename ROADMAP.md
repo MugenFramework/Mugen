@@ -77,9 +77,10 @@ The implant stays small: C2, filesystem, exec, pivot. New Linux tricks are ELF B
 - [x] **`cron-list`** - user crontab, `/etc/crontab`, `/etc/cron.d`, systemd user timers. Does not install persist (`persist cron`).
 - [ ] **More TenguSA BOFs** as gaps show up (SSH spray, persist helpers, container escapes). Not clones of existing commands.
 
-**Operator gaps (implant)**
+**PTY and jobs**
 
-- [ ] **PTY / interactive shell** - `shell` is `popen` today: no TTY, no `su` / `sudo` / `passwd`. Real PTY with stdin.
+- [x] **PTY for `shell`** - `shell` runs on a real PTY (`posix_openpt`), so `isatty`, sudo/su prompts, and stderr work. 120s cap then SIGKILL so a hung `sudo` does not freeze the implant. Interactive stdin across check-ins is the next item (pairs with long-running jobs).
+- [ ] **Interactive PTY session** - `pty start` / send / stop so `passwd` and `sudo` can take a password on a later check-in without blocking the beacon loop.
 - [ ] **Long-running jobs** - a BOF or `portscan` must not freeze the beacon loop. Fork-and-run (or equivalent) so check-ins continue.
 - [x] **Tengu as TCP pivot parent** - `pivot tcp listen <port>` already starts a Linux parent. Polish is docs / graph, not a new protocol.
 

