@@ -1,0 +1,21 @@
+QMenuBar {
+    background-color: #0a0a0f;
+    color: #8888aa;
+    border-bottom: 1px solid #2a2a3f;
+}
+
+QMenuBar::item {
+    padding: 4px 10px;
+    background: transparent;
+    border-radius: 0px;
+}
+
+QMenuBar::item:selected {
+    background: #ff6b9d22;
+    color: #ff6b9d;
+}
+
+QMenuBar::item:pressed {
+    background: #1c1c28;
+    color: #ff6b9d;
+}

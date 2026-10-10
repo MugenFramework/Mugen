@@ -32,6 +32,8 @@ mugen
 
 # ignore data directory
 data/
+# but keep the client data directory
+!client/data/
 
 # ignore downloads (agent session files)
 downloads/

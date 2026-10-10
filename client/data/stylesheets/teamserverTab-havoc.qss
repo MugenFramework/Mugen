@@ -1,0 +1,39 @@
+QTabWidget::pane {
+    border: 1px solid #6272a4;
+    border-top: 2px solid #bd93f9;
+    background: #282a36;
+}
+
+QTabBar::close-button {
+    image: url(:/icons/tab-close-button);
+    subcontrol-position: right;
+}
+
+QTabBar {
+    background: #282a36;
+}
+
+QTabBar::tab {
+    height: 30px;
+    background: #282a36;
+    color: #6272a4;
+    border: none;
+    border-right: 1px solid #44475a;
+    border-bottom: none;
+    padding: 0 20px;
+    border-radius: 0px;
+    font-size: 12px;
+}
+
+QTabBar::tab:selected {
+    background: #44475a;
+    color: #bd93f9;
+    border-top: 3px solid #bd93f9;
+    border-right: 1px solid #6272a4;
+    font-weight: bold;
+}
+
+QTabBar::tab:hover:!selected {
+    background: #44475a;
+    color: #f8f8f2;
+}

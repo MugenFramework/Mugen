@@ -1,0 +1,124 @@
+QDialog {
+    background-color: #111118;
+    color: #f0f0ee;
+}
+
+QWidget {
+    background-color: #111118;
+    color: #f0f0ee;
+}
+
+QPushButton {
+    border: 1px solid #ff6b9d;
+    border-radius: 0px;
+    background-color: #ff6b9d;
+    color: #0a0a0f;
+    padding: 4px 15px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #e05580;
+    border: 1px solid #e05580;
+}
+
+QPushButton:pressed {
+    border: 1px solid #ff6b9d;
+    background-color: #111118;
+    color: #ff6b9d;
+}
+
+QProgressBar {
+    text-align: center;
+    background: #0a0a0f;
+    border: 1px solid #2a2a3f;
+    color: #f0f0ee;
+    border-radius: 0px;
+}
+
+QProgressBar::chunk {
+    background-color: #ff6b9d;
+}
+
+QTextEdit {
+    background-color: #0a0a0f;
+    color: #f0f0ee;
+    border: 1px solid #2a2a3f;
+}
+
+QComboBox {
+    background-color: #0a0a0f;
+    color: #f0f0ee;
+    border: 1px solid #2a2a3f;
+    border-radius: 0px;
+    padding: 3px 8px;
+}
+
+QComboBox:focus {
+    border: 1px solid #ff6b9d;
+}
+
+QComboBox:!enabled {
+    background-color: #0a0a0f;
+    color: #3a3a5a;
+}
+
+QComboBox::item {
+    background: #111118;
+    color: #f0f0ee;
+}
+
+QComboBox::item:selected {
+    background: #ff6b9d22;
+    color: #ff6b9d;
+}
+
+QGroupBox::title {
+    color: #ff6b9d;
+}
+
+QListWidget {
+    margin-top: 2px;
+    background-color: #0a0a0f;
+    border: 1px solid #2a2a3f;
+    border-radius: 0px;
+    color: #f0f0ee;
+}
+
+QListWidget::item:selected {
+    background-color: #ff6b9d22;
+    color: #ff6b9d;
+}
+
+QLabel {
+    color: #f0f0ee;
+    background: transparent;
+}
+
+QLineEdit {
+    background-color: #0a0a0f;
+    color: #f0f0ee;
+    border: 1px solid #2a2a3f;
+    border-radius: 0px;
+    padding: 4px;
+}
+
+QLineEdit:focus {
+    border: 1px solid #ff6b9d;
+}
+
+QLineEdit:read-only {
+    background-color: #0a0a0f;
+    color: #8888aa;
+}
+
+#ConfigItem, #list, #text, #bool {
+    background-color: #0a0a0f;
+    color: #64ffda;
+}
+
+QPlainTextEdit {
+    background-color: #0a0a0f;
+    color: #f0f0ee;
+    border: 1px solid #2a2a3f;
+}
